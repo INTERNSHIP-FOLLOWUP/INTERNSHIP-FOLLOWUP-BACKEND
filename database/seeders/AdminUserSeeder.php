@@ -1,30 +1,35 @@
 <?php
 
-namespace Database\Seeders;
+namespace App\Http\Middleware;
 
-use App\Models\User;
-use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
+use Closure;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
-class AdminUserSeeder extends Seeder
+class RoleMiddleware
 {
     /**
-     * Seed one admin user for immediate login testing.
+     * Handle an incoming request.
      *
-     * Email:    admin@example.com
-     * Password: password
+     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  string  ...$roles
      */
-    public function run(): void
+    public function handle(Request $request, Closure $next, string ...$roles): Response
     {
-        User::firstOrCreate(
-            ['email' => 'admin@example.com'],
-            [
-                'name'  => 'Admin',
-                'email' => 'admin@example.com',
-                'password' => Hash::make('password'),
-                'role' => 'admin',
-                'avatar' => null,
-            ]
-        );
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json([
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
+        if (! in_array($user->role, $roles, true)) {
+            return response()->json([
+                'message' => 'Forbidden. You do not have access to this resource.',
+            ], 403);
+        }
+
+        return $next($request);
     }
 }
