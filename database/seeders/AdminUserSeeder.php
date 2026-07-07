@@ -16,22 +16,22 @@ class AdminUserSeeder extends Seeder
         $users = [
             [
                 'name'  => 'Admin User',
-                'email' => 'admin@example.com',
+                'email' => 'admin@gmail.com',
                 'role'  => 'admin',
             ],
             [
                 'name'  => 'Tutor User',
-                'email' => 'tutor@example.com',
+                'email' => 'tutor@gmail.com',
                 'role'  => 'tutor',
             ],
             [
                 'name'  => 'Student User',
-                'email' => 'student@example.com',
+                'email' => 'student@gmail.com',
                 'role'  => 'student',
             ],
             [
                 'name'  => 'Company User',
-                'email' => 'company@example.com',
+                'email' => 'company@gmail.com',
                 'role'  => 'company representative',
             ],
         ];
@@ -45,6 +45,7 @@ class AdminUserSeeder extends Seeder
                     'name'     => $userData['name'],
                     'email'    => $userData['email'],
                     'password' => 'password',
+                    'role'     => $userData['role'],
                     'role_id'  => $role->id,
                 ]
             );
