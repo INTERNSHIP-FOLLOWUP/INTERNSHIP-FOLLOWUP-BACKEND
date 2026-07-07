@@ -12,17 +12,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->alias([
-            'role' => \App\Http\Middleware\RoleMiddleware::class,
-        ]);
-
-        $middleware->redirectGuestsTo(function (\Illuminate\Http\Request $request) {
-            if ($request->expectsJson() || $request->is('api/*')) {
-                return null;
-            }
-
-            return route('login');
-        });
+        //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, \Illuminate\Http\Request $request) {
@@ -30,7 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 return response()->json(['message' => $e->getMessage()], 401);
             }
 
-            return redirect()->guest($e->redirectTo() ?? route('login'));
+            return redirect()->guest($e->redirectTo($request) ?? route('login'));
         });
 
         $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e, \Illuminate\Http\Request $request) {
