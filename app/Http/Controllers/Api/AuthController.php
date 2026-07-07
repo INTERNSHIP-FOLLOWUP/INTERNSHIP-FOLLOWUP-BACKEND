@@ -23,7 +23,7 @@ class AuthController extends Controller
             'name'   => $user->name,
             'email'  => $user->email,
             'avatar' => $user->avatar,
-            'role'   => $user->role->name, // return role name not role_id
+            'role'   => $user->getAttribute('role'),
         ];
     }
 
@@ -35,8 +35,10 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'name'                  => 'required|string|max:255',
             'email'                 => 'required|string|email|max:255|unique:users',
-            'password'              => 'required|string|min:8',
+            'password'              => ['required', 'string', 'min:6'],
             'password_confirmation' => 'required|string|same:password',
+        ], [
+            'password.regex' => 'The password must contain at least one letter and one number.',
         ]);
 
         if ($validator->fails()) {
@@ -55,7 +57,6 @@ class AuthController extends Controller
             'role_id'  => $studentRole?->id,
         ]);
 
-        $user->load('role');
         $token = $user->createToken('api-token')->plainTextToken;
 
         return response()->json([
@@ -75,7 +76,7 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $user = User::with('role')->where('email', $validated['email'])->first();
+        $user = User::where('email', $validated['email'])->first();
 
         if (!$user || !Hash::check($validated['password'], $user->password)) {
             throw ValidationException::withMessages([
@@ -125,8 +126,6 @@ class AuthController extends Controller
         $user->email = $request->email;
         $user->save();
 
-        $user->load('role');
-
         return response()->json([
             'message' => 'Profile updated successfully',
             'user'    => $this->userResponse($user),
@@ -143,6 +142,14 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Password reset link placeholder functionality.'
         ], 200);
+    }
+
+    /**
+     * BE-15: Get Current User
+     */
+    public function user(Request $request)
+    {
+        return response()->json($this->userResponse($request->user()));
     }
 
     /**
