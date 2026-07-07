@@ -13,15 +13,16 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 | Public Authentication Routes (Guest Access)
 |--------------------------------------------------------------------------
+|
+| Root-level routes match the frontend axios calls (e.g. /api/register).
+| The /auth/ prefix routes are kept for backward compatibility.
 */
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
+
 Route::prefix('auth')->group(function () {
-    // BE-10: Register Endpoint
     Route::post('/register', [AuthController::class, 'register']);
-
-    // BE-11: Login Endpoint
     Route::post('/login', [AuthController::class, 'login']);
-
-    // BE-13: Forgot-Password Stub Placeholder
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 });
 
@@ -30,16 +31,18 @@ Route::prefix('auth')->group(function () {
 | Protected Authentication Routes (Requires Sanctum Token)
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth:sanctum')->prefix('auth')->group(function () {
-    // Fetch Current Authenticated User State
+Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
+    Route::post('/logout', [AuthController::class, 'logout']);
+});
 
-    // BE-14: Update Profile Endpoint
+Route::middleware('auth:sanctum')->prefix('auth')->group(function () {
+    Route::get('/user', function (Request $request) {
+        return $request->user();
+    });
     Route::put('/profile/update', [AuthController::class, 'updateProfile']);
-
-    // BE-12: Logout Endpoint
     Route::post('/logout', [AuthController::class, 'logout']);
 });
 
