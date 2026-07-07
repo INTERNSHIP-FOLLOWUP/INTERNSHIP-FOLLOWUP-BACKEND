@@ -15,13 +15,13 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->string('role')->default('student')->after('email');
-            $table->string('avatar')->nullable()->after('role');
+            $table->string('role')->default('student');
+            $table->string('avatar')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
 
-        DB::statement("ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin', 'tutor', 'student', 'company'))");
+        DB::statement("ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin', 'tutor', 'student', 'company representative'))");
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();
