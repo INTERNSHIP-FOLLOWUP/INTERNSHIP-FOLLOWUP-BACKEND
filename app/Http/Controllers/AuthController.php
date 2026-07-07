@@ -51,10 +51,18 @@ class AuthController extends Controller
     // BE-12: Logout endpoint placeholder
     public function logout(Request $request)
     {
-        // Leave empty for now
+        // 1. Target the specific PersonalAccessToken used to authorize this request and delete it
+        $request->user()->currentAccessToken()->delete();
+
+        // 2. Return a standard RESTful success message
+        return response()->json([
+            'success' => true,
+            'message' => 'Logged out successfully. Token has been revoked.'
+        ], 200);
     }
     // BE-13: Forgot-password stub placeholder
     public function forgotPassword(Request $request)
+    
     {
         // 1. Basic validation to ensure an email structure is submitted by the client
         $request->validate([
