@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sprint 1 Manual API Testing & Bug Fixes</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 5px solid #667eea;
+        }
+        
+        .section h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.8em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .section h3 {
+            color: #34495e;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+        
+        .test-case {
+            background: white;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .test-case-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .test-id {
+            background: #667eea;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        
+        .test-status {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        
+        .status-pass {
+            background: #28a745;
+            color: white;
+        }
+        
+        .status-fail {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .status-pending {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .test-details {
+            margin: 10px 0;
+        }
+        
+        .test-details strong {
+            color: #2c3e50;
+        }
+        
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .expected-result {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 10px 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        
+        .actual-result {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 10px 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        
+        .bug-report {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 6px;
+        }
+        
+        .bug-report h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+        
+        .severity-critical {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        
+        .severity-medium {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        
+        .severity-low {
+            color: #28a745;
+            font-weight: bold;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+            font-weight: bold;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .checkbox-wrapper {
+            margin: 10px 0;
+        }
+        
+        .checkbox-wrapper input[type="checkbox"] {
+            margin-right: 10px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .info-box {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-card h3 {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card p {
+            font-size: 1em;
+            opacity: 0.9;
+        }
+        
+        footer {
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            margin: 5px;
+        }
+        
+        .btn:hover {
+            background: #5568d3;
+        }
+        
+        .btn-success {
+            background: #28a745;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+        }
+        
+        .notes {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        
+        .notes ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        
+        .notes li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 Sprint 1 Manual API Testing & Bug Fixes</h1>
+            <p>Student Internship Follow-up System | Backend Testing Guide</p>
+        </header>
+        
+        <div class="content">
+            <!-- Testing Environment Setup -->
+            <div class="section">
+                <h2>📋 Testing Environment Setup</h2>
+                <div class="info-box">
+                    <strong>Required Software:</strong>
+                    <ul>
+                        <li>XAMPP/WAMP with PHP 8.2+</li>
+                        <li>MySQL 8.x</li>
+                        <li>Composer</li>
+                        <li>Postman/Insomnia</li>
+                        <li>Git</li>
+                    </ul>
+                </div>
+                <div class="warning-box">
+                    <strong>⚠️ Prerequisites:</strong>
+                    <ol>
+                        <li>Ensure MySQL is running</li>
+                        <li>Configure <code>.env</code> file with database credentials</li>
+                        <li>Run migrations: <code>php artisan migrate</code></li>
+                        <li>Seed database: <code>php artisan db:seed</code></li>
+                        <li>Start Laravel server: <code>php artisan serve</code></li>
+                        <li>Note down admin credentials from seeder</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- Test Statistics -->
+            <div class="section">
+                <h2>📊 Test Summary</h2>
+                <div class="stats">
+                    <div class="stat-card">
+                        <h3 id="totalTests">16</h3>
+                        <p>Total Tests</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 id="passedTests">0</h3>
+                        <p>Passed</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 id="failedTests">0</h3>
+                        <p>Failed</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 id="passRate">0%</h3>
+                        <p>Pass Rate</p>
+                    </div>
+                </div>
+                <button class="btn btn-success" onclick="updateStats()">Update Statistics</button>
+            </div>
+
+            <!-- Authentication Module Tests -->
+            <div class="section">
+                <h2>🔐 Authentication Module Tests</h2>
+                
+                <!-- Test AUTH-001 -->
+                <div class="test-case">
+                    <div class="test-case-header">
+                        <span class="test-id">AUTH-001</span>
+                        <span class="test-status status-pending" id="status-auth-001">PENDING</span>
+                    </div>
+                    <h3>POST /api/register - User Registration (Valid)</h3>
+                    <div class="test-details">
+                        <p><strong>Endpoint:</strong> POST http://localhost:8000/api/v1/register</p>
+                        <p><strong>Description:</strong> Create a new user account with valid data</p>
+                    </div>
+                    <div class="code-block">
+{
+    "name": "Test User",
+    "email": "testuser@example.com",
+    "password": "Password123!",
+    "password_confirmation": "Password123!"
+}
+                    </div>
+                    <div class="expected-result">
+                        <strong>Expected Result:</strong> 201 Created - Returns user object + token
+                    </div>
+                    <div class="actual-result">
+                        <strong>Actual Result:</strong><br>
+                        <textarea id="result-auth-001" rows="3" style="width: 100%; margin-top: 5px;" placeholder="Paste response here..."></textarea>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="pass-auth-001" onchange="updateTestStatus('auth-001')">
+                        <label for="pass-auth-001">Test Passed</label>
+                    </div>
+                </div>
+
+                <!-- Test AUTH-002 -->
+                <div class="test-case">
+                    <div class="test-case-header">
+                        <span class="test-id">AUTH-002</span>
+                        <span class="test-status status-pending" id="status-auth-002">PENDING</span>
+                    </div>
+                    <h3>POST /api/register - Missing Required Fields</h3>
+                    <div class="test-details">
+                        <p><strong>Endpoint:</strong> POST http://localhost:8000/api/v1/register</p>
+                        <p><strong>Description:</strong> Test validation with missing fields</p>
+                    </div>
+                    <div class="code-block">
+{
+    "email": "test@example.com"
+}
+                    </div>
+                    <div class="expected-result">
+                        <strong>Expected Result:</strong> 422 Unprocessable Entity - Returns validation errors for missing name and password
+                    </div>
+                    <div class="actual-result">
+                        <strong>Actual Result:</strong><br>
+                        <textarea id="result-auth-002" rows="3" style="width: 100%; margin-top: 5px;" placeholder="Paste response here..."></textarea>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="pass-auth-002" onchange="updateTestStatus('auth-002')">
+                        <label for="pass-auth-002">Test Passed</label>
+                    </div>
+                </div>
+
+                <!-- Test AUTH-003 -->
+                <div class="test-case">
+                    <div class="test-case-header">
+                        <span class="test-id">AUTH-003</span>
+                        <span class="test-status status-pending" id="status-auth-003">PENDING</span>
+                    </div>
+                    <h3>POST /api/login - Valid Login</h3>
+                    <div class="test-details">
+                        <p><strong>Endpoint:</strong> POST http://localhost:8000/api/v1/login</p>
+                        <p><strong>Description:</strong> Login with valid admin credentials</p>
+                    </div>
+                    <div class="code-block">
+{
+    "email": "admin@example.com",
+    "password": "password"
+}
+                    </div>
+                    <div class="expected-result">
+                        <strong>Expected Result:</strong> 200 OK - Returns user object + token
+                    </div>
+                    <div class="actual-result">
+                        <strong>Actual Result:</strong><br>
+                        <textarea id="result-auth-003" rows="3" style="width: 100%; margin-top: 5px;" placeholder="Paste response here..."></textarea>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="pass-auth-003" onchange="updateTestStatus('auth-003')">
+                        <label for="pass-auth-003">Test Passed</label>
+                    </div>
+                </div>
+
+                <!-- Test AUTH-004 -->
+                <div class="test-case">
+                    <div class="test-case-header">
+                        <span class="test-id">AUTH-004</span>
+                        <span class="test-status status-pending" id="status-auth-004">PENDING</span>
+                    </div>
+                    <h3>POST /api/login - Invalid Credentials</h3>
+                    <div class="test-details">
+                        <p><strong>Endpoint:</strong> POST http://localhost:8000/api/v1/login</p>
+                        <p><strong>Description:</strong> Login with wrong password</p>
+                    </div>
+                    <div class="code-block">
+{
+    "email": "admin@example.com",
+    "password": "WrongPassword"
+}
+                    </div>
+                    <div class="expected-result">
+                        <strong>Expected Result:</strong> 401 Unauthorized - {"message": "Invalid credentials"}
+                    </div>
+                    <div class="actual-result">
+                        <strong>Actual Result:</strong><br>
+                        <textarea id="result-auth-004" rows="3" style="width: 100%; margin-top: 5px;" placeholder="Paste response here..."></textarea>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="pass-auth-004" onchange="updateTestStatus('auth-004')">
+                        <label for="pass-auth-004">Test Passed</label>
+                    </div>
+                </div>
+
+                <!-- Test AUTH-005 -->
+                <div class="test-case">
+                    <div class="test-case-header">
+                        <span class="test-id">AUTH-005</span>
+                        <span class="test-status status-pending" id="status-auth-005">PENDING</span>
+                    </div>
+                    <h3>POST /api/logout - Revoke Token</h3>
+                    <div class="test-details">
+                        <p><strong>Endpoint:</strong> POST http://localhost:8000/api/v1/logout</p>
+                        <p><strong>Description:</strong> Logout and verify token is invalidated</p>
+                    </div>
+                    <div class="code-block">
+Headers: Authorization: Bearer {valid_token}
+                    </div>
+                    <div class="expected-result">
+                        <strong>Expected Result:</strong> 200 OK - Token revoked, subsequent requests with same token return 401
+                    </div>
+                    <div class="actual-result">
+                        <strong>Actual Result:</strong><br>
+                        <textarea id="result-auth-005" rows="3" style="width: 100%; margin-top: 5px;" placeholder="Paste response here..."></textarea>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="pass-auth-005" onchange="updateTestStatus('auth-005')">
+                        <label for="pass-auth-005">Test Passed</label>
+                    </div>
+                </div>
+
+                <!-- Test AUTH-006 -->
+                <div class="test-case">
+                    <div class="test-case-header">
+                        <span class="test-id">AUTH-006</span>
+                        <span class="test-status status-pending" id="status-auth-006">PENDING</span>
+                    </div>
+                    <h3>POST /api/forgot-password - Stub Endpoint</h3>
+                    <div class="test-details">
+                        <p><strong>Endpoint:</strong> POST http://localhost:8000/api/v1/forgot-password</p>
+                        <p><strong>Description:</strong> Test password reset stub</p>
+                    </div>
+                    <div class="code-block">
+{
+    "email": "user@example.com"
+}
+                    </div>
+                    <div class="expected-result">
+                        <strong>Expected Result:</strong> 200 OK - Success message
+                    </div>
+                    <div class="actual-result">
+                        <strong>Actual Result:</strong><br>
+                        <textarea id="result-auth-006" rows="3" style="width: 100%; margin-top: 5px;" placeholder="Paste response here..."></textarea>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="pass-auth-006" onchange="updateTestStatus('auth-006')">
+                        <label for="pass-auth-006">Test Passed</label>
+                    </div>
+                </div>
+
+                <!-- Test AUTH-007 -->
+                <div class="test-case">
+                    <div class="test-case-header">
+                        <span class="test-id">AUTH-007</span>
+                        <span class="test-status status-pending" id="status-auth-007">PENDING</span>
+                    </div>
+                    <h3>PUT /api/profile - Update Profile (Valid)</h3>
+                    <div class="test-details">
+                        <p><strong>Endpoint:</strong> PUT http://localhost:8000/api/v1/profile</p>
+                        <p><strong>Description:</strong> Update name and email</p>
+                    </div>
+                    <div class="code-block">
+Headers: Authorization: Bearer {token}
+Body (form-data):
+  name: Updated Name
+  email: updated@example.com
+                    </div>
+                    <div class="expected-result">
+                        <strong>Expected Result:</strong> 200 OK - Updated user object
+                    </div>
+                    <div class="actual-result">
+                        <strong>Actual Result:</strong><br>
+                        <textarea id="result-auth-007" rows="3" style="width: 100%; margin-top: 5px;" placeholder="Paste response here..."></textarea>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="pass-auth-007" onchange="updateTestStatus('auth-007')">
+                        <label for="pass-auth-007">Test Passed</label>
+                    </div>
+                </div>
+
+                <!-- Test AUTH-008 -->
+                <div class="test-case">
+                    <div class="test-case-header">
+                        <span class="test-id">AUTH-008</span>
+                        <span class="test-status status-pending" id="status-auth-008">PENDING</span>
+                    </div>
+                    <h3>PUT /api/profile - Avatar Upload (Valid JPG)</h3>
+                    <div class="test-details">
+                        <p><strong>Endpoint:</strong> PUT http://localhost:8000/api/v1/profile</p>
+                        <p><strong>Description:</strong> Upload valid JPG avatar (< 2MB)</p>
+                    </div>
+                    <div class="code-block">
+Headers: Authorization: Bearer {token}
+Body (form-data):
+  name: Test User
+  avatar: [JPG file < 2MB]
+                    </div>
+                    <div class="expected-result">
+                        <strong>Expected Result:</strong> 200 OK - User with avatar path
+                    </div>
+                    <div class="actual-result">
+                        <strong>Actual Result:</strong><br>
+                        <textarea id="result-auth-008" rows="3" style="width: 100%; margin-top: 5px;" placeholder="Paste response here..."></textarea>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="pass-auth-008" onchange="updateTestStatus('auth-008')">
+                        <label for="pass-auth-008">Test Passed</label>
+                    </div>
+                </div>
+
+                <!-- Test AUTH-009 -->
+                <div class="test-case">
+                    <div class="test-case-header">
+                        <span class="test-id">AUTH-009</span>
+                        <span class="test-status status-pending" id="status-auth-009">PENDING</span>
+                    </div>
+                    <h3>PUT /api/profile - Invalid File Type (PDF)</h3>
+                    <div class="test-details">
+                        <p><strong>Endpoint:</strong> PUT http://localhost:8000/api/v1/profile</p>
+                        <p><strong>Description:</strong> Upload PDF instead of image</p>
+                    </div>
+                    <div class="code-block">
+Headers: Authorization: Bearer {token}
+Body (form-data):
+  avatar: [PDF file]
+                    </div>
+                    <div class="expected-result">
+                        <strong>Expected Result:</strong> 422 - "avatar must be jpg, jpeg, png"
+                    </div>
+                    <div class="actual-result">
+                        <strong>Actual Result:</strong><br>
+                        <textarea id="result-auth-009" rows="3" style="width: 100%; margin-top: 5px;" placeholder="Paste response here..."></textarea>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="pass-auth-009" onchange="updateTestStatus('auth-009')">
+                        <label for="pass-auth-009">Test Passed</label>
+                    </div>
+                </div>
+
+                <!-- Test AUTH-010 -->
+                <div class="test-case">
+                    <div class="test-case-header">
+                        <span class="test-id">AUTH-010</span>
+                        <span class="test-status status-pending" id="status-auth-010">PENDING</span>
+                    </div>
+                    <h3>PUT /api/profile - File Too Large (>2MB)</h3>
+                    <div class="test-details">
+                        <p><strong>Endpoint:</strong> PUT http://localhost:8000/api/v1/profile</p>
+                        <p><strong>Description:</strong> Upload file larger than 2MB</p>
+                    </div>
+                    <div class="code-block">
+Headers: Authorization: Bearer {token}
+Body (form-data):
+  avatar: [JPG file > 2MB]
+                    </div>
+                    <div class="expected-result">
+                        <strong>Expected Result:</strong> 422 - "avatar may not be greater than 2 MB"
+                    </div>
+                    <div class="actual-result">
+                        <strong>Actual Result:</strong><br>
+                        <textarea id="result-auth-010" rows="3" style="width: 100%; margin-top: 5px;" placeholder="Paste response here..."></textarea>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="pass-auth-010" onchange="updateTestStatus('auth-010')">
+                        <label for="pass-auth-010">Test Passed</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Management Tests -->
+            <div class="section">
+                <h2>👥 User Management Tests (Admin Only)</h2>
+                
+                <!-- Test USER-001 -->
+                <div class="test-case">
+                    <div class="test-case-header">
+                        <span class="test-id">USER-001</span>
+                        <span class="test-status status-pending" id="status-user-001">PENDING</span>
+                    </div>
+                    <h3>GET /api/admin/users - List All Users</h3>
+                    <div class="test-details">
+                        <p><strong>Endpoint:</strong> GET http://localhost:8000/api/v1/admin/users</p>
+                        <p><strong>Description:</strong> Admin can view paginated user list</p>
+                    </div>
+                    <div class="code-block">
+Headers: Authorization: Bearer {admin_token}
+                    </div>
+                    <div class="expected-result">
+                        <strong>Expected Result:</strong> 200 OK - Paginated user list
+                    </div>
+                    <div class="actual-result">
+                        <strong>Actual Result:</strong><br>
+                        <textarea id="result-user-001" rows="3" style="width: 100%; margin-top: 5px;" placeholder="Paste response here..."></textarea>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="pass-user-001" onchange="updateTestStatus('user-001')">
+                        <label for="pass-user-001">Test Passed</label>
+                    </div>
+                </div>
+
+                <!-- Test USER-002 -->
+                <div class="test-case">
+                    <div class="test-case-header">
+                        <span class="test-id">USER-002</span>
+                        <span class="test-status status-pending" id="status-user-002">PENDING</span>
+                    </div>
+                    <h3>GET /api/admin/users - Filter by Role</h3>
+                    <div class="test-details">
+                        <p><strong>Endpoint:</strong> GET http://localhost:8000/api/v1/admin/users?role=tutor</p>
+                        <p><strong>Description:</strong> Filter users by role</p>
+                    </div>
+                    <div class="expected-result">
+                        <strong>Expected Result:</strong> 200 OK - Only tutors returned
+                    </div>
+                    <div class="actual-result">
+                        <strong>Actual Result:</strong><br>
+                        <textarea id="result-user-002" rows="3" style="width: 100%; margin-top: 5px;" placeholder="Paste response here..."></textarea>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="pass-user-002" onchange="updateTestStatus('user-002')">
+                        <label for="pass-user-002">Test Passed</label>
+                    </div>
+                </div>
+
+                <!-- Test USER-003 -->
+                <div class="test-case">
+                    <div class="test-case-header">
+                        <span class="test-id">USER-003</span>
+                        <span class="test-status status-pending" id="status-user-003">PENDING</span>
+                    </div>
+                    <h3>GET /api/admin/users - Non-Admin Access (Should Fail)</h3>
+                    <div class="test-details">
+                        <p><strong>Endpoint:</strong> GET http://localhost:8000/api/v1/admin/users</p>
+                        <p><strong>Description:</strong> Student token should be rejected</p>
+                    </div>
+                    <div class="code-block">
+Headers: Authorization: Bearer {student_token}
+                    </div>
+                    <div class="expected-result">
+                        <strong>Expected Result:</strong> 403 Forbidden
+                    </div>
+                    <div class="actual-result">
+                        <strong>Actual Result:</strong><br>
+                        <textarea id="result-user-003" rows="3" style="width: 100%; margin-top: 5px;" placeholder="Paste response here..."></textarea>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="pass-user-003" onchange="updateTestStatus('user-003')">
+                        <label for="pass-user-003">Test Passed</label>
+                    </div>
+                </div>
+
+                <!-- Test USER-004 -->
+                <div class="test-case">
+                    <div class="test-case-header">
+                        <span class="test-id">USER-004</span>
+                        <span class="test-status status-pending" id="status-user-004">PENDING</span>
+                    </div>
+                    <h3>POST /api/admin/users - Create New User</h3>
+                    <div class="test-details">
+                        <p><strong>Endpoint:</strong> POST http://localhost:8000/api/v1/admin/users</p>
+                        <p><strong>Description:</strong> Admin creates new tutor</p>
+                    </div>
+                    <div class="code-block">
+Headers: Authorization: Bearer {admin_token}
+Body:
+{
+    "name": "New Tutor",
+    "email": "newtutor@example.com",
+    "password": "Password123!",
+    "role": "tutor"
+}
+                    </div>
+                    <div class="expected-result">
+                        <strong>Expected Result:</strong> 201 Created - User object with hashed password
+                    </div>
+                    <div class="actual-result">
+                        <strong>Actual Result:</strong><br>
+                        <textarea id="result-user-004" rows="3" style="width: 100%; margin-top: 5px;" placeholder="Paste response here..."></textarea>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="pass-user-004" onchange="updateTestStatus('user-004')">
+                        <label for="pass-user-004">Test Passed</label>
+                    </div>
+                </div>
+
+                <!-- Test USER-005 -->
+                <div class="test-case">
+                    <div class="test-case-header">
+                        <span class="test-id">USER-005</span>
+                        <span class="test-status status-pending" id="status-user-005">PENDING</span>
+                    </div>
+                    <h3>PUT /api/admin/users/{id} - Update User</h3>
+                    <div class="test-details">
+                        <p><strong>Endpoint:</strong> PUT http://localhost:8000/api/v1/admin/users/1</p>
+                        <p><strong>Description:</strong> Admin updates existing user</p>
+                    </div>
+                    <div class="code-block">
+Headers: Authorization: Bearer {admin_token}
+Body:
+{
+    "name": "Updated Name",
+    "email": "updated@example.com",
+    "role": "tutor"
+}
+                    </div>
+                    <div class="expected-result">
+                        <strong>Expected Result:</strong> 200 OK - Updated user object
+                    </div>
+                    <div class="actual-result">
+                        <strong>Actual Result:</strong><br>
+                        <textarea id="result-user-005" rows="3" style="width: 100%; margin-top: 5px;" placeholder="Paste response here..."></textarea>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="pass-user-005" onchange="updateTestStatus('user-005')">
+                        <label for="pass-user-005">Test Passed</label>
+                    </div>
+                </div>
+
+                <!-- Test USER-006 -->
+                <div class="test-case">
+                    <div class="test-case-header">
+                        <span class="test-id">USER-006</span>
+                        <span class="test-status status-pending" id="status-user-006">PENDING</span>
+                    </div>
+                    <h3>DELETE /api/admin/users/{id} - Soft Delete User</h3>
+                    <div class="test-details">
+                        <p><strong>Endpoint:</strong> DELETE http://localhost:8000/api/v1/admin/users/2</p>
+                        <p><strong>Description:</strong> Soft delete user and verify deletion</p>
+                    </div>
+                    <div class="code-block">
+Headers: Authorization: Bearer {admin_token}
+                    </div>
+                    <div class="expected-result">
+                        <strong>Expected Result:</strong> 200 OK - Deleted user, subsequent GET returns 404
+                    </div>
+                    <div class="actual-result">
+                        <strong>Actual Result:</strong><br>
+                        <textarea id="result-user-006" rows="3" style="width: 100%; margin-top: 5px;" placeholder="Paste response here..."></textarea>
+                    </div>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="pass-user-006" onchange="updateTestStatus('user-006')">
+                        <label for="pass-user-006">Test Passed</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bug Tracking -->
+            <div class="section">
+                <h2>🐛 Bug Tracking Log</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Severity</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                            <th>Assigned To</th>
+                            <th>Fix Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bugTable">
+                        <tr>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>No bugs found yet</td>
+                            <td>Open</td>
+                            <td>-</td>
+                            <td>-</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button class="btn" onclick="addBug()">Add Bug Report</button>
+            </div>
+
+            <!-- Severity Definitions -->
+            <div class="section">
+                <h2>⚠️ Severity Definitions</h2>
+                <div class="info-box">
+                    <p><strong class="severity-critical">🔴 Critical:</strong> System crash, data loss, security vulnerability, complete feature failure</p>
+                    <p><strong class="severity-medium">🟡 Medium:</strong> Feature partially works, degraded performance, affects some users</p>
+                    <p><strong class="severity-low">🟢 Low:</strong> Minor UI/UX issues, cosmetic problems, rare edge cases</p>
+                </div>
+            </div>
+
+            <!-- Bug Report Template -->
+            <div class="section">
+                <h2>📝 Bug Report Template</h2>
+                <div class="bug-report">
+                    <h4>Bug Report Form</h4>
+                    <div style="margin: 10px 0;">
+                        <label><strong>Bug ID:</strong></label>
+                        <input type="text" id="bugId" placeholder="BUG-001" style="width: 100%; padding: 5px; margin-top: 5px;">
+                    </div>
+                    <div style="margin: 10px 0;">
+                        <label><strong>Severity:</strong></label>
+                        <select id="bugSeverity" style="width: 100%; padding: 5px; margin-top: 5px;">
+                            <option value="Critical">🔴 Critical</option>
+                            <option value="Medium">🟡 Medium</option>
+                            <option value="Low">🟢 Low</option>
+                        </select>
+                    </div>
+                    <div style="margin: 10px 0;">
+                        <label><strong>Description:</strong></label>
+                        <textarea id="bugDesc" rows="3" style="width: 100%; margin-top: 5px;" placeholder="Describe the bug..."></textarea>
+                    </div>
+                    <div style="margin: 10px 0;">
+                        <label><strong>Steps to Reproduce:</strong></label>
+                        <textarea id="bugSteps" rows="3" style="width: 100%; margin-top: 5px;" placeholder="1. Go to...\n2. Click on...\n3. See error..."></textarea>
+                    </div>
+                    <button class="btn btn-success" onclick="saveBug()">Save Bug Report</button>
+                </div>
+            </div>
+
+            <!-- Test Summary -->
+            <div class="section">
+                <h2>✅ Test Summary</h2>
+                <div class="notes">
+                    <p><strong>Tests Executed:</strong> <span id="testsExecuted">0</span> / 16</p>
+                    <p><strong>Tests Passed:</strong> <span id="testsPassed">0</span></p>
+                    <p><strong>Tests Failed:</strong> <span id="testsFailed">0</span></p>
+                    <p><strong>Pass Rate:</strong> <span id="passRate">0%</span></p>
+                </div>
+                <div class="checkbox-wrapper" style="margin-top: 20px;">
+                    <input type="checkbox" id="readyForReview">
+                    <label for="readyForReview"><strong>Ready for Sprint Review</strong></label>
+                </div>
+            </div>
+
+            <!-- Sign-off -->
+            <div class="section">
+                <h2>📋 Sign-off</h2>
+                <div class="notes">
+                    <p><strong>Tester Name:</strong> ________________</p>
+                    <p><strong>Date:</strong> ________________</p>
+                    <p><strong>Signature:</strong> ________________</p>
+                    <br>
+                    <p><strong>Reviewer Name:</strong> ________________</p>
+                    <p><strong>Date:</strong> ________________</p>
+                    <p><strong>Signature:</strong> ________________</p>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="section">
+                <h2>📌 Notes</h2>
+                <div class="notes">
+                    <ul>
+                        <li>Keep this document updated with test results</li>
+                        <li>Attach all evidence (screenshots, API responses)</li>
+                        <li>Re-test fixed bugs to ensure they're resolved</li>
+                        <li>Use this document for sprint review presentation</li>
+                        <li>All authentication endpoints require Bearer token except register and login</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>&copy; 2025 Student Internship Follow-up System | Sprint 1 Testing Documentation</p>
+        </footer>
+    </div>
+
+    <script>
+        function updateTestStatus(testId) {
+            const checkbox = document.getElementById(`pass-${testId}`);
+            const status = document.getElementById(`status-${testId}`);
+            
+            if (checkbox.checked) {
+                status.textContent = 'PASS';
+                status.className = 'test-status status-pass';
+            } else {
+                status.textContent = 'PENDING';
+                status.className = 'test-status status-pending';
+            }
+            
+            updateStats();
+        }
+
+        function updateStats() {
+            const tests = ['auth-001', 'auth-002', 'auth-003', 'auth-004', 'auth-005', 'auth-006', 
+                          'auth-007', 'auth-008', 'auth-009', 'auth-010',
+                          'user-001', 'user-002', 'user-003', 'user-004', 'user-005', 'user-006'];
+            
+            let passed = 0;
+            let failed = 0;
+            let executed = 0;
+            
+            tests.forEach(testId => {
+                const checkbox = document.getElementById(`pass-${testId}`);
+                const status = document.getElementById(`status-${testId}`);
+                
+                if (status.textContent !== 'PENDING') {
+                    executed++;
+                    if (checkbox.checked) {
+                        passed++;
+                    } else {
+                        failed++;
+                    }
+                }
+            });
+            
+            const passRate = executed > 0 ? Math.round((passed / executed) * 100) : 0;
+            
+            document.getElementById('totalTests').textContent = tests.length;
+            document.getElementById('passedTests').textContent = passed;
+            document.getElementById('failedTests').textContent = failed;
+            document.getElementById('passRate').textContent = passRate + '%';
+            document.getElementById('testsExecuted').textContent = executed;
+            document.getElementById('testsPassed').textContent = passed;
+            document.getElementById('testsFailed').textContent = failed;
+        }
+
+        function addBug() {
+            const bugId = document.getElementById('bugId').value;
+            const severity = document.getElementById('bugSeverity').value;
+            const desc = document.getElementById('bugDesc').value;
+            const steps = document.getElementById('bugSteps').value;
+            
+            if (!bugId || !desc) {
+                alert('Please fill in Bug ID and Description');
+                return;
+            }
+            
+            const table = document.getElementById('bugTable');
+            const row = table.insertRow(1);
+            
+            const severityClass = severity === 'Critical' ? 'severity-critical' : 
+                                 severity === 'Medium' ? 'severity-medium' : 'severity-low';
+            
+            row.innerHTML = `
+                <td>${bugId}</td>
+                <td class="${severityClass}">${severity}</td>
+                <td>${desc}<br><small>${steps}</small></td>
+                <td>Open</td>
+                <td>-</td>
+                <td>-</td>
+            `;
+            
+            // Clear form
+            document.getElementById('bugId').value = '';
+            document.getElementById('bugDesc').value = '';
+            document.getElementById('bugSteps').value = '';
+        }
+
+        function saveBug() {
+            addBug();
+        }
+    </script>
+</body>
+</html>

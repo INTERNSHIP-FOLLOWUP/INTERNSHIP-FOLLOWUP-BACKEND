@@ -1,0 +1,1 @@
+"Test avatar upload with invalid file type"  
