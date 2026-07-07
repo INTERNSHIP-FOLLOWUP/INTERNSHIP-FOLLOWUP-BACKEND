@@ -32,4 +32,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return redirect()->guest($e->redirectTo() ?? route('login'));
         });
+
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e, \Illuminate\Http\Request $request) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json(['message' => 'Resource not found.'], 404);
+            }
+        });
     })->create();
