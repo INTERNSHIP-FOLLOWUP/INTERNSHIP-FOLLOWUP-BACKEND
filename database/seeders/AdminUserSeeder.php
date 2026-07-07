@@ -1,35 +1,25 @@
 <?php
 
-namespace App\Http\Middleware;
+namespace Database\Seeders;
 
-use Closure;
-use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
+use App\Models\User;
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Illuminate\Database\Seeder;
 
-class RoleMiddleware
+class AdminUserSeeder extends Seeder
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     * @param  string  ...$roles
-     */
-    public function handle(Request $request, Closure $next, string ...$roles): Response
+    use WithoutModelEvents;
+
+    public function run(): void
     {
-        $user = $request->user();
-
-        if (! $user) {
-            return response()->json([
-                'message' => 'Unauthenticated.',
-            ], 401);
-        }
-
-        if (! in_array($user->role, $roles, true)) {
-            return response()->json([
-                'message' => 'Forbidden. You do not have access to this resource.',
-            ], 403);
-        }
-
-        return $next($request);
+        User::firstOrCreate(
+            ['email' => 'admin@example.com'],
+            [
+                'name'     => 'Admin',
+                'email'    => 'admin@example.com',
+                'password' => 'password',
+                'role'     => 'admin',
+            ]
+        );
     }
 }
