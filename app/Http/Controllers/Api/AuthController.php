@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -13,14 +14,29 @@ use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
     /**
+     * Format user response with role name
+     */
+    private function userResponse(User $user): array
+    {
+        return [
+            'id'     => $user->id,
+            'name'   => $user->name,
+            'email'  => $user->email,
+            'avatar' => $user->avatar,
+            'role'   => $user->role->name, // return role name not role_id
+        ];
+    }
+
+    /**
      * BE-10: Register Endpoint
      */
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8',
+            'name'                  => 'required|string|max:255',
+            'email'                 => 'required|string|email|max:255|unique:users',
+            'password'              => 'required|string|min:8',
+            'password_confirmation' => 'required|string|same:password',
         ]);
 
         if ($validator->fails()) {
@@ -30,20 +46,23 @@ class AuthController extends Controller
             ], 422);
         }
 
+        $studentRole = Role::where('name', 'student')->first();
+
         $user = User::create([
             'name'     => $request->name,
             'email'    => $request->email,
             'password' => Hash::make($request->password),
+            'role_id'  => $studentRole?->id,
         ]);
 
+        $user->load('role');
         $token = $user->createToken('api-token')->plainTextToken;
 
         return response()->json([
-            'message'      => 'User registered successfully',
-            'access_token' => $token,
-            'token_type'   => 'Bearer',
-            'user'         => $user,
-        ], 210);
+            'message' => 'User registered successfully',
+            'token'   => $token,
+            'user'    => $this->userResponse($user),
+        ], 201);
     }
 
     /**
@@ -56,7 +75,6 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        // Eager load the role relationship we set up earlier
         $user = User::with('role')->where('email', $validated['email'])->first();
 
         if (!$user || !Hash::check($validated['password'], $user->password)) {
@@ -71,7 +89,7 @@ class AuthController extends Controller
             'message'      => 'Login successful',
             'access_token' => $token,
             'token_type'   => 'Bearer',
-            'user'         => $user,
+            'user'         => $this->userResponse($user),
         ]);
     }
 
@@ -85,7 +103,7 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'name'   => 'required|string|max:255',
             'email'  => 'required|string|email|max:255|unique:users,email,' . $user->id,
-            'avatar' => 'nullable|image|mimes:jpeg,png,jpg|max:2048', // max 2MB
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -95,25 +113,23 @@ class AuthController extends Controller
             ], 422);
         }
 
-        // Handle physical image upload if present
         if ($request->hasFile('avatar')) {
-            // Delete old file if it exists
             if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
                 Storage::disk('public')->delete($user->avatar);
             }
-
-            // Save new path string to the avatar database column
             $path = $request->file('avatar')->store('avatars', 'public');
             $user->avatar = $path;
         }
 
-        $user->name = $request->name;
+        $user->name  = $request->name;
         $user->email = $request->email;
         $user->save();
 
+        $user->load('role');
+
         return response()->json([
             'message' => 'Profile updated successfully',
-            'user'    => $user->load('role')
+            'user'    => $this->userResponse($user),
         ], 200);
     }
 
@@ -123,7 +139,7 @@ class AuthController extends Controller
     public function forgotPassword(Request $request)
     {
         $request->validate(['email' => 'required|email']);
-        
+
         return response()->json([
             'message' => 'Password reset link placeholder functionality.'
         ], 200);
@@ -136,6 +152,8 @@ class AuthController extends Controller
     {
         $request->user()->currentAccessToken()->delete();
 
-        return response()->json(['message' => 'Logged out successfully.']);
+        return response()->json([
+            'message' => 'Logged out successfully.'
+        ]);
     }
 }
