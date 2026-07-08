@@ -7,6 +7,7 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -133,15 +134,57 @@ class AuthController extends Controller
     }
 
     /**
-     * BE-13: Forgot-Password Placeholder
+     * BE-13: Forgot Password
      */
     public function forgotPassword(Request $request)
     {
         $request->validate(['email' => 'required|email']);
 
-        return response()->json([
-            'message' => 'Password reset link placeholder functionality.'
-        ], 200);
+        $status = Password::sendResetLink($request->only('email'));
+
+        if ($status === Password::RESET_LINK_SENT) {
+            return response()->json(['message' => 'Password reset link sent to your email.'], 200);
+        }
+
+        if ($status === Password::INVALID_USER) {
+            return response()->json(['message' => 'We cannot find a user with that email address.'], 404);
+        }
+
+        return response()->json(['message' => 'Unable to send password reset link.'], 500);
+    }
+
+    /**
+     * BE-16: Reset Password
+     */
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'email'                 => 'required|email',
+            'token'                 => 'required|string',
+            'password'              => 'required|string|min:6',
+            'password_confirmation' => 'required|string|same:password',
+        ]);
+
+        $credentials = $request->only('email', 'token', 'password', 'password_confirmation');
+
+        $status = Password::reset($credentials, function (User $user, string $password) {
+            $user->forceFill(['password' => Hash::make($password)])->save();
+            $user->tokens()->delete();
+        });
+
+        if ($status === Password::PASSWORD_RESET) {
+            return response()->json(['message' => 'Password reset successfully.'], 200);
+        }
+
+        if ($status === Password::INVALID_TOKEN) {
+            return response()->json(['message' => 'Invalid or expired reset token.'], 400);
+        }
+
+        if ($status === Password::INVALID_USER) {
+            return response()->json(['message' => 'We cannot find a user with that email address.'], 404);
+        }
+
+        return response()->json(['message' => 'Unable to reset password.'], 500);
     }
 
     /**
