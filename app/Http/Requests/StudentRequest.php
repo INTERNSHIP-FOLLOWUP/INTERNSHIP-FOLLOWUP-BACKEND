@@ -1,5 +1,3 @@
-<?php
-
 namespace App\Http\Requests;
 
 use App\Models\Student;
@@ -36,22 +34,29 @@ class StudentRequest extends FormRequest
      */
     public function rules(): array
     {
+        $studentId = $this->studentId();
         $studentCodeRule = Rule::unique('students', 'student_code');
 
-        if ($studentId = $this->studentId()) {
+        if ($studentId) {
             $studentCodeRule->ignore($studentId);
         }
 
         return [
+            // Student Code (Unique validation with ignore on update)
             'student_code' => ['required', 'string', 'max:255', $studentCodeRule],
-            'batch_id' => ['nullable', 'exists:batches,id'],
-            'tutor_id' => ['nullable', 'exists:users,id'],
-            'name' => ['required', 'string', 'max:255'],
-            'gender' => ['required', 'string', 'max:20'],
-            'phone' => ['nullable', 'string', 'max:50'],
-            'email' => ['nullable', 'email', 'max:255'],
-            'photo' => ['nullable', 'file', 'mimes:jpg,jpeg,png', 'max:2048'],
-            'status' => ['nullable', 'string', 'max:50'],
+            
+            // Foreign Keys
+            'batch_id'     => ['nullable', 'exists:batches,id'],
+            'tutor_id'     => ['nullable', 'exists:users,id'],
+            
+            // Basic Info
+            'name'         => ['required', 'string', 'max:255'],
+            'email'        => ['required', 'email', 'max:255'],
+            'phone_number' => ['nullable', 'string', 'max:50'],
+            'status'       => ['nullable', 'string', 'max:50'],
+            
+            // Photo Upload (JPG/PNG formats only as per requirements)
+            'photo'        => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'], 
         ];
     }
 
@@ -62,7 +67,7 @@ class StudentRequest extends FormRequest
     {
         throw new HttpResponseException(response()->json([
             'message' => 'The given data was invalid.',
-            'errors' => $validator->errors(),
+            'errors'  => $validator->errors(),
         ], 422));
     }
 }
