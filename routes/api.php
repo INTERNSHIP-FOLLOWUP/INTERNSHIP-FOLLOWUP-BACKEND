@@ -3,6 +3,7 @@
 // use App\Http\Controllers\AuthController;
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\UserController;
 // use App\Http\Controllers\AuthController;
 
@@ -56,4 +57,10 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
     Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+
+    Route::get('/companies', [CompanyController::class, 'index'])->name('companies.index');
+    Route::post('/companies', [CompanyController::class, 'store'])->name('companies.store');
+    Route::get('/companies/{company}', [CompanyController::class, 'show'])->name('companies.show');
+    Route::put('/companies/{company}', [CompanyController::class, 'update'])->name('companies.update');
+    Route::delete('/companies/{company}', [CompanyController::class, 'destroy'])->name('companies.destroy');
 });
