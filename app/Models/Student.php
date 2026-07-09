@@ -25,7 +25,7 @@ class Student extends Model
 
     public function batch(): BelongsTo
     {
-        return $this->belongsTo('App\Models\Batch');
+        return $this->belongsTo('Batch::class');
     }
 
     public function tutor(): BelongsTo
