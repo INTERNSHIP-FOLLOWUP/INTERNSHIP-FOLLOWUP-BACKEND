@@ -2,8 +2,12 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Student;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Validation\Rule;
 
 class StudentRequest extends FormRequest
 {
@@ -16,16 +20,30 @@ class StudentRequest extends FormRequest
     }
 
     /**
+     * Resolve the current student ID from the route for update requests.
+     */
+    protected function studentId(): mixed
+    {
+        $student = $this->route('student') ?? $this->route('student_id');
+
+        return $student instanceof Student ? $student->getKey() : $student;
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
-        $studentId = $this->route('student') ?? $this->route('student_id');
+        $studentCodeRule = Rule::unique('students', 'student_code');
+
+        if ($studentId = $this->studentId()) {
+            $studentCodeRule->ignore($studentId);
+        }
 
         return [
-            'student_code' => ['required', 'string', 'max:255', 'unique:students,student_code,' . $studentId],
+            'student_code' => ['required', 'string', 'max:255', $studentCodeRule],
             'batch_id' => ['nullable', 'exists:batches,id'],
             'tutor_id' => ['nullable', 'exists:users,id'],
             'name' => ['required', 'string', 'max:255'],
@@ -35,5 +53,16 @@ class StudentRequest extends FormRequest
             'photo' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', 'string', 'max:50'],
         ];
+    }
+
+    /**
+     * Force API validation errors to return a JSON 422 response.
+     */
+    protected function failedValidation(Validator $validator): void
+    {
+        throw new HttpResponseException(response()->json([
+            'message' => 'The given data was invalid.',
+            'errors' => $validator->errors(),
+        ], 422));
     }
 }
