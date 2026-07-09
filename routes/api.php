@@ -1,4 +1,4 @@
-<?php
+ <?php
 
 // use App\Http\Controllers\AuthController;
 
@@ -56,4 +56,8 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
     Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+});
+
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::apiResource('students', \App\Http\Controllers\Api\StudentController::class);
 });
