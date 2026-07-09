@@ -3,6 +3,7 @@
 // use App\Http\Controllers\AuthController;
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BatchController;
 use App\Http\Controllers\Api\UserController;
 // use App\Http\Controllers\AuthController;
 
@@ -53,4 +54,12 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
     Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+    
+    // Batch Management Routes
+    Route::get('/batches', [BatchController::class, 'index'])->name('batches.index');
+    Route::post('/batches', [BatchController::class, 'store'])->name('batches.store');
+    Route::get('/batches/{batch}', [BatchController::class, 'show'])->name('batches.show');
+    Route::put('/batches/{batch}', [BatchController::class, 'update'])->name('batches.update');
+    Route::delete('/batches/{batch}', [BatchController::class, 'destroy'])->name('batches.destroy');
+    Route::get('/batches/{batch}/statistics', [BatchController::class, 'statistics'])->name('batches.statistics');
 });
