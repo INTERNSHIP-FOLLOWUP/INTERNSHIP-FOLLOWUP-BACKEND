@@ -25,11 +25,6 @@ class AdminUserSeeder extends Seeder
                 'role'  => 'tutor',
             ],
             [
-                'name'  => 'Student User',
-                'email' => 'student@gmail.com',
-                'role'  => 'student',
-            ],
-            [
                 'name'  => 'Company User',
                 'email' => 'company@gmail.com',
                 'role'  => 'company representative',
