@@ -5,7 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CompanyRequest;
 use App\Models\Company;
-
+use Illuminate\Http\Request;
+    
 class CompanyController extends Controller
 {
     public function index(Request $request)
@@ -65,8 +66,12 @@ class CompanyController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Company $company)
     {
-        //
+        $company->delete();
+
+        return response()->json([
+            'message' => 'Company deleted successfully.',
+        ]);
     }
 }
