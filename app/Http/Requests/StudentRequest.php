@@ -50,7 +50,7 @@ class StudentRequest extends FormRequest
             'gender' => ['required', 'string', 'max:20'],
             'phone' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:255'],
-            'photo' => ['nullable', 'string', 'max:255'],
+            'photo' => ['nullable', 'file', 'mimes:jpg,jpeg,png', 'max:2048'],
             'status' => ['nullable', 'string', 'max:50'],
         ];
     }
