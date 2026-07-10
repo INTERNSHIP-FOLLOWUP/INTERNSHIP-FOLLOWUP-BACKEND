@@ -133,7 +133,6 @@ class AssignmentController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
-
         // Validate status transitions
         if ($request->has('status')) {
             $newStatus = $request->status;
