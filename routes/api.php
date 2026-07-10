@@ -30,7 +30,7 @@ Route::middleware('auth:sanctum')->prefix('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 });
 
-Route::middleware('auth:sanctum')->get('/tutors', [UserController::class, 'tutors']);
+Route::get('/tutors', [UserController::class, 'tutors']);
 Route::middleware('auth:sanctum')->get('/tutors/{id}/students', [UserController::class, 'students']);
 
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
