@@ -1,23 +1,12 @@
 <?php
 
-// use App\Http\Controllers\AuthController;
-
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\UserController;
-// use App\Http\Controllers\AuthController;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| Public Authentication Routes (Guest Access)
-|--------------------------------------------------------------------------
-|
-| Root-level routes match the frontend axios calls (e.g. /api/register).
-| The /auth/ prefix routes are kept for backward compatibility.
-*/
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
@@ -30,11 +19,6 @@ Route::prefix('auth')->group(function () {
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 });
 
-/*
-|--------------------------------------------------------------------------
-| Protected Authentication Routes (Requires Sanctum Token)
-|--------------------------------------------------------------------------
-*/
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [AuthController::class, 'user']);
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -47,12 +31,8 @@ Route::middleware('auth:sanctum')->prefix('auth')->group(function () {
 });
 
 Route::middleware('auth:sanctum')->get('/tutors', [UserController::class, 'tutors']);
+Route::middleware('auth:sanctum')->get('/tutors/{id}/students', [UserController::class, 'students']);
 
-/*
-|--------------------------------------------------------------------------
-| Admin Management Routes (Requires Sanctum Token & Admin Role)
-|--------------------------------------------------------------------------
-*/
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::post('/users', [UserController::class, 'store'])->name('users.store');
@@ -70,6 +50,3 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::apiResource('students', \App\Http\Controllers\Api\StudentController::class);
 });
-
-</parameter>
-</write_to_file>

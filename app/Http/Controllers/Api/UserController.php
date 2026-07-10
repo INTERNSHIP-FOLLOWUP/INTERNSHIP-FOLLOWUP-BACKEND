@@ -99,7 +99,13 @@ class UserController extends Controller
 
         return response()->json($tutors);
     }
-}
 
-</parameter>
-</write_to_file>
+    public function students($id)
+    {
+        $students = \App\Models\Student::where('tutor_id', $id)
+            ->whereNull('deleted_at')
+            ->get(['id', 'student_code', 'name', 'email', 'status']);
+
+        return response()->json($students);
+    }
+}
