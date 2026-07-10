@@ -46,6 +46,8 @@ Route::middleware('auth:sanctum')->prefix('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 });
 
+Route::middleware('auth:sanctum')->get('/tutors', [UserController::class, 'tutors']);
+
 /*
 |--------------------------------------------------------------------------
 | Admin Management Routes (Requires Sanctum Token & Admin Role)
@@ -64,3 +66,10 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
     Route::put('/companies/{company}', [CompanyController::class, 'update'])->name('companies.update');
     Route::delete('/companies/{company}', [CompanyController::class, 'destroy'])->name('companies.destroy');
 });
+
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::apiResource('students', \App\Http\Controllers\Api\StudentController::class);
+});
+
+</parameter>
+</write_to_file>

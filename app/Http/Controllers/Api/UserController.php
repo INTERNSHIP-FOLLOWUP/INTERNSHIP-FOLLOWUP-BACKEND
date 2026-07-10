@@ -90,4 +90,16 @@ class UserController extends Controller
             'message' => 'User deleted successfully.',
         ]);
     }
+
+    public function tutors()
+    {
+        $tutors = User::where('role', 'tutor')
+            ->whereNull('deleted_at')
+            ->get(['id', 'name', 'email']);
+
+        return response()->json($tutors);
+    }
 }
+
+</parameter>
+</write_to_file>
