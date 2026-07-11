@@ -17,6 +17,12 @@ class InternshipAssignment extends Model
         'status',
     ];
 
+    protected $appends = [
+        'student_name',
+        'company_name',
+        'tutor_name',
+    ];
+
     protected function casts(): array
     {
         return [
@@ -38,5 +44,20 @@ class InternshipAssignment extends Model
     public function tutor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'tutor_id');
+    }
+
+    public function getStudentNameAttribute(): string
+    {
+        return $this->student?->name ?? '';
+    }
+
+    public function getCompanyNameAttribute(): string
+    {
+        return $this->company?->company_name ?? '';
+    }
+
+    public function getTutorNameAttribute(): string
+    {
+        return $this->tutor?->name ?? '';
     }
 }

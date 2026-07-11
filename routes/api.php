@@ -77,4 +77,11 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
 
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::apiResource('students', \App\Http\Controllers\Api\StudentController::class);
+
+    // Assignment Management Routes
+    Route::get('/assignments', [\App\Http\Controllers\Api\AssignmentController::class, 'index'])->name('assignments.index');
+    Route::post('/assignments', [\App\Http\Controllers\Api\AssignmentController::class, 'store'])->name('assignments.store');
+    Route::get('/assignments/{assignment}', [\App\Http\Controllers\Api\AssignmentController::class, 'show'])->name('assignments.show');
+    Route::put('/assignments/{assignment}', [\App\Http\Controllers\Api\AssignmentController::class, 'update'])->name('assignments.update');
+    Route::delete('/assignments/{assignment}', [\App\Http\Controllers\Api\AssignmentController::class, 'destroy'])->name('assignments.destroy');
 });

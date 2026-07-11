@@ -39,11 +39,13 @@ class AssignmentController extends Controller
         return response()->json([
             'data' => $assignments->items(),
             'message' => 'Internship assignments retrieved successfully.',
-            'pagination' => [
+            'meta' => [
                 'total' => $assignments->total(),
                 'per_page' => $assignments->perPage(),
                 'current_page' => $assignments->currentPage(),
                 'last_page' => $assignments->lastPage(),
+                'from' => $assignments->firstItem(),
+                'to' => $assignments->lastItem(),
             ]
         ], 200);
     }
@@ -159,6 +161,29 @@ class AssignmentController extends Controller
         return response()->json([
             'data' => $assignment->load(['student', 'company', 'tutor']),
             'message' => 'Internship assignment updated successfully.'
+        ], 200);
+    }
+
+    /**
+     * Display the specified internship assignment.
+     */
+    public function show(InternshipAssignment $assignment)
+    {
+        return response()->json([
+            'data' => $assignment->load(['student', 'company', 'tutor']),
+            'message' => 'Internship assignment retrieved successfully.',
+        ], 200);
+    }
+
+    /**
+     * Remove the specified internship assignment.
+     */
+    public function destroy(InternshipAssignment $assignment)
+    {
+        $assignment->delete();
+
+        return response()->json([
+            'message' => 'Internship assignment deleted successfully.'
         ], 200);
     }
 }
