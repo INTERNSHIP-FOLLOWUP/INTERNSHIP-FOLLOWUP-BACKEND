@@ -32,7 +32,7 @@ Route::middleware('auth:sanctum')->prefix('auth')->group(function () {
 });
 
 Route::get('/tutors', [TutorController::class, 'index']);
-Route::middleware('auth:sanctum')->get('/tutors/{id}/students', [UserController::class, 'students']);
+Route::get('/tutors/{id}/students', [UserController::class, 'students']);
 
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
