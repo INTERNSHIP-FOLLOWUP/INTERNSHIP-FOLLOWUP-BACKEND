@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CompanyController;
+use App\Http\Controllers\Api\TutorController;
 use App\Http\Controllers\Api\UserController;
 
 use Illuminate\Http\Request;
@@ -30,7 +31,7 @@ Route::middleware('auth:sanctum')->prefix('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 });
 
-Route::get('/tutors', [UserController::class, 'tutors']);
+Route::get('/tutors', [TutorController::class, 'index']);
 Route::middleware('auth:sanctum')->get('/tutors/{id}/students', [UserController::class, 'students']);
 
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
