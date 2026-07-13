@@ -13,7 +13,7 @@ class BatchController extends Controller
     // Display a listing of all batches.
     public function index()
     {
-        $batches = Batch::all();
+        $batches = Batch::with('students')->get();
         
         return response()->json([
             'data' => $batches,
