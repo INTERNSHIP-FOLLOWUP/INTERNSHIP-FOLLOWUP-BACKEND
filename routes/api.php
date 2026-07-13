@@ -52,6 +52,22 @@ Route::middleware('auth:sanctum')->prefix('auth')->group(function () {
 | Admin Management Routes (Requires Sanctum Token & Admin Role)
 |--------------------------------------------------------------------------
 */
+Route::middleware(['auth:sanctum', 'role:company'])->prefix('evaluations')->name('evaluations.')->group(function () {
+    Route::get('/', [App\Http\Controllers\Api\EvaluationController::class, 'index'])->name('index');
+    Route::post('/', [App\Http\Controllers\Api\EvaluationController::class, 'store'])->name('store');
+    Route::get('/{evaluation}', [App\Http\Controllers\Api\EvaluationController::class, 'show'])->name('show');
+    Route::put('/{evaluation}', [App\Http\Controllers\Api\EvaluationController::class, 'update'])->name('update');
+    Route::delete('/{evaluation}', [App\Http\Controllers\Api\EvaluationController::class, 'destroy'])->name('destroy');
+});
+
+Route::middleware(['auth:sanctum', 'role:tutor,student'])->prefix('issues')->name('issues.')->group(function () {
+    Route::get('/', [App\Http\Controllers\Api\IssueController::class, 'index'])->name('index');
+    Route::post('/', [App\Http\Controllers\Api\IssueController::class, 'store'])->name('store');
+    Route::get('/{issue}', [App\Http\Controllers\Api\IssueController::class, 'show'])->name('show');
+    Route::put('/{issue}', [App\Http\Controllers\Api\IssueController::class, 'update'])->name('update');
+    Route::delete('/{issue}', [App\Http\Controllers\Api\IssueController::class, 'destroy'])->name('destroy');
+});
+
 Route::middleware(['auth:sanctum', 'role:admin,tutor,student'])->prefix('worklogs')->name('worklogs.')->group(function () {
     Route::get('/', [App\Http\Controllers\Api\WorklogController::class, 'index'])->name('index');
     Route::post('/', [App\Http\Controllers\Api\WorklogController::class, 'store'])->name('store');
