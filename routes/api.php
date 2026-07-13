@@ -52,6 +52,14 @@ Route::middleware('auth:sanctum')->prefix('auth')->group(function () {
 | Admin Management Routes (Requires Sanctum Token & Admin Role)
 |--------------------------------------------------------------------------
 */
+Route::middleware(['auth:sanctum', 'role:admin,tutor,student'])->prefix('worklogs')->name('worklogs.')->group(function () {
+    Route::get('/', [App\Http\Controllers\Api\WorklogController::class, 'index'])->name('index');
+    Route::post('/', [App\Http\Controllers\Api\WorklogController::class, 'store'])->name('store');
+    Route::get('/{worklog}', [App\Http\Controllers\Api\WorklogController::class, 'show'])->name('show');
+    Route::put('/{worklog}', [App\Http\Controllers\Api\WorklogController::class, 'update'])->name('update');
+    Route::delete('/{worklog}', [App\Http\Controllers\Api\WorklogController::class, 'destroy'])->name('destroy');
+});
+
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::post('/users', [UserController::class, 'store'])->name('users.store');
