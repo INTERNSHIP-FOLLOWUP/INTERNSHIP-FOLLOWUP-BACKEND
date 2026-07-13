@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Followup;
+use App\Services\FollowupService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -54,7 +55,7 @@ class FollowupController extends Controller
     /**
      * Store a newly created follow-up.
      */
-    public function store(Request $request)
+    public function store(Request $request, FollowupService $followupService)
     {
         $validator = Validator::make($request->all(), [
             'student_id' => 'required|exists:students,id',
@@ -91,7 +92,7 @@ class FollowupController extends Controller
             ], 422);
         }
 
-        $followup = Followup::create($request->all());
+        $followup = $followupService->createFollowup($request->all());
 
         return response()->json([
             'data' => $followup->load(['student', 'tutor', 'company']),
@@ -113,7 +114,7 @@ class FollowupController extends Controller
     /**
      * Update the specified follow-up.
      */
-    public function update(Request $request, Followup $followup)
+    public function update(Request $request, Followup $followup, FollowupService $followupService)
     {
         $validator = Validator::make($request->all(), [
             'student_id' => 'sometimes|exists:students,id',
@@ -145,7 +146,7 @@ class FollowupController extends Controller
             ], 422);
         }
 
-        $followup->update($request->all());
+        $followup = $followupService->updateFollowup($followup, $request->all());
 
         return response()->json([
             'data' => $followup->load(['student', 'tutor', 'company']),

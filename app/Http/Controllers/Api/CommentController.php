@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Comment;
+use App\Services\CommentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -34,7 +35,7 @@ class CommentController extends Controller
     /**
      * Store a newly created comment.
      */
-    public function store(Request $request)
+    public function store(Request $request, CommentService $commentService)
     {
         $validator = Validator::make($request->all(), [
             'worklog_id' => 'required|exists:worklogs,id',
@@ -54,7 +55,7 @@ class CommentController extends Controller
             ], 422);
         }
 
-        $comment = Comment::create($request->all());
+        $comment = $commentService->createComment($request->all());
 
         return response()->json([
             'data' => $comment->load('user'),
@@ -67,7 +68,12 @@ class CommentController extends Controller
      */
     public function update(Request $request, Comment $comment)
     {
-        $this->authorize('update', $comment);
+        // Check if the authenticated user is the comment author
+        if ($request->user()->id !== $comment->user_id) {
+            return response()->json([
+                'message' => 'Unauthorized. You can only update your own comments.'
+            ], 403);
+        }
 
         $validator = Validator::make($request->all(), [
             'message' => 'required|string|max:1000',
@@ -95,9 +101,14 @@ class CommentController extends Controller
     /**
      * Remove the specified comment.
      */
-    public function destroy(Comment $comment)
+    public function destroy(Request $request, Comment $comment)
     {
-        $this->authorize('delete', $comment);
+        // Check if the authenticated user is the comment author
+        if ($request->user()->id !== $comment->user_id) {
+            return response()->json([
+                'message' => 'Unauthorized. You can only delete your own comments.'
+            ], 403);
+        }
 
         $comment->delete();
 
