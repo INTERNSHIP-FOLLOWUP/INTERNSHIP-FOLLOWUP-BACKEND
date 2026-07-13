@@ -33,8 +33,9 @@ class WorklogRequest extends FormRequest
     public function rules(): array
     {
         $worklogId = $this->worklogId();
+        $user = $this->user();
 
-        return [
+        $rules = [
             // Worklog Details
             'week_number'     => $worklogId ? ['sometimes', 'integer', 'min:1', 'max:52'] : ['required', 'integer', 'min:1', 'max:52'],
             'description'     => $worklogId ? ['sometimes', 'string'] : ['required', 'string'],
@@ -48,6 +49,13 @@ class WorklogRequest extends FormRequest
             'attachments'     => ['sometimes', 'array'],
             'attachments.*'   => ['file'],
         ];
+
+        // Admin can specify student_id when creating worklogs for other students
+        if (!$worklogId && $user && $user->role === 'admin') {
+            $rules['student_id'] = ['required', 'exists:students,id'];
+        }
+
+        return $rules;
     }
 
     /**
@@ -67,6 +75,8 @@ class WorklogRequest extends FormRequest
             'status.in'            => 'The status must be one of: Draft, Submitted.',
             'attachments.array'    => 'Attachments must be an array.',
             'attachments.*.file'   => 'Each attachment must be a valid file.',
+            'student_id.required'  => 'The student_id field is required for admin.',
+            'student_id.exists'    => 'The selected student does not exist.',
         ];
     }
 

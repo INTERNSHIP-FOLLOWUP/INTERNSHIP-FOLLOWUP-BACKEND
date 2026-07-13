@@ -9,6 +9,7 @@ use App\Models\Student;
 use App\Models\Worklog;
 use App\Services\FileUploadService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class WorklogController extends Controller
 {
@@ -24,15 +25,19 @@ class WorklogController extends Controller
         $query = Worklog::with('attachments');
 
         // Role-based filtering
-        $student = Student::where('email', $user->email)->first();
+        if ($user->role === 'admin') {
+            // Admins see all worklogs (no filter)
+        } else {
+            $student = Student::where('email', $user->email)->first();
 
-        if ($student && $user->role?->name === 'student') {
-            // Students see only their own worklogs
-            $query->where('student_id', $student->id);
-        } elseif ($user->role?->name === 'tutor') {
-            // Tutors see worklogs of students assigned to them
-            $studentIds = Student::where('tutor_id', $user->id)->pluck('id');
-            $query->whereIn('student_id', $studentIds);
+            if ($student && $user->role === 'student') {
+                // Students see only their own worklogs
+                $query->where('student_id', $student->id);
+            } elseif ($user->role === 'tutor') {
+                // Tutors see worklogs of students assigned to them
+                $studentIds = Student::where('tutor_id', $user->id)->pluck('id');
+                $query->whereIn('student_id', $studentIds);
+            }
         }
 
         // Optional filters
@@ -73,14 +78,23 @@ class WorklogController extends Controller
         $user = $request->user();
         $student = Student::where('email', $user->email)->first();
 
-        if (!$student) {
+        if (!$student && $user->role !== 'admin') {
             return response()->json([
                 'message' => 'Only students can create worklogs.',
             ], 403);
         }
 
+        // Admin can specify student_id; otherwise use the authenticated student's ID
+        $studentId = $student ? $student->id : $request->student_id;
+
+        if (!$studentId) {
+            return response()->json([
+                'message' => 'The student_id field is required when creating worklogs as admin.',
+            ], 422);
+        }
+
         $worklog = Worklog::create([
-            'student_id'      => $student->id,
+            'student_id'      => $studentId,
             'week_number'     => $request->week_number,
             'description'     => $request->description,
             'challenges'      => $request->challenges,
@@ -123,7 +137,10 @@ class WorklogController extends Controller
     public function show(Worklog $worklog)
     {
         $user = request()->user();
-        $this->authorizeAccess($user, $worklog);
+
+        if ($user->role !== 'admin') {
+            $this->authorizeAccess($user, $worklog);
+        }
 
         return response()->json([
             'data'    => $worklog->load(['student', 'attachments']),
@@ -133,21 +150,24 @@ class WorklogController extends Controller
 
     /**
      * Update the specified worklog.
-     * Only the owning student can update, and only if the worklog is still in Draft status.
+     * Only the owning student can update, and only if the worklog is in Draft or Rejected status.
      */
     public function update(WorklogRequest $request, Worklog $worklog, FileUploadService $uploadService)
     {
         $user = $request->user();
         $student = Student::where('email', $user->email)->first();
 
-        if (!$student || $worklog->student_id !== $student->id) {
-            return response()->json(['message' => 'Forbidden.'], 403);
-        }
+        if ($user->role !== 'admin') {
+            // Non-admin: only the owning student can update
+            if (!$student || $worklog->student_id !== $student->id) {
+                return response()->json(['message' => 'Forbidden.'], 403);
+            }
 
-        if ($worklog->status !== 'Draft') {
-            return response()->json([
-                'message' => 'Only draft worklogs can be updated.',
-            ], 422);
+            if (!in_array($worklog->status, ['Draft', 'Rejected'])) {
+                return response()->json([
+                    'message' => 'Only draft or rejected worklogs can be updated.',
+                ], 422);
+            }
         }
 
         $worklog->update($request->validated());
@@ -182,21 +202,24 @@ class WorklogController extends Controller
 
     /**
      * Remove the specified worklog from storage.
-     * Only the owning student can delete, and only if the worklog is still in Draft status.
+     * Only the owning student can delete, and only if the worklog is in Draft or Rejected status.
      */
     public function destroy(Worklog $worklog, FileUploadService $uploadService)
     {
         $user = request()->user();
         $student = Student::where('email', $user->email)->first();
 
-        if (!$student || $worklog->student_id !== $student->id) {
-            return response()->json(['message' => 'Forbidden.'], 403);
-        }
+        if ($user->role !== 'admin') {
+            // Non-admin: only the owning student can delete
+            if (!$student || $worklog->student_id !== $student->id) {
+                return response()->json(['message' => 'Forbidden.'], 403);
+            }
 
-        if ($worklog->status !== 'Draft') {
-            return response()->json([
-                'message' => 'Only draft worklogs can be deleted.',
-            ], 422);
+            if (!in_array($worklog->status, ['Draft', 'Rejected'])) {
+                return response()->json([
+                    'message' => 'Only draft or rejected worklogs can be deleted.',
+                ], 422);
+            }
         }
 
         // Delete associated files and attachment records
@@ -212,22 +235,95 @@ class WorklogController extends Controller
     }
 
     /**
+     * Update the status of a worklog (tutor only).
+     * Valid transitions: Submitted → Approved, Submitted → Rejected.
+     * Only the assigned tutor can update the status.
+     */
+    public function updateStatus(Request $request, Worklog $worklog)
+    {
+        $user = $request->user();
+
+        if ($user->role !== 'admin') {
+            // Non-admin: only assigned tutors can update worklog status
+            if ($user->role !== 'tutor') {
+                return response()->json(['message' => 'Only tutors can update worklog status.'], 403);
+            }
+
+            // Check if tutor is assigned to this student
+            $isAssigned = Student::where('id', $worklog->student_id)
+                ->where('tutor_id', $user->id)
+                ->exists();
+
+            if (!$isAssigned) {
+                return response()->json(['message' => 'You are not assigned to this student.'], 403);
+            }
+        }
+
+        $validator = Validator::make($request->all(), [
+            'status'   => 'required|in:Approved,Rejected',
+            'feedback' => 'nullable|string|max:1000',
+        ], [
+            'status.required'   => 'The status field is required.',
+            'status.in'         => 'The status must be one of: Approved, Rejected.',
+            'feedback.max'      => 'Feedback must not exceed 1000 characters.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation error',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        // Validate status transition
+        $newStatus = $request->status;
+        $currentStatus = $worklog->status;
+
+        $validTransitions = [
+            'Submitted' => ['Approved', 'Rejected'],
+            'Approved' => [],
+            'Rejected' => [],
+            'Draft' => [],
+        ];
+
+        if (!in_array($newStatus, $validTransitions[$currentStatus])) {
+            return response()->json([
+                'message' => 'Invalid status transition.',
+                'error' => "Cannot transition from '{$currentStatus}' to '{$newStatus}'.",
+            ], 422);
+        }
+
+        $worklog->update([
+            'status'   => $newStatus,
+            'feedback' => $request->feedback,
+        ]);
+
+        return response()->json([
+            'data'    => $worklog->load(['student', 'attachments']),
+            'message' => "Worklog status updated to '{$newStatus}' successfully.",
+        ], 200);
+    }
+
+    /**
      * Remove a single attachment from a worklog.
-     * Only the owning student can delete attachments from Draft worklogs.
+     * Only the owning student can delete attachments from Draft or Rejected worklogs.
      */
     public function destroyAttachment(Worklog $worklog, Attachment $attachment, FileUploadService $uploadService)
     {
         $user = request()->user();
         $student = Student::where('email', $user->email)->first();
 
-        if (!$student || $worklog->student_id !== $student->id) {
-            return response()->json(['message' => 'Forbidden.'], 403);
-        }
+        if ($user->role !== 'admin') {
+            // Non-admin: only the owning student can delete attachments
+            if (!$student || $worklog->student_id !== $student->id) {
+                return response()->json(['message' => 'Forbidden.'], 403);
+            }
 
-        if ($worklog->status !== 'Draft') {
-            return response()->json([
-                'message' => 'Only draft worklogs can be modified.',
-            ], 422);
+            if (!in_array($worklog->status, ['Draft', 'Rejected'])) {
+                return response()->json([
+                    'message' => 'Only draft or rejected worklogs can be modified.',
+                ], 422);
+            }
         }
 
         if ($attachment->worklog_id !== $worklog->id) {
@@ -250,11 +346,11 @@ class WorklogController extends Controller
     {
         $student = Student::where('email', $user->email)->first();
 
-        if ($user->role?->name === 'student') {
+        if ($user->role === 'student') {
             if (!$student || $worklog->student_id !== $student->id) {
                 abort(403, 'Forbidden.');
             }
-        } elseif ($user->role?->name === 'tutor') {
+        } elseif ($user->role === 'tutor') {
             $isAssigned = Student::where('id', $worklog->student_id)
                 ->where('tutor_id', $user->id)
                 ->exists();

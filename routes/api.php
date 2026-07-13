@@ -60,6 +60,7 @@ Route::middleware('auth:sanctum')->prefix('worklogs')->name('worklogs.')->group(
     Route::put('/{worklog}', [WorklogController::class, 'update'])->name('update');
     Route::delete('/{worklog}', [WorklogController::class, 'destroy'])->name('destroy');
     Route::delete('/{worklog}/attachments/{attachment}', [WorklogController::class, 'destroyAttachment'])->name('attachments.destroy');
+    Route::put('/{worklog}/status', [WorklogController::class, 'updateStatus'])->name('status.update');
 });
 
 /*
@@ -99,4 +100,13 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
     Route::get('/assignments/{assignment}', [\App\Http\Controllers\Api\AssignmentController::class, 'show'])->name('assignments.show');
     Route::put('/assignments/{assignment}', [\App\Http\Controllers\Api\AssignmentController::class, 'update'])->name('assignments.update');
     Route::delete('/assignments/{assignment}', [\App\Http\Controllers\Api\AssignmentController::class, 'destroy'])->name('assignments.destroy');
+
+    // Worklog Management Routes (Admin full access)
+    Route::get('/worklogs', [WorklogController::class, 'index'])->name('worklogs.index');
+    Route::post('/worklogs', [WorklogController::class, 'store'])->name('worklogs.store');
+    Route::get('/worklogs/{worklog}', [WorklogController::class, 'show'])->name('worklogs.show');
+    Route::put('/worklogs/{worklog}', [WorklogController::class, 'update'])->name('worklogs.update');
+    Route::delete('/worklogs/{worklog}', [WorklogController::class, 'destroy'])->name('worklogs.destroy');
+    Route::put('/worklogs/{worklog}/status', [WorklogController::class, 'updateStatus'])->name('worklogs.status.update');
+    Route::delete('/worklogs/{worklog}/attachments/{attachment}', [WorklogController::class, 'destroyAttachment'])->name('worklogs.attachments.destroy');
 });
