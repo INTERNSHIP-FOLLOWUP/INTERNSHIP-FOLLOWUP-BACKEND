@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BatchController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\WorklogController;
 // use App\Http\Controllers\AuthController;
 
 use Illuminate\Http\Request;
@@ -45,6 +46,19 @@ Route::middleware('auth:sanctum')->prefix('auth')->group(function () {
     Route::get('/user', [AuthController::class, 'user']);
     Route::put('/profile/update', [AuthController::class, 'updateProfile']);
     Route::post('/logout', [AuthController::class, 'logout']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Worklog Routes (Requires Sanctum Token)
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth:sanctum')->prefix('worklogs')->name('worklogs.')->group(function () {
+    Route::get('/', [WorklogController::class, 'index'])->name('index');
+    Route::post('/', [WorklogController::class, 'store'])->name('store');
+    Route::get('/{worklog}', [WorklogController::class, 'show'])->name('show');
+    Route::put('/{worklog}', [WorklogController::class, 'update'])->name('update');
+    Route::delete('/{worklog}', [WorklogController::class, 'destroy'])->name('destroy');
 });
 
 /*
