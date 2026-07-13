@@ -38,4 +38,19 @@ class Evaluation extends Model
     {
         return $this->belongsTo(Company::class);
     }
+
+    /**
+     * Boot method to calculate overall_score before saving
+     */
+    protected static function booted()
+    {
+        static::saving(function (Evaluation $evaluation) {
+            $evaluation->overall_score = (int) round(
+                ($evaluation->technical_skill +
+                $evaluation->communication +
+                $evaluation->professionalism +
+                $evaluation->attendance) / 4
+            );
+        });
+    }
 }
