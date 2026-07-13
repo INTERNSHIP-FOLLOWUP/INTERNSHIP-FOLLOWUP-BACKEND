@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\WorklogRequest;
 use App\Models\Attachment;
 use App\Models\Student;
 use App\Models\Worklog;
 use App\Services\FileUploadService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 
 class WorklogController extends Controller
 {
@@ -68,7 +68,7 @@ class WorklogController extends Controller
      * Store a newly created worklog.
      * Only students can create worklogs for themselves.
      */
-    public function store(Request $request, FileUploadService $uploadService)
+    public function store(WorklogRequest $request, FileUploadService $uploadService)
     {
         $user = $request->user();
         $student = Student::where('email', $user->email)->first();
@@ -77,35 +77,6 @@ class WorklogController extends Controller
             return response()->json([
                 'message' => 'Only students can create worklogs.',
             ], 403);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'week_number' => 'required|integer|min:1|max:52',
-            'description' => 'required|string',
-            'challenges'  => 'nullable|string',
-            'submission_date' => 'required|date',
-            'status'      => 'sometimes|in:Draft,Submitted',
-            'attachments' => 'sometimes|array',
-            'attachments.*' => 'file',
-        ], [
-            'week_number.required' => 'The week number field is required.',
-            'week_number.integer'  => 'The week number must be an integer.',
-            'week_number.min'      => 'The week number must be at least 1.',
-            'week_number.max'      => 'The week number may not exceed 52.',
-            'description.required' => 'The description field is required.',
-            'description.string'   => 'The description must be a string.',
-            'submission_date.required' => 'The submission date field is required.',
-            'submission_date.date' => 'The submission date must be a valid date.',
-            'status.in' => 'The status must be one of: Draft, Submitted.',
-            'attachments.array' => 'Attachments must be an array.',
-            'attachments.*.file' => 'Each attachment must be a valid file.',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation error',
-                'errors'  => $validator->errors(),
-            ], 422);
         }
 
         $worklog = Worklog::create([
@@ -164,7 +135,7 @@ class WorklogController extends Controller
      * Update the specified worklog.
      * Only the owning student can update, and only if the worklog is still in Draft status.
      */
-    public function update(Request $request, Worklog $worklog, FileUploadService $uploadService)
+    public function update(WorklogRequest $request, Worklog $worklog, FileUploadService $uploadService)
     {
         $user = $request->user();
         $student = Student::where('email', $user->email)->first();
@@ -179,33 +150,7 @@ class WorklogController extends Controller
             ], 422);
         }
 
-        $validator = Validator::make($request->all(), [
-            'week_number'     => 'sometimes|integer|min:1|max:52',
-            'description'     => 'sometimes|string',
-            'challenges'      => 'nullable|string',
-            'submission_date' => 'sometimes|date',
-            'status'          => 'sometimes|in:Draft,Submitted',
-            'attachments'     => 'sometimes|array',
-            'attachments.*'   => 'file',
-        ], [
-            'week_number.integer' => 'The week number must be an integer.',
-            'week_number.min'     => 'The week number must be at least 1.',
-            'week_number.max'     => 'The week number may not exceed 52.',
-            'description.string'  => 'The description must be a string.',
-            'submission_date.date' => 'The submission date must be a valid date.',
-            'status.in' => 'The status must be one of: Draft, Submitted.',
-            'attachments.array' => 'Attachments must be an array.',
-            'attachments.*.file' => 'Each attachment must be a valid file.',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation error',
-                'errors'  => $validator->errors(),
-            ], 422);
-        }
-
-        $worklog->update($request->all());
+        $worklog->update($request->validated());
 
         // Handle new file uploads
         if ($request->hasFile('attachments')) {
