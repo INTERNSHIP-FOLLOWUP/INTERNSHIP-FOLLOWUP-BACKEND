@@ -18,6 +18,8 @@ class Company extends Model
         'phone',
         'email',
         'website',
+        'company_profile_image',
+        'telegram_link',
     ];
 
     public function internshipAssignments(): HasMany
