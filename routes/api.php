@@ -4,7 +4,9 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BatchController;
+use App\Http\Controllers\Api\CommentController;
 use App\Http\Controllers\Api\CompanyController;
+use App\Http\Controllers\Api\FollowupController;
 use App\Http\Controllers\Api\UserController;
 // use App\Http\Controllers\AuthController;
 
@@ -84,4 +86,29 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
     Route::get('/assignments/{assignment}', [\App\Http\Controllers\Api\AssignmentController::class, 'show'])->name('assignments.show');
     Route::put('/assignments/{assignment}', [\App\Http\Controllers\Api\AssignmentController::class, 'update'])->name('assignments.update');
     Route::delete('/assignments/{assignment}', [\App\Http\Controllers\Api\AssignmentController::class, 'destroy'])->name('assignments.destroy');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Follow-up Management Routes (Requires Sanctum Token)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum'])->prefix('followups')->name('followups.')->group(function () {
+    Route::get('/', [FollowupController::class, 'index'])->name('index');
+    Route::post('/', [FollowupController::class, 'store'])->name('store');
+    Route::get('/{followup}', [FollowupController::class, 'show'])->name('show');
+    Route::put('/{followup}', [FollowupController::class, 'update'])->name('update');
+    Route::delete('/{followup}', [FollowupController::class, 'destroy'])->name('destroy');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Comment Management Routes (Requires Sanctum Token)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum'])->prefix('worklogs')->group(function () {
+    Route::get('/{worklog}/comments', [CommentController::class, 'index'])->name('worklogs.comments.index');
+    Route::post('/{worklog}/comments', [CommentController::class, 'store'])->name('worklogs.comments.store');
+    Route::put('/{worklog}/comments/{comment}', [CommentController::class, 'update'])->name('worklogs.comments.update');
+    Route::delete('/{worklog}/comments/{comment}', [CommentController::class, 'destroy'])->name('worklogs.comments.destroy');
 });
