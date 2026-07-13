@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Student;
 use App\Models\Worklog;
+use App\Services\FileUploadService;
+use App\Models\Attachment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -152,6 +154,82 @@ class WorklogController extends Controller
         }
 
         $worklog->delete();
+
+        return response()->noContent();
+    }
+
+    /**
+     * Upload attachment to worklog
+     */
+    public function uploadAttachment(Request $request, string $worklogId)
+    {
+        $user = Auth::user();
+        $worklog = Worklog::with('student')->findOrFail($worklogId);
+
+        if ($user->role->name === 'student') {
+            $student = Student::where('email', $user->email)->first();
+            if (!$student || $worklog->student_id !== $student->id) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+        } elseif ($user->role->name === 'tutor') {
+            $student = Student::findOrFail($worklog->student_id);
+            if ($student->tutor_id !== $user->id) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+        } else {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $request->validate([
+            'file' => 'required|file|max:5120',
+        ]);
+
+        $file = $request->file('file');
+        $fileUploadService = new FileUploadService();
+
+        try {
+            $uploadResult = $fileUploadService->upload($file);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        $attachment = Attachment::create([
+            'worklog_id' => $worklog->id,
+            'file_path' => $uploadResult['path'],
+            'file_type' => $uploadResult['type'],
+            'file_size' => $uploadResult['size'],
+        ]);
+
+        return response()->json($attachment, 201);
+    }
+
+    /**
+     * Delete attachment from worklog
+     */
+    public function deleteAttachment(string $attachmentId)
+    {
+        $user = Auth::user();
+        $attachment = Attachment::with('worklog.student')->findOrFail($attachmentId);
+        $worklog = $attachment->worklog;
+
+        if ($user->role->name === 'student') {
+            $student = Student::where('email', $user->email)->first();
+            if (!$student || $worklog->student_id !== $student->id) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+        } elseif ($user->role->name === 'tutor') {
+            $student = Student::findOrFail($worklog->student_id);
+            if ($student->tutor_id !== $user->id) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+        } else {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $fileUploadService = new FileUploadService();
+        $fileUploadService->delete($attachment->file_path);
+
+        $attachment->delete();
 
         return response()->noContent();
     }
