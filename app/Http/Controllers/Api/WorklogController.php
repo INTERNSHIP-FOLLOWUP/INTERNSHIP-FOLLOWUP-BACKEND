@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Attachment;
 use App\Models\Student;
 use App\Models\Worklog;
+use App\Services\FileUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -66,7 +68,7 @@ class WorklogController extends Controller
      * Store a newly created worklog.
      * Only students can create worklogs for themselves.
      */
-    public function store(Request $request)
+    public function store(Request $request, FileUploadService $uploadService)
     {
         $user = $request->user();
         $student = Student::where('email', $user->email)->first();
@@ -83,6 +85,8 @@ class WorklogController extends Controller
             'challenges'  => 'nullable|string',
             'submission_date' => 'required|date',
             'status'      => 'sometimes|in:Draft,Submitted',
+            'attachments' => 'sometimes|array',
+            'attachments.*' => 'file',
         ], [
             'week_number.required' => 'The week number field is required.',
             'week_number.integer'  => 'The week number must be an integer.',
@@ -93,6 +97,8 @@ class WorklogController extends Controller
             'submission_date.required' => 'The submission date field is required.',
             'submission_date.date' => 'The submission date must be a valid date.',
             'status.in' => 'The status must be one of: Draft, Submitted.',
+            'attachments.array' => 'Attachments must be an array.',
+            'attachments.*.file' => 'Each attachment must be a valid file.',
         ]);
 
         if ($validator->fails()) {
@@ -110,6 +116,29 @@ class WorklogController extends Controller
             'submission_date' => $request->submission_date,
             'status'          => $request->status ?? 'Draft',
         ]);
+
+        // Handle file uploads
+        if ($request->hasFile('attachments')) {
+            $uploadedFiles = [];
+            foreach ($request->file('attachments') as $file) {
+                $validation = $uploadService->validate($file);
+
+                if (!$validation['valid']) {
+                    // Clean up any already-uploaded files
+                    foreach ($uploadedFiles as $uploaded) {
+                        $uploadService->deleteAttachment($uploaded);
+                    }
+                    $worklog->delete();
+
+                    return response()->json([
+                        'message' => 'Validation error',
+                        'errors'  => ['attachments' => [$validation['message']]],
+                    ], 422);
+                }
+
+                $uploadedFiles[] = $uploadService->storeAndCreateAttachment($file, $worklog->id);
+            }
+        }
 
         return response()->json([
             'data'    => $worklog->load('attachments'),
@@ -135,7 +164,7 @@ class WorklogController extends Controller
      * Update the specified worklog.
      * Only the owning student can update, and only if the worklog is still in Draft status.
      */
-    public function update(Request $request, Worklog $worklog)
+    public function update(Request $request, Worklog $worklog, FileUploadService $uploadService)
     {
         $user = $request->user();
         $student = Student::where('email', $user->email)->first();
@@ -156,6 +185,8 @@ class WorklogController extends Controller
             'challenges'      => 'nullable|string',
             'submission_date' => 'sometimes|date',
             'status'          => 'sometimes|in:Draft,Submitted',
+            'attachments'     => 'sometimes|array',
+            'attachments.*'   => 'file',
         ], [
             'week_number.integer' => 'The week number must be an integer.',
             'week_number.min'     => 'The week number must be at least 1.',
@@ -163,6 +194,8 @@ class WorklogController extends Controller
             'description.string'  => 'The description must be a string.',
             'submission_date.date' => 'The submission date must be a valid date.',
             'status.in' => 'The status must be one of: Draft, Submitted.',
+            'attachments.array' => 'Attachments must be an array.',
+            'attachments.*.file' => 'Each attachment must be a valid file.',
         ]);
 
         if ($validator->fails()) {
@@ -174,6 +207,28 @@ class WorklogController extends Controller
 
         $worklog->update($request->all());
 
+        // Handle new file uploads
+        if ($request->hasFile('attachments')) {
+            $uploadedFiles = [];
+            foreach ($request->file('attachments') as $file) {
+                $validation = $uploadService->validate($file);
+
+                if (!$validation['valid']) {
+                    // Clean up any already-uploaded files from this batch
+                    foreach ($uploadedFiles as $uploaded) {
+                        $uploadService->deleteAttachment($uploaded);
+                    }
+
+                    return response()->json([
+                        'message' => 'Validation error',
+                        'errors'  => ['attachments' => [$validation['message']]],
+                    ], 422);
+                }
+
+                $uploadedFiles[] = $uploadService->storeAndCreateAttachment($file, $worklog->id);
+            }
+        }
+
         return response()->json([
             'data'    => $worklog->load('attachments'),
             'message' => 'Worklog updated successfully.',
@@ -184,7 +239,7 @@ class WorklogController extends Controller
      * Remove the specified worklog from storage.
      * Only the owning student can delete, and only if the worklog is still in Draft status.
      */
-    public function destroy(Worklog $worklog)
+    public function destroy(Worklog $worklog, FileUploadService $uploadService)
     {
         $user = request()->user();
         $student = Student::where('email', $user->email)->first();
@@ -199,10 +254,45 @@ class WorklogController extends Controller
             ], 422);
         }
 
+        // Delete associated files and attachment records
+        foreach ($worklog->attachments as $attachment) {
+            $uploadService->deleteAttachment($attachment);
+        }
+
         $worklog->delete();
 
         return response()->json([
             'message' => 'Worklog deleted successfully.',
+        ], 200);
+    }
+
+    /**
+     * Remove a single attachment from a worklog.
+     * Only the owning student can delete attachments from Draft worklogs.
+     */
+    public function destroyAttachment(Worklog $worklog, Attachment $attachment, FileUploadService $uploadService)
+    {
+        $user = request()->user();
+        $student = Student::where('email', $user->email)->first();
+
+        if (!$student || $worklog->student_id !== $student->id) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        if ($worklog->status !== 'Draft') {
+            return response()->json([
+                'message' => 'Only draft worklogs can be modified.',
+            ], 422);
+        }
+
+        if ($attachment->worklog_id !== $worklog->id) {
+            return response()->json(['message' => 'Attachment does not belong to this worklog.'], 404);
+        }
+
+        $uploadService->deleteAttachment($attachment);
+
+        return response()->json([
+            'message' => 'Attachment deleted successfully.',
         ], 200);
     }
 

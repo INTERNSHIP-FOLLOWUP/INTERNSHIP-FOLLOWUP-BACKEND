@@ -59,6 +59,7 @@ Route::middleware('auth:sanctum')->prefix('worklogs')->name('worklogs.')->group(
     Route::get('/{worklog}', [WorklogController::class, 'show'])->name('show');
     Route::put('/{worklog}', [WorklogController::class, 'update'])->name('update');
     Route::delete('/{worklog}', [WorklogController::class, 'destroy'])->name('destroy');
+    Route::delete('/{worklog}/attachments/{attachment}', [WorklogController::class, 'destroyAttachment'])->name('attachments.destroy');
 });
 
 /*
