@@ -27,6 +27,8 @@ class CompanyRequest extends FormRequest
             'phone' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:255'],
             'website' => ['nullable', 'url', 'max:255'],
+            'company_profile_image' => ['nullable', 'string', 'max:255'],
+            'telegram_link' => ['nullable', 'string', 'max:255'],
         ];
     }
 }
