@@ -17,19 +17,8 @@ class Attachment extends Model
         'file_size',
     ];
 
-<<<<<<< HEAD
-=======
-    protected $casts = [
-        'file_size' => 'integer',
-    ];
-
->>>>>>> feature/evaluation-issue
     public function worklog(): BelongsTo
     {
         return $this->belongsTo(Worklog::class);
     }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> feature/evaluation-issue
