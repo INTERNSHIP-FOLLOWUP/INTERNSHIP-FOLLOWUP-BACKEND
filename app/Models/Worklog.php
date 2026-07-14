@@ -18,6 +18,7 @@ class Worklog extends Model
         'challenges',
         'submission_date',
         'status',
+<<<<<<< HEAD
         'feedback',
     ];
 
@@ -27,6 +28,13 @@ class Worklog extends Model
             'submission_date' => 'date',
         ];
     }
+=======
+    ];
+
+    protected $casts = [
+        'submission_date' => 'date',
+    ];
+>>>>>>> feature/evaluation-issue
 
     public function student(): BelongsTo
     {
@@ -37,4 +45,8 @@ class Worklog extends Model
     {
         return $this->hasMany(Attachment::class);
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> feature/evaluation-issue
