@@ -101,11 +101,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
     Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
-<<<<<<< HEAD
     
-=======
-
->>>>>>> feature/evaluation-issue
     // Batch Management Routes
     Route::get('/batches', [BatchController::class, 'index'])->name('batches.index');
     Route::post('/batches', [BatchController::class, 'store'])->name('batches.store');
@@ -129,7 +125,6 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
     Route::get('/assignments/{assignment}', [\App\Http\Controllers\Api\AssignmentController::class, 'show'])->name('assignments.show');
     Route::put('/assignments/{assignment}', [\App\Http\Controllers\Api\AssignmentController::class, 'update'])->name('assignments.update');
     Route::delete('/assignments/{assignment}', [\App\Http\Controllers\Api\AssignmentController::class, 'destroy'])->name('assignments.destroy');
-<<<<<<< HEAD
 
     // Worklog Management Routes (Admin full access)
     Route::get('/worklogs', [WorklogController::class, 'index'])->name('worklogs.index');
@@ -140,6 +135,3 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
     Route::put('/worklogs/{worklog}/status', [WorklogController::class, 'updateStatus'])->name('worklogs.status.update');
     Route::delete('/worklogs/{worklog}/attachments/{attachment}', [WorklogController::class, 'destroyAttachment'])->name('worklogs.attachments.destroy');
 });
-=======
-});
->>>>>>> feature/evaluation-issue
