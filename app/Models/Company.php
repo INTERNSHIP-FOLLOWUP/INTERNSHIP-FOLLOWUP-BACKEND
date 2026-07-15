@@ -12,15 +12,28 @@ class Company extends Model
 
     protected $fillable = [
         'company_name',
+        'role',
         'address',
         'industry',
         'contact_person',
         'phone',
         'email',
+        'password',
         'website',
         'company_profile_image',
         'telegram_link',
     ];
+
+    protected $hidden = [
+        'password',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'password' => 'hashed',
+        ];
+    }
 
     public function internshipAssignments(): HasMany
     {

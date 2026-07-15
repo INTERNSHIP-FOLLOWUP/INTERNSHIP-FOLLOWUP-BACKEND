@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CompanyRequest;
 use App\Models\Company;
+use App\Models\Role;
+use App\Models\User;
 use Illuminate\Http\Request;
     
 class CompanyController extends Controller
@@ -37,9 +39,25 @@ class CompanyController extends Controller
      */
     public function store(CompanyRequest $request)
     {
-        $company = Company::create($request->validated());
+        $data = $request->validated();
 
-        return response()->json($company, 201);
+        $company = Company::create($data);
+
+        $role = Role::where('name', 'company representative')->first();
+
+        $user = User::create([
+            'name'     => $data['contact_person'],
+            'email'    => $data['email'],
+            'password' => $data['password'],
+            'role'     => 'company',
+            'role_id'  => $role->id,
+        ]);
+
+        return response()->json([
+            'company' => $company,
+            'user'    => $user,
+            'message' => 'Company and company representative account created successfully.',
+        ], 201);
     }
 
     /**
@@ -55,7 +73,13 @@ class CompanyController extends Controller
      */
     public function update(CompanyRequest $request, Company $company)
     {
-        $company->update($request->validated());
+        $data = $request->validated();
+
+        if (empty($data['password'])) {
+            unset($data['password']);
+        }
+
+        $company->update($data);
 
         return response()->json([
             'company' => $company,
