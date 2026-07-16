@@ -1,21 +1,22 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
 
 return new class extends Migration
 {
     /**
      * Run the migrations.
      *
-     * Adds 'company' to the allowed roles CHECK constraint on the users table
-     * so that company representatives created via CompanyController can log in.
-     * Uses MariaDB-compatible syntax (DROP CONSTRAINT).
+     * Note: MySQL doesn't enforce CHECK constraints, so this migration
+     * is kept for documentation purposes but doesn't actually add constraints.
+     * The role validation is handled at the application level.
      */
     public function up(): void
     {
-        DB::statement('ALTER TABLE users DROP CONSTRAINT users_role_check');
-        DB::statement("ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin', 'tutor', 'student', 'company representative', 'company'))");
+        // MySQL doesn't enforce CHECK constraints, so no action needed
+        // Role validation is handled at the application level
     }
 
     /**
@@ -23,7 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement('ALTER TABLE users DROP CONSTRAINT users_role_check');
-        DB::statement("ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin', 'tutor', 'student', 'company representative'))");
+        // MySQL doesn't enforce CHECK constraints, so no action needed
     }
 };

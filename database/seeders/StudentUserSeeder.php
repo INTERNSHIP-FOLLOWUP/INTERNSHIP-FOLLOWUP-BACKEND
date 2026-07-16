@@ -43,6 +43,33 @@ class StudentUserSeeder extends Seeder
                 'status'       => 'active',
                 'tutor_email'  => 'meng.heang@tutor.com',
             ],
+            [
+                'name'         => 'Sreyroth Sang',
+                'email'        => 'sreyroth.sang@student.passerellesnumeriques.org',
+                'student_code' => 'STU-004',
+                'gender'       => 'Female',
+                'phone'        => '011 444 555',
+                'status'       => 'active',
+                'tutor_email'  => 'meng.heang@tutor.com',
+            ],
+            [
+                'name'         => 'Vakhim Krean',
+                'email'        => 'vakhim.krean@student.passerellesnumeriques.org',
+                'student_code' => 'STU-005',
+                'gender'       => 'Male',
+                'phone'        => '011 555 555',
+                'status'       => 'active',
+                'tutor_email'  => 'meng.heang@tutor.com',
+            ],
+            [
+                'name'         => 'Seyha Ny',
+                'email'        => 'seyha.ny@student.passerellesnumeriques.org',
+                'student_code' => 'STU-006',
+                'gender'       => 'Male',
+                'phone'        => '011 666 666',
+                'status'       => 'active',
+                'tutor_email'  => 'meng.heang@tutor.com',
+            ],
         ];
 
         foreach ($students as $index => $studentData) {
