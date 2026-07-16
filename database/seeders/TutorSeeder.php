@@ -12,6 +12,11 @@ class TutorSeeder extends Seeder
     {
         $role = Role::where('name', 'tutor')->first();
 
+        if ($role === null) {
+            $this->command->warn("Role 'tutor' not found — skipping TutorSeeder.");
+            return;
+        }
+
         $tutors = [
             [
                 'name'  => 'HEY him',

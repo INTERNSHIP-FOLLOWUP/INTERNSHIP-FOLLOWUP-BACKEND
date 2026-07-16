@@ -5,6 +5,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BatchController;
 use App\Http\Controllers\Api\CompanyController;
+use App\Http\Controllers\Api\CompanyDashboardController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WorklogController;
 // use App\Http\Controllers\AuthController;
@@ -65,9 +66,14 @@ Route::middleware('auth:sanctum')->prefix('worklogs')->name('worklogs.')->group(
 
 /*
 |--------------------------------------------------------------------------
-| Admin Management Routes (Requires Sanctum Token & Admin Role)
+| Company Dashboard Routes (Requires Sanctum Token & Company Role)
 |--------------------------------------------------------------------------
 */
+Route::middleware(['auth:sanctum', 'role:company'])->prefix('company')->name('company.')->group(function () {
+    Route::get('/profile', [CompanyDashboardController::class, 'profile'])->name('profile');
+    Route::put('/profile', [CompanyDashboardController::class, 'updateProfile'])->name('profile.update');
+});
+
 Route::middleware(['auth:sanctum', 'role:company'])->prefix('evaluations')->name('evaluations.')->group(function () {
     Route::get('/', [App\Http\Controllers\Api\EvaluationController::class, 'index'])->name('index');
     Route::post('/', [App\Http\Controllers\Api\EvaluationController::class, 'store'])->name('store');

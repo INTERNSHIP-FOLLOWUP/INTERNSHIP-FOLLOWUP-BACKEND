@@ -27,20 +27,24 @@ class AdminUserSeeder extends Seeder
             [
                 'name'  => 'Company User',
                 'email' => 'company@gmail.com',
-                'role'  => 'company representative',
+                'role'  => 'company',
             ],
         ];
 
         foreach ($users as $userData) {
             $role = Role::where('name', $userData['role'])->first();
 
+            if ($role === null) {
+                $this->command->warn("Role '{$userData['role']}' not found — skipping user '{$userData['name']}'.");
+                continue;
+            }
+
             User::firstOrCreate(
                 ['email' => $userData['email']],
                 [
                     'name'     => $userData['name'],
                     'email'    => $userData['email'],
-                    'password' => 'password',
-                    'role'     => $userData['role'],
+                    'password' => '12345678',
                     'role_id'  => $role->id,
                 ]
             );

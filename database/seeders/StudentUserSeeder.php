@@ -36,8 +36,7 @@ class StudentUserSeeder extends Seeder
                 [
                     'name'     => $student['name'],
                     'email'    => $student['email'],
-                    'password' => 'password',
-                    'role'     => 'student',
+                    'password' => '12345678',
                     'role_id'  => $role->id,
                 ]
             );
