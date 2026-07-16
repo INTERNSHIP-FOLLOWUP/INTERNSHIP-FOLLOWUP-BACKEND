@@ -25,15 +25,15 @@ class WorklogController extends Controller
         $query = Worklog::with('attachments');
 
         // Role-based filtering
-        if ($user->role === 'admin') {
+        if ($user->role->name === 'admin') {
             // Admins see all worklogs (no filter)
         } else {
             $student = Student::where('email', $user->email)->first();
 
-            if ($student && $user->role === 'student') {
+            if ($student && $user->role->name === 'student') {
                 // Students see only their own worklogs
                 $query->where('student_id', $student->id);
-            } elseif ($user->role === 'tutor') {
+            } elseif ($user->role->name === 'tutor') {
                 // Tutors see worklogs of students assigned to them
                 $studentIds = Student::where('tutor_id', $user->id)->pluck('id');
                 $query->whereIn('student_id', $studentIds);
@@ -78,7 +78,7 @@ class WorklogController extends Controller
         $user = $request->user();
         $student = Student::where('email', $user->email)->first();
 
-        if (!$student && $user->role !== 'admin') {
+        if (!$student && $user->role->name !== 'admin') {
             return response()->json([
                 'message' => 'Only students can create worklogs.',
             ], 403);
@@ -138,7 +138,7 @@ class WorklogController extends Controller
     {
         $user = request()->user();
 
-        if ($user->role !== 'admin') {
+        if ($user->role->name !== 'admin') {
             $this->authorizeAccess($user, $worklog);
         }
 
@@ -157,7 +157,7 @@ class WorklogController extends Controller
         $user = $request->user();
         $student = Student::where('email', $user->email)->first();
 
-        if ($user->role !== 'admin') {
+        if ($user->role->name !== 'admin') {
             // Non-admin: only the owning student can update
             if (!$student || $worklog->student_id !== $student->id) {
                 return response()->json(['message' => 'Forbidden.'], 403);
@@ -209,7 +209,7 @@ class WorklogController extends Controller
         $user = request()->user();
         $student = Student::where('email', $user->email)->first();
 
-        if ($user->role !== 'admin') {
+        if ($user->role->name !== 'admin') {
             // Non-admin: only the owning student can delete
             if (!$student || $worklog->student_id !== $student->id) {
                 return response()->json(['message' => 'Forbidden.'], 403);
@@ -243,9 +243,9 @@ class WorklogController extends Controller
     {
         $user = $request->user();
 
-        if ($user->role !== 'admin') {
+        if ($user->role->name !== 'admin') {
             // Non-admin: only assigned tutors can update worklog status
-            if ($user->role !== 'tutor') {
+            if ($user->role->name !== 'tutor') {
                 return response()->json(['message' => 'Only tutors can update worklog status.'], 403);
             }
 
@@ -313,7 +313,7 @@ class WorklogController extends Controller
         $user = request()->user();
         $student = Student::where('email', $user->email)->first();
 
-        if ($user->role !== 'admin') {
+        if ($user->role->name !== 'admin') {
             // Non-admin: only the owning student can delete attachments
             if (!$student || $worklog->student_id !== $student->id) {
                 return response()->json(['message' => 'Forbidden.'], 403);
@@ -346,11 +346,11 @@ class WorklogController extends Controller
     {
         $student = Student::where('email', $user->email)->first();
 
-        if ($user->role === 'student') {
+        if ($user->role->name === 'student') {
             if (!$student || $worklog->student_id !== $student->id) {
                 abort(403, 'Forbidden.');
             }
-        } elseif ($user->role === 'tutor') {
+        } elseif ($user->role->name === 'tutor') {
             $isAssigned = Student::where('id', $worklog->student_id)
                 ->where('tutor_id', $user->id)
                 ->exists();

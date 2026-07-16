@@ -51,7 +51,7 @@ class WorklogRequest extends FormRequest
         ];
 
         // Admin can specify student_id when creating worklogs for other students
-        if (!$worklogId && $user && $user->role === 'admin') {
+        if (!$worklogId && $user && $user->role->name === 'admin') {
             $rules['student_id'] = ['required', 'exists:students,id'];
         }
 

@@ -38,15 +38,13 @@ class WorklogApiTest extends TestCase
         $tutorRole = Role::where('name', 'tutor')->first();
         $batch = Batch::create(['batch_name' => 'Test Batch', 'year' => '2026']);
 
-        // Create student user and explicitly set the role column
+        // Create student user
         $this->studentUser = User::create([
             'name' => 'Test Student',
             'email' => 'student@test.com',
             'password' => bcrypt('password'),
             'role_id' => $studentRole->id,
         ]);
-        $this->studentUser->role = 'student';
-        $this->studentUser->save();
 
         // Create Student record
         $this->student = Student::create([
@@ -58,15 +56,13 @@ class WorklogApiTest extends TestCase
             'status' => 'Active',
         ]);
 
-        // Create tutor user and explicitly set the role column
+        // Create tutor user
         $this->tutorUser = User::create([
             'name' => 'Test Tutor',
             'email' => 'tutor@test.com',
             'password' => bcrypt('password'),
             'role_id' => $tutorRole->id,
         ]);
-        $this->tutorUser->role = 'tutor';
-        $this->tutorUser->save();
 
         $this->studentToken = $this->studentUser->createToken('test-token')->plainTextToken;
         $this->tutorToken = $this->tutorUser->createToken('test-token')->plainTextToken;
@@ -662,8 +658,6 @@ class WorklogApiTest extends TestCase
             'password' => bcrypt('password'),
             'role_id' => $adminRole->id,
         ]);
-        $this->adminUser->role = 'admin';
-        $this->adminUser->save();
 
         $this->adminToken = $this->adminUser->createToken('test-token')->plainTextToken;
     }

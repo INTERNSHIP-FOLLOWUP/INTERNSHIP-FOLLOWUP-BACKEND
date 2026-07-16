@@ -2,22 +2,19 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\AssignmentStatus;
 use App\Models\InternshipAssignment;
-use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Contracts\Validation\Validator;
-use Illuminate\Validation\Rule;
 
 class InternshipAssignmentRequest extends FormRequest
 {
-    // Determine if the user is authorized to make this request.
     public function authorize(): bool
     {
         return true;
     }
 
-    // Resolve the current assignment ID from the route for update requests.
     protected function assignmentId(): mixed
     {
         $assignment = $this->route('internship_assignment') ?? $this->route('assignment');
@@ -25,31 +22,22 @@ class InternshipAssignmentRequest extends FormRequest
         return $assignment instanceof InternshipAssignment ? $assignment->getKey() : $assignment;
     }
 
-    // Get the validation rules that apply to the request.
     public function rules(): array
     {
         $assignmentId = $this->assignmentId();
+        $requiredIfCreating = $assignmentId ? 'nullable' : 'required';
 
         return [
-            // Foreign Keys (required for creation, optional for update)
-            'student_id' => $assignmentId ? ['nullable', 'exists:students,id'] : ['required', 'exists:students,id'],
-            'company_id' => $assignmentId ? ['nullable', 'exists:companies,id'] : ['required', 'exists:companies,id'],
-            'tutor_id' => $assignmentId ? ['nullable', 'exists:users,id'] : ['required', 'exists:users,id'],
-            
-            // Assignment Details
+            'student_id' => [$requiredIfCreating, 'exists:students,id'],
+            'company_id' => [$requiredIfCreating, 'exists:companies,id'],
+            'tutor_id' => [$requiredIfCreating, 'exists:users,id'],
             'position' => ['required', 'string', 'max:255'],
-            
-            // Dates with custom validation
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after:start_date'],
-            
-            // Status
-            'status' => ['nullable', 'in:Assigned,In Progress,Completed,Terminated'],
+            'status' => ['nullable', 'in:' . implode(',', AssignmentStatus::values())],
         ];
     }
 
-    // Force API validation errors to return a JSON 422 response.
-  
     protected function failedValidation(Validator $validator): void
     {
         throw new HttpResponseException(response()->json([

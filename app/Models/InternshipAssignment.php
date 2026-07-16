@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AssignmentStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -15,12 +16,6 @@ class InternshipAssignment extends Model
         'start_date',
         'end_date',
         'status',
-    ];
-
-    protected $appends = [
-        'student_name',
-        'company_name',
-        'tutor_name',
     ];
 
     protected function casts(): array
@@ -46,18 +41,20 @@ class InternshipAssignment extends Model
         return $this->belongsTo(User::class, 'tutor_id');
     }
 
-    public function getStudentNameAttribute(): string
+    public function canTransitionTo(string $newStatus): bool
     {
-        return $this->student?->name ?? '';
-    }
+        $current = AssignmentStatus::tryFrom($this->status);
 
-    public function getCompanyNameAttribute(): string
-    {
-        return $this->company?->company_name ?? '';
-    }
+        if ($current === null) {
+            return false;
+        }
 
-    public function getTutorNameAttribute(): string
-    {
-        return $this->tutor?->name ?? '';
+        $target = AssignmentStatus::tryFrom($newStatus);
+
+        if ($target === null) {
+            return false;
+        }
+
+        return $current->canTransitionTo($target);
     }
 }
