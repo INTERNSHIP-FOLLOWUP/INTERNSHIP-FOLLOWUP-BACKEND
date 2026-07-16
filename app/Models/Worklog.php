@@ -18,6 +18,7 @@ class Worklog extends Model
         'challenges',
         'submission_date',
         'status',
+        'feedback',
     ];
 
     protected function casts(): array

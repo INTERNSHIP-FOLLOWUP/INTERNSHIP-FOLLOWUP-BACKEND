@@ -1,4 +1,4 @@
- <?php
+<?php
 
 // use App\Http\Controllers\AuthController;
 
@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BatchController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\WorklogController;
 // use App\Http\Controllers\AuthController;
 
 use Illuminate\Http\Request;
@@ -49,16 +50,57 @@ Route::middleware('auth:sanctum')->prefix('auth')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
+| Worklog Routes (Requires Sanctum Token)
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth:sanctum')->prefix('worklogs')->name('worklogs.')->group(function () {
+    Route::get('/', [WorklogController::class, 'index'])->name('index');
+    Route::post('/', [WorklogController::class, 'store'])->name('store');
+    Route::get('/{worklog}', [WorklogController::class, 'show'])->name('show');
+    Route::put('/{worklog}', [WorklogController::class, 'update'])->name('update');
+    Route::delete('/{worklog}', [WorklogController::class, 'destroy'])->name('destroy');
+    Route::delete('/{worklog}/attachments/{attachment}', [WorklogController::class, 'destroyAttachment'])->name('attachments.destroy');
+    Route::put('/{worklog}/status', [WorklogController::class, 'updateStatus'])->name('status.update');
+});
+
+/*
+|--------------------------------------------------------------------------
 | Admin Management Routes (Requires Sanctum Token & Admin Role)
 |--------------------------------------------------------------------------
 */
+Route::middleware(['auth:sanctum', 'role:company'])->prefix('evaluations')->name('evaluations.')->group(function () {
+    Route::get('/', [App\Http\Controllers\Api\EvaluationController::class, 'index'])->name('index');
+    Route::post('/', [App\Http\Controllers\Api\EvaluationController::class, 'store'])->name('store');
+    Route::get('/{evaluation}', [App\Http\Controllers\Api\EvaluationController::class, 'show'])->name('show');
+    Route::put('/{evaluation}', [App\Http\Controllers\Api\EvaluationController::class, 'update'])->name('update');
+    Route::delete('/{evaluation}', [App\Http\Controllers\Api\EvaluationController::class, 'destroy'])->name('destroy');
+});
+
+Route::middleware(['auth:sanctum', 'role:tutor,student'])->prefix('issues')->name('issues.')->group(function () {
+    Route::get('/', [App\Http\Controllers\Api\IssueController::class, 'index'])->name('index');
+    Route::post('/', [App\Http\Controllers\Api\IssueController::class, 'store'])->name('store');
+    Route::get('/{issue}', [App\Http\Controllers\Api\IssueController::class, 'show'])->name('show');
+    Route::put('/{issue}', [App\Http\Controllers\Api\IssueController::class, 'update'])->name('update');
+    Route::delete('/{issue}', [App\Http\Controllers\Api\IssueController::class, 'destroy'])->name('destroy');
+});
+
+Route::middleware(['auth:sanctum', 'role:admin,tutor,student'])->prefix('worklogs')->name('worklogs.')->group(function () {
+    Route::get('/', [App\Http\Controllers\Api\WorklogController::class, 'index'])->name('index');
+    Route::post('/', [App\Http\Controllers\Api\WorklogController::class, 'store'])->name('store');
+    Route::get('/{worklog}', [App\Http\Controllers\Api\WorklogController::class, 'show'])->name('show');
+    Route::put('/{worklog}', [App\Http\Controllers\Api\WorklogController::class, 'update'])->name('update');
+    Route::delete('/{worklog}', [App\Http\Controllers\Api\WorklogController::class, 'destroy'])->name('destroy');
+
+    Route::post('/{worklog}/attachments', [App\Http\Controllers\Api\WorklogController::class, 'uploadAttachment'])->name('attachments.upload');
+    Route::delete('/attachments/{attachment}', [App\Http\Controllers\Api\WorklogController::class, 'deleteAttachment'])->name('attachments.destroy');
+});
+
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::post('/users', [UserController::class, 'store'])->name('users.store');
     Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
-    
     // Batch Management Routes
     Route::get('/batches', [BatchController::class, 'index'])->name('batches.index');
     Route::post('/batches', [BatchController::class, 'store'])->name('batches.store');
@@ -73,9 +115,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
     Route::get('/companies/{company}', [CompanyController::class, 'show'])->name('companies.show');
     Route::put('/companies/{company}', [CompanyController::class, 'update'])->name('companies.update');
     Route::delete('/companies/{company}', [CompanyController::class, 'destroy'])->name('companies.destroy');
-});
 
-Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::apiResource('students', \App\Http\Controllers\Api\StudentController::class);
 
     // Assignment Management Routes
@@ -84,4 +124,13 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
     Route::get('/assignments/{assignment}', [\App\Http\Controllers\Api\AssignmentController::class, 'show'])->name('assignments.show');
     Route::put('/assignments/{assignment}', [\App\Http\Controllers\Api\AssignmentController::class, 'update'])->name('assignments.update');
     Route::delete('/assignments/{assignment}', [\App\Http\Controllers\Api\AssignmentController::class, 'destroy'])->name('assignments.destroy');
+
+    // Worklog Management Routes (Admin full access)
+    Route::get('/worklogs', [WorklogController::class, 'index'])->name('worklogs.index');
+    Route::post('/worklogs', [WorklogController::class, 'store'])->name('worklogs.store');
+    Route::get('/worklogs/{worklog}', [WorklogController::class, 'show'])->name('worklogs.show');
+    Route::put('/worklogs/{worklog}', [WorklogController::class, 'update'])->name('worklogs.update');
+    Route::delete('/worklogs/{worklog}', [WorklogController::class, 'destroy'])->name('worklogs.destroy');
+    Route::put('/worklogs/{worklog}/status', [WorklogController::class, 'updateStatus'])->name('worklogs.status.update');
+    Route::delete('/worklogs/{worklog}/attachments/{attachment}', [WorklogController::class, 'destroyAttachment'])->name('worklogs.attachments.destroy');
 });
