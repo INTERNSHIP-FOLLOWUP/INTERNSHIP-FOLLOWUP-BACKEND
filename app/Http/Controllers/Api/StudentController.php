@@ -5,9 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StudentRequest;
 use App\Http\Resources\StudentResource;
+use App\Models\Role;
 use App\Models\Student;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class StudentController extends Controller
 {
@@ -37,7 +41,7 @@ class StudentController extends Controller
         }
 
         $perPage = min((int) $request->per_page, 100) ?: 15;
-        $students = $query->paginate($perPage);
+        $students = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
         return response()->json([
             'data' => StudentResource::collection($students->items()),
@@ -55,7 +59,25 @@ class StudentController extends Controller
 
     public function store(StudentRequest $request): JsonResponse
     {
-        $student = Student::create($request->validated());
+        $data = $request->validated();
+
+        $studentRole = Role::where('name', 'student')->first();
+
+        $user = User::create([
+            'name'     => $data['name'],
+            'email'    => $data['email'],
+            'password' => Hash::make($data['password']),
+            'role_id'  => $studentRole?->id,
+        ]);
+
+        if ($request->hasFile('photo')) {
+            $data['photo'] = $request->file('photo')->store('students', 'public');
+        }
+
+        $data['user_id'] = $user->id;
+        unset($data['password'], $data['password_confirmation']);
+
+        $student = Student::create($data);
 
         return response()->json([
             'data' => new StudentResource($student->load(['batch', 'tutor'])),
@@ -73,7 +95,18 @@ class StudentController extends Controller
 
     public function update(StudentRequest $request, Student $student): JsonResponse
     {
-        $student->update($request->validated());
+        $data = $request->validated();
+
+        if ($request->hasFile('photo')) {
+            if ($student->photo) {
+                Storage::disk('public')->delete($student->photo);
+            }
+            $data['photo'] = $request->file('photo')->store('students', 'public');
+        }
+
+        unset($data['password'], $data['password_confirmation']);
+
+        $student->update($data);
 
         return response()->json([
             'data' => new StudentResource($student->fresh()->load(['batch', 'tutor'])),
@@ -83,6 +116,14 @@ class StudentController extends Controller
 
     public function destroy(Student $student): JsonResponse
     {
+        if ($student->photo) {
+            Storage::disk('public')->delete($student->photo);
+        }
+
+        if ($student->user) {
+            $student->user->delete();
+        }
+
         $student->delete();
 
         return response()->json([

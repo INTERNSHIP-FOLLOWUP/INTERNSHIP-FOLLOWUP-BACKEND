@@ -26,7 +26,7 @@ class StudentRequest extends FormRequest
     {
         $studentId = $this->studentId();
 
-        return [
+        $rules = [
             'student_code' => [
                 'required',
                 'string',
@@ -36,7 +36,7 @@ class StudentRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'gender' => ['required', 'string', 'in:Male,Female'],
             'email' => [
-                'nullable',
+                'required',
                 'email',
                 'max:255',
                 Rule::unique('students', 'email')->ignore($studentId),
@@ -48,6 +48,13 @@ class StudentRequest extends FormRequest
             'status' => ['nullable', 'string', 'max:50'],
             'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
         ];
+
+        if (!$studentId) {
+            $rules['password'] = ['required', 'string', 'min:6'];
+            $rules['password_confirmation'] = ['required', 'string', 'same:password'];
+        }
+
+        return $rules;
     }
 
     protected function failedValidation(Validator $validator): void

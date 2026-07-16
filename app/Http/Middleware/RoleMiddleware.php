@@ -17,7 +17,7 @@ class RoleMiddleware
     {
         $user = $request->user('sanctum');
 
-        if (!$user || !in_array($user->role, $roles)) {
+        if (!$user || !in_array($user->role->name, $roles)) {
             abort(403);
         }
 

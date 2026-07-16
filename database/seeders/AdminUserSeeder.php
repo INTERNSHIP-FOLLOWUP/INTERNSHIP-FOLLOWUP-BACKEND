@@ -5,12 +5,9 @@ namespace Database\Seeders;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 
 class AdminUserSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     public function run(): void
     {
         $users = [
@@ -18,11 +15,6 @@ class AdminUserSeeder extends Seeder
                 'name'  => 'Admin User',
                 'email' => 'admin@gmail.com',
                 'role'  => 'admin',
-            ],
-            [
-                'name'  => 'Tutor User',
-                'email' => 'tutor@gmail.com',
-                'role'  => 'tutor',
             ],
             [
                 'name'  => 'Company User',

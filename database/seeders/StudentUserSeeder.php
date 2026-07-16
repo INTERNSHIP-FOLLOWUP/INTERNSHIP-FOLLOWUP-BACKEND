@@ -2,42 +2,77 @@
 
 namespace Database\Seeders;
 
+use App\Models\Batch;
 use App\Models\Role;
+use App\Models\Student;
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 
 class StudentUserSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     public function run(): void
     {
-        $role = Role::where('name', 'student')->first();
+        $studentRoleId = Role::where('name', 'student')->value('id');
+        $batches = Batch::all();
 
         $students = [
             [
-                'name'  => 'Serey Phem',
-                'email' => 'serey.phem@student.passerellesnumeriques.org',
+                'name'         => 'Serey Phem',
+                'email'        => 'serey.phem@student.passerellesnumeriques.org',
+                'student_code' => 'STU-001',
+                'gender'       => 'male',
+                'phone'        => '011 111 111',
+                'status'       => 'active',
+                'tutor_email'  => 'hey.him@tutor.com',
             ],
             [
-                'name'  => 'Dane Miok',
-                'email' => 'dane.miok@student.passerellesnumeriques.org',
+                'name'         => 'Dane Miok',
+                'email'        => 'dane.miok@student.passerellesnumeriques.org',
+                'student_code' => 'STU-002',
+                'gender'       => 'female',
+                'phone'        => '011 222 222',
+                'status'       => 'active',
+                'tutor_email'  => 'yen.yon@tutor.com',
             ],
             [
-                'name'  => 'Vicheka Hav',
-                'email' => 'vicheka.hav@student.passerellesnumeriques.org',
+                'name'         => 'Vicheka Hav',
+                'email'        => 'vicheka.hav@student.passerellesnumeriques.org',
+                'student_code' => 'STU-003',
+                'gender'       => 'female',
+                'phone'        => '011 333 333',
+                'status'       => 'active',
+                'tutor_email'  => 'meng.heang@tutor.com',
             ],
         ];
 
-        foreach ($students as $student) {
-            User::firstOrCreate(
-                ['email' => $student['email']],
+        foreach ($students as $index => $studentData) {
+            $tutorId = User::where('email', $studentData['tutor_email'])->value('id');
+            $batchId = $batches->isNotEmpty()
+                ? $batches[$index % $batches->count()]->id
+                : null;
+
+            $user = User::firstOrCreate(
+                ['email' => $studentData['email']],
                 [
-                    'name'     => $student['name'],
-                    'email'    => $student['email'],
+                    'name'     => $studentData['name'],
+                    'email'    => $studentData['email'],
                     'password' => '12345678',
-                    'role_id'  => $role->id,
+                    'role_id'  => $studentRoleId,
+                ]
+            );
+
+            Student::firstOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'user_id'      => $user->id,
+                    'student_code' => $studentData['student_code'],
+                    'batch_id'     => $batchId,
+                    'tutor_id'     => $tutorId,
+                    'name'         => $studentData['name'],
+                    'gender'       => $studentData['gender'],
+                    'phone'        => $studentData['phone'],
+                    'email'        => $studentData['email'],
+                    'status'       => $studentData['status'],
                 ]
             );
         }
