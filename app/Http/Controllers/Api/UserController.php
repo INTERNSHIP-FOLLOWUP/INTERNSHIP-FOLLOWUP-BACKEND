@@ -28,7 +28,7 @@ class UserController extends Controller
         }
 
         if ($roleName === 'tutor') {
-            $query->withCount('students');
+            $query->withCount('tutorStudents');
         }
 
         if ($request->filled('search')) {
@@ -44,7 +44,7 @@ class UserController extends Controller
 
     public function show(User $user)
     {
-        $user->load(['student', 'company']);
+        $user->load(['studentProfile', 'tutorStudents', 'tutoredAssignments']);
 
         return response()->json($user);
     }
