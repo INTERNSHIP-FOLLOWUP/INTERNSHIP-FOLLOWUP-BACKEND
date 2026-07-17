@@ -15,7 +15,7 @@ class CompanyDashboardController extends Controller
     public function profile(Request $request)
     {
         $user = $request->user();
-        $company = Company::where('email', $user->email)->firstOrFail();
+        $company = Company::where('user_id', $user->id)->firstOrFail();
 
         return response()->json($company);
     }
@@ -26,7 +26,7 @@ class CompanyDashboardController extends Controller
     public function updateProfile(Request $request)
     {
         $user = $request->user();
-        $company = Company::where('email', $user->email)->firstOrFail();
+        $company = Company::where('user_id', $user->id)->firstOrFail();
 
         $validated = $request->validate([
             'company_name' => [

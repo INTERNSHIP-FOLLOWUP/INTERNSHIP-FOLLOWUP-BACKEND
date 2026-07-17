@@ -41,17 +41,33 @@ class CompanyController extends Controller
     {
         $data = $request->validated();
 
-        $company = Company::create($data);
+        // Password is not needed on the Company model
+        $companyData = $data;
+        unset($companyData['password']);
 
-        $role = Role::where('name', 'company representative')->first();
+        $company = Company::create($companyData);
+
+        $role = Role::where('name', 'company')->first();
+
+        if (! $role) {
+            return response()->json([
+                'message' => 'Required role "company" not found. Please run database seeders.',
+            ], 500);
+        }
 
         $user = User::create([
             'name'     => $data['contact_person'],
             'email'    => $data['email'],
             'password' => $data['password'],
-            'role'     => 'company',
             'role_id'  => $role->id,
         ]);
+
+        // Link the newly created user back to the company record
+        $company->user_id = $user->id;
+        $company->save();
+
+        // Refresh the company to include the relationship
+        $company->load('user');
 
         return response()->json([
             'company' => $company,
@@ -80,6 +96,25 @@ class CompanyController extends Controller
         }
 
         $company->update($data);
+
+        // Sync the linked User record when email, password, or contact_person changes
+        if ($company->user_id) {
+            $user = User::find($company->user_id);
+            if ($user) {
+                if (isset($data['email'])) {
+                    $user->email = $data['email'];
+                }
+                if (isset($data['password'])) {
+                    $user->password = $data['password'];
+                }
+                if (isset($data['contact_person'])) {
+                    $user->name = $data['contact_person'];
+                }
+                $user->save();
+            }
+        }
+
+        $company->load('user');
 
         return response()->json([
             'company' => $company,
