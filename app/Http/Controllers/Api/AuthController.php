@@ -20,11 +20,12 @@ class AuthController extends Controller
     private function userResponse(User $user): array
     {
         return [
-            'id'     => $user->id,
-            'name'   => $user->name,
-            'email'  => $user->email,
-            'avatar' => $user->avatar,
-            'role'   => $user->role?->name ?? '',
+            'id'         => $user->id,
+            'name'       => $user->name,
+            'email'      => $user->email,
+            'avatar'     => $user->avatar,
+            'avatar_url' => $user->avatar_url,
+            'role'       => $user->role?->name ?? '',
         ];
     }
 
