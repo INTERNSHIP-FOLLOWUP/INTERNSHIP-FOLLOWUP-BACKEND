@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\CompanyDashboardController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WorklogController;
 use App\Http\Controllers\Api\FollowupController;
+use App\Http\Controllers\Api\AssignmentController;
 // use App\Http\Controllers\AuthController;
 
 use Illuminate\Http\Request;
@@ -97,6 +98,10 @@ Route::middleware(['auth:sanctum', 'role:admin,tutor,student'])->prefix('followu
     Route::get('/{followup}', [FollowupController::class, 'show'])->name('show');
     Route::put('/{followup}', [FollowupController::class, 'update'])->name('update');
     Route::delete('/{followup}', [FollowupController::class, 'destroy'])->name('destroy');
+});
+
+Route::middleware(['auth:sanctum', 'role:student'])->prefix('student')->name('student.')->group(function () {
+    Route::get('/internship', [AssignmentController::class, 'myInternship'])->name('internship');
 });
 
 Route::middleware(['auth:sanctum', 'role:admin,tutor,student'])->prefix('worklogs')->name('worklogs.')->group(function () {

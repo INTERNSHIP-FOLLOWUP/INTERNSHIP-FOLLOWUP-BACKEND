@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\InternshipAssignmentRequest;
 use App\Http\Resources\AssignmentResource;
 use App\Models\InternshipAssignment;
+use App\Models\Student;
 use App\Services\AssignmentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -73,6 +74,36 @@ class AssignmentController extends Controller
 
         return response()->json([
             'message' => 'Internship assignment deleted successfully.',
+        ]);
+    }
+
+    public function myInternship(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $student = Student::where('user_id', $user->id)->first();
+
+        if (!$student) {
+            return response()->json([
+                'data' => null,
+                'message' => 'No internship assignment found.',
+            ], 404);
+        }
+
+        $assignment = InternshipAssignment::where('student_id', $student->id)
+            ->with(['student', 'company', 'tutor'])
+            ->latest()
+            ->first();
+
+        if (!$assignment) {
+            return response()->json([
+                'data' => null,
+                'message' => 'No internship assignment found.',
+            ], 404);
+        }
+
+        return response()->json([
+            'data' => new AssignmentResource($assignment),
         ]);
     }
 }
