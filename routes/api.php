@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\CompanyDashboardController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WorklogController;
+use App\Http\Controllers\Api\FollowupController;
 // use App\Http\Controllers\AuthController;
 
 use Illuminate\Http\Request;
@@ -88,6 +89,14 @@ Route::middleware(['auth:sanctum', 'role:tutor,student'])->prefix('issues')->nam
     Route::get('/{issue}', [App\Http\Controllers\Api\IssueController::class, 'show'])->name('show');
     Route::put('/{issue}', [App\Http\Controllers\Api\IssueController::class, 'update'])->name('update');
     Route::delete('/{issue}', [App\Http\Controllers\Api\IssueController::class, 'destroy'])->name('destroy');
+});
+
+Route::middleware(['auth:sanctum', 'role:admin,tutor,student'])->prefix('followups')->name('followups.')->group(function () {
+    Route::get('/', [FollowupController::class, 'index'])->name('index');
+    Route::post('/', [FollowupController::class, 'store'])->name('store');
+    Route::get('/{followup}', [FollowupController::class, 'show'])->name('show');
+    Route::put('/{followup}', [FollowupController::class, 'update'])->name('update');
+    Route::delete('/{followup}', [FollowupController::class, 'destroy'])->name('destroy');
 });
 
 Route::middleware(['auth:sanctum', 'role:admin,tutor,student'])->prefix('worklogs')->name('worklogs.')->group(function () {
