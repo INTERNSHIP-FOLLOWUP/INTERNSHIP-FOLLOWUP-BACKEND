@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
+use App\Models\CompanyFeedback;
 
 class Company extends Model
 {
@@ -80,5 +81,10 @@ class Company extends Model
     public function evaluations(): HasMany
     {
         return $this->hasMany(Evaluation::class);
+    }
+
+    public function feedback(): HasMany
+    {
+        return $this->hasMany(CompanyFeedback::class);
     }
 }

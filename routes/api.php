@@ -73,6 +73,11 @@ Route::middleware(['auth:sanctum', 'role:company'])->prefix('company')->name('co
     Route::get('/profile', [CompanyDashboardController::class, 'profile'])->name('profile');
     Route::put('/profile', [CompanyDashboardController::class, 'updateProfile'])->name('profile.update');
     Route::get('/students', [CompanyDashboardController::class, 'students'])->name('students');
+    Route::get('/feedback', [App\Http\Controllers\Api\CompanyFeedbackController::class, 'index'])->name('feedback.index');
+    Route::post('/feedback', [App\Http\Controllers\Api\CompanyFeedbackController::class, 'store'])->name('feedback.store');
+    Route::get('/feedback/{companyFeedback}', [App\Http\Controllers\Api\CompanyFeedbackController::class, 'show'])->name('feedback.show');
+    Route::put('/feedback/{companyFeedback}', [App\Http\Controllers\Api\CompanyFeedbackController::class, 'update'])->name('feedback.update');
+    Route::delete('/feedback/{companyFeedback}', [App\Http\Controllers\Api\CompanyFeedbackController::class, 'destroy'])->name('feedback.destroy');
 });
 
 Route::middleware(['auth:sanctum', 'role:company'])->prefix('evaluations')->name('evaluations.')->group(function () {
