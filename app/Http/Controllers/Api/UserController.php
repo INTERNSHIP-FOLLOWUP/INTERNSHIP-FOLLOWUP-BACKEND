@@ -39,7 +39,27 @@ class UserController extends Controller
             });
         }
 
-        return $query->paginate($request->per_page ?? 15);
+        $users = $query->paginate($request->per_page ?? 15);
+
+        $roleCounts = [
+            'admin' => User::whereHas('role', fn($q) => $q->where('name', 'admin'))->count(),
+            'tutor' => User::whereHas('role', fn($q) => $q->where('name', 'tutor'))->count(),
+            'student' => User::whereHas('role', fn($q) => $q->where('name', 'student'))->count(),
+            'company' => User::whereHas('role', fn($q) => $q->where('name', 'company'))->count(),
+        ];
+
+        return response()->json([
+            'data' => $users->items(),
+            'meta' => [
+                'current_page' => $users->currentPage(),
+                'last_page' => $users->lastPage(),
+                'per_page' => $users->perPage(),
+                'total' => $users->total(),
+                'from' => $users->firstItem(),
+                'to' => $users->lastItem(),
+            ],
+            'counts' => $roleCounts,
+        ]);
     }
 
     public function show(User $user)

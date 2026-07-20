@@ -4,9 +4,9 @@
     <meta charset="utf-8">
     <title>Internship Performance Report — {{ $generated_at }}</title>
     <style>
-        @page { margin: 0 10mm 10mm; }
+        @page { margin: 8mm 10mm 10mm; }
         body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 9pt; color: #1e293b; line-height: 1.4; }
-        .header { background: linear-gradient(135deg, #4f46e5, #6366f1); color: #fff; padding: 10px 18px; border-radius: 6px; margin-bottom: 10px; }
+        .header { background: #4f46e5; color: #fff; padding: 10px 18px; border-radius: 6px; margin-bottom: 10px; }
         .header h1 { margin: 0; font-size: 22pt; font-weight: 800; letter-spacing: -.3px; }
         .header .sub { font-size: 9pt; opacity: .8; margin-top: 4px; }
         .meta-bar { display: flex; justify-content: space-between; font-size: 8pt; color: #64748b; margin-bottom: 16px; padding: 8px 12px; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0; }
@@ -18,21 +18,21 @@
         .card { flex: 1 0 110px; border-radius: 8px; padding: 12px 14px; text-align: center; }
         .card .val { font-size: 20pt; font-weight: 800; line-height: 1.1; }
         .card .lbl { font-size: 6.5pt; text-transform: uppercase; letter-spacing: .8px; margin-top: 3px; opacity: .75; }
-        .card-primary { background: linear-gradient(135deg, #eef2ff, #e0e7ff); }
+        .card-primary { background: #eef2ff; }
         .card-primary .val { color: #4338ca; }
-        .card-emerald { background: linear-gradient(135deg, #ecfdf5, #d1fae5); }
+        .card-emerald { background: #ecfdf5; }
         .card-emerald .val { color: #059669; }
-        .card-amber { background: linear-gradient(135deg, #fffbeb, #fde68a); }
+        .card-amber { background: #fffbeb; }
         .card-amber .val { color: #d97706; }
-        .card-blue { background: linear-gradient(135deg, #eff6ff, #bfdbfe); }
+        .card-blue { background: #eff6ff; }
         .card-blue .val { color: #2563eb; }
-        .card-rose { background: linear-gradient(135deg, #fff1f2, #fecdd3); }
+        .card-rose { background: #fff1f2; }
         .card-rose .val { color: #e11d48; }
-        .card-slate { background: linear-gradient(135deg, #f1f5f9, #e2e8f0); }
+        .card-slate { background: #f1f5f9; }
         .card-slate .val { color: #475569; }
-        .card-purple { background: linear-gradient(135deg, #faf5ff, #e9d5ff); }
+        .card-purple { background: #faf5ff; }
         .card-purple .val { color: #9333ea; }
-        .card-cyan { background: linear-gradient(135deg, #ecfeff, #a5f3fc); }
+        .card-cyan { background: #ecfeff; }
         .card-cyan .val { color: #0891b2; }
 
         table { width: 100%; border-collapse: separate; border-spacing: 0; margin-bottom: 14px; font-size: 8pt; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
@@ -74,7 +74,6 @@
     </div>
 
     <div class="meta-bar">
-        <h1>Internship Performance Report</h1>
         <span><strong>Generated:</strong> {{ $generated_at }}</span>
         @if(!empty($filters))
             <span>

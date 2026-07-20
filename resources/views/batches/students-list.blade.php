@@ -4,9 +4,9 @@
     <meta charset="utf-8">
     <title>{{ $batch->batch_name }} — Student List — {{ $generated_at }}</title>
     <style>
-        @page { margin: 18mm 14mm; }
+        @page { margin: 8mm 10mm 10mm; }
         body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 9pt; color: #1e293b; line-height: 1.5; }
-        .header { background: linear-gradient(135deg, #4f46e5, #6366f1); color: #fff; padding: 16px 22px; border-radius: 6px; margin-bottom: 14px; }
+        .header { background: #4f46e5; color: #fff; padding: 12px 18px; border-radius: 6px; margin-bottom: 10px; }
         .header h1 { margin: 0; font-size: 18pt; font-weight: 700; }
         .header .sub { font-size: 9pt; opacity: .85; margin-top: 3px; }
         .meta-bar { display: flex; justify-content: space-between; font-size: 8pt; color: #64748b; margin-bottom: 16px; padding-bottom: 6px; border-bottom: 2px solid #e2e8f0; }
