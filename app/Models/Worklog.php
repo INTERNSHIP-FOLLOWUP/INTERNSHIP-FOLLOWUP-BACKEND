@@ -19,7 +19,10 @@ class Worklog extends Model
         'submission_date',
         'status',
         'feedback',
+        'reviewer_id',
+        'reviewed_at',
     ];
+
 
     protected function casts(): array
     {

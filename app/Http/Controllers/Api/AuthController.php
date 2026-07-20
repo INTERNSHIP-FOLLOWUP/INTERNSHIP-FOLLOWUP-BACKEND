@@ -169,7 +169,6 @@ class AuthController extends Controller
 
         $status = Password::reset($credentials, function (User $user, string $password) {
             $user->forceFill(['password' => Hash::make($password)])->save();
-            $user->tokens()->delete();
         });
 
         if ($status === Password::PASSWORD_RESET) {
@@ -192,7 +191,13 @@ class AuthController extends Controller
      */
     public function user(Request $request)
     {
-        return response()->json($this->userResponse($request->user()));
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        return response()->json($this->userResponse($user));
     }
 
     /**
@@ -200,7 +205,13 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $user->tokens()->delete();
 
         return response()->json([
             'message' => 'Logged out successfully.'

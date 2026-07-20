@@ -27,10 +27,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, \Illuminate\Http\Request $request) {
             if ($request->expectsJson() || $request->is('api/*')) {
-                return response()->json(['message' => $e->getMessage()], 401);
+                return response()->json(['message' => 'Unauthenticated.'], 401);
             }
 
-            return redirect()->guest($e->redirectTo($request) ?? route('login'));
+            return redirect()->guest('/login');
         });
 
         $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e, \Illuminate\Http\Request $request) {

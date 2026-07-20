@@ -101,6 +101,29 @@ Route::middleware(['auth:sanctum', 'role:admin,tutor,student'])->prefix('worklog
     Route::delete('/attachments/{attachment}', [App\Http\Controllers\Api\WorklogController::class, 'deleteAttachment'])->name('attachments.destroy');
 });
 
+Route::middleware(['auth:sanctum', 'role:tutor'])->prefix('tutor')->name('tutor.')->group(function () {
+    Route::get('/dashboard', [\App\Http\Controllers\Api\TutorDashboardController::class, 'index'])->name('dashboard');
+
+    // Students
+    Route::get('/students', [\App\Http\Controllers\Api\TutorStudentController::class, 'index'])->name('students.index');
+    Route::get('/students/{student}', [\App\Http\Controllers\Api\TutorStudentController::class, 'show'])->name('students.show');
+    Route::put('/students/{student}/status', [\App\Http\Controllers\Api\TutorStudentController::class, 'updateStatus'])->name('students.status.update');
+
+    Route::middleware(['auth:sanctum', 'role:tutor'])->prefix('worklogs')->name('worklogs.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\TutorWorklogController::class, 'index'])->name('index');
+
+        // Frontend contract: /api/tutor/worklogs/{id}
+        Route::get('/{id}', [\App\Http\Controllers\Api\TutorWorklogController::class, 'show'])->name('show');
+
+        // Frontend contract: POST /api/tutor/worklogs/{id}
+        Route::post('/{id}', [\App\Http\Controllers\Api\TutorWorklogController::class, 'review'])->name('review');
+    });
+
+    // Follow-ups
+    Route::get('/followups', [\App\Http\Controllers\Api\FollowupController::class, 'index'])->name('followups.index');
+    Route::post('/followups', [\App\Http\Controllers\Api\FollowupController::class, 'store'])->name('followups.store');
+});
+
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::post('/users', [UserController::class, 'store'])->name('users.store');

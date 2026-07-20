@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             TutorSeeder::class,
             CompanySeeder::class,
             StudentUserSeeder::class,
+            TutorDashboardSeeder::class,
         ]);
     }
 }
