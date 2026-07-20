@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\BatchController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\CompanyDashboardController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WorklogController;
 // use App\Http\Controllers\AuthController;
@@ -116,6 +117,9 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
     Route::put('/batches/{batch}', [BatchController::class, 'update'])->name('batches.update');
     Route::delete('/batches/{batch}', [BatchController::class, 'destroy'])->name('batches.destroy');
     Route::get('/batches/{batch}/statistics', [BatchController::class, 'statistics'])->name('batches.statistics');
+    Route::get('/batches/{batch}/export/pdf', [BatchController::class, 'exportPdf'])->name('batches.export.pdf');
+    Route::get('/batches/{batch}/export/excel', [BatchController::class, 'exportExcel'])->name('batches.export.excel');
+    Route::post('/batches/seed', [BatchController::class, 'seed'])->name('batches.seed');
 
 
     Route::get('/companies', [CompanyController::class, 'index'])->name('companies.index');
@@ -141,4 +145,9 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
     Route::delete('/worklogs/{worklog}', [WorklogController::class, 'destroy'])->name('worklogs.destroy');
     Route::put('/worklogs/{worklog}/status', [WorklogController::class, 'updateStatus'])->name('worklogs.status.update');
     Route::delete('/worklogs/{worklog}/attachments/{attachment}', [WorklogController::class, 'destroyAttachment'])->name('worklogs.attachments.destroy');
+
+    // Report Routes
+    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports/export/pdf', [ReportController::class, 'exportPdf'])->name('reports.export.pdf');
+    Route::get('/reports/export/excel', [ReportController::class, 'exportExcel'])->name('reports.export.excel');
 });
