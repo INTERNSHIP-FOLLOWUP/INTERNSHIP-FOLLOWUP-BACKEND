@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Company;
+use App\Models\InternshipAssignment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -114,6 +115,41 @@ class CompanyDashboardController extends Controller
             'company' => $company,
             'user'    => $user,
             'message' => 'Company profile updated successfully.',
+        ]);
+    }
+
+    /**
+     * Get the students assigned to the company via internship assignments.
+     */
+    public function students(Request $request)
+    {
+        $user = $request->user();
+        $company = Company::where('user_id', $user->id)->firstOrFail();
+
+        $assignments = InternshipAssignment::with(['student.batch', 'tutor'])
+            ->where('company_id', $company->id)
+            ->get();
+
+        $students = $assignments->map(function ($assignment) {
+            $student = $assignment->student;
+
+            return [
+                'id'           => $student?->id,
+                'student_name' => $student?->name,
+                'student_email'=> $student?->email,
+                'batch'        => $student?->batch?->name,
+                'position'     => $assignment->position,
+                'start_date'   => $assignment->start_date?->format('Y-m-d'),
+                'end_date'     => $assignment->end_date?->format('Y-m-d'),
+                'status'       => $assignment->status,
+                'assignedDate' => $assignment->created_at?->toISOString(),
+                'tutor_name'   => $assignment->tutor?->name,
+            ];
+        });
+
+        return response()->json([
+            'data' => $students,
+            'message' => 'Assigned students retrieved successfully.',
         ]);
     }
 }

@@ -72,6 +72,7 @@ Route::middleware('auth:sanctum')->prefix('worklogs')->name('worklogs.')->group(
 Route::middleware(['auth:sanctum', 'role:company'])->prefix('company')->name('company.')->group(function () {
     Route::get('/profile', [CompanyDashboardController::class, 'profile'])->name('profile');
     Route::put('/profile', [CompanyDashboardController::class, 'updateProfile'])->name('profile.update');
+    Route::get('/students', [CompanyDashboardController::class, 'students'])->name('students');
 });
 
 Route::middleware(['auth:sanctum', 'role:company'])->prefix('evaluations')->name('evaluations.')->group(function () {
