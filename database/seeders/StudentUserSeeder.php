@@ -17,7 +17,6 @@ class StudentUserSeeder extends Seeder
 
         $students = [
             [
-                'name'         => 'Serey Phem',
                 'first_name'   => 'Serey',
                 'last_name'    => 'Phem',
                 'email'        => 'serey.phem@student.passerellesnumeriques.org',
@@ -28,7 +27,6 @@ class StudentUserSeeder extends Seeder
                 'tutor_email'  => 'hey.him@tutor.com',
             ],
             [
-                'name'         => 'Dane Miok',
                 'first_name'   => 'Dane',
                 'last_name'    => 'Miok',
                 'email'        => 'dane.miok@student.passerellesnumeriques.org',
@@ -39,7 +37,6 @@ class StudentUserSeeder extends Seeder
                 'tutor_email'  => 'yen.yon@tutor.com',
             ],
             [
-                'name'         => 'Vicheka Hav',
                 'first_name'   => 'Vicheka',
                 'last_name'    => 'Hav',
                 'email'        => 'vicheka.hav@student.passerellesnumeriques.org',
@@ -50,7 +47,6 @@ class StudentUserSeeder extends Seeder
                 'tutor_email'  => 'meng.heang@tutor.com',
             ],
             [
-                'name'         => 'Sreyroth Sang',
                 'first_name'   => 'Sreyroth',
                 'last_name'    => 'Sang',
                 'email'        => 'sreyroth.sang@student.passerellesnumeriques.org',
@@ -61,7 +57,6 @@ class StudentUserSeeder extends Seeder
                 'tutor_email'  => 'meng.heang@tutor.com',
             ],
             [
-                'name'         => 'Vakhim Krean',
                 'first_name'   => 'Vakhim',
                 'last_name'    => 'Krean',
                 'email'        => 'vakhim.krean@student.passerellesnumeriques.org',
@@ -72,7 +67,6 @@ class StudentUserSeeder extends Seeder
                 'tutor_email'  => 'meng.heang@tutor.com',
             ],
             [
-                'name'         => 'Seyha Ny',
                 'first_name'   => 'Seyha',
                 'last_name'    => 'Ny',
                 'email'        => 'seyha.ny@student.passerellesnumeriques.org',
@@ -109,7 +103,8 @@ class StudentUserSeeder extends Seeder
                     'student_code' => $studentData['student_code'],
                     'batch_id'     => $batchId,
                     'tutor_id'     => $tutorId,
-                    'name'         => $studentData['name'],
+                    'first_name'   => $studentData['first_name'],
+                    'last_name'    => $studentData['last_name'],
                     'gender'       => $studentData['gender'],
                     'phone'        => $studentData['phone'],
                     'email'        => $studentData['email'],

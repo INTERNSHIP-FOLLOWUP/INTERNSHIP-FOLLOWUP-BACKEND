@@ -30,14 +30,16 @@ class UserManagementApiTest extends TestCase
         $tutorRole = Role::where('name', 'tutor')->first();
 
         $this->adminUser = User::create([
-            'name' => 'Admin User',
+            'first_name' => 'Admin',
+            'last_name' => 'User',
             'email' => 'admin@test.com',
             'password' => Hash::make('password'),
             'role_id' => $adminRole->id,
         ]);
 
         $this->tutorUser = User::create([
-            'name' => 'Tutor User',
+            'first_name' => 'Tutor',
+            'last_name' => 'User',
             'email' => 'tutor@test.com',
             'password' => Hash::make('password'),
             'role_id' => $tutorRole->id,
@@ -82,7 +84,8 @@ class UserManagementApiTest extends TestCase
     public function admin_can_filter_users_by_role()
     {
         User::create([
-            'name' => 'Student User',
+            'first_name' => 'Student',
+            'last_name' => 'User',
             'email' => 'student@test.com',
             'password' => Hash::make('password'),
             'role_id' => Role::where('name', 'student')->first()->id,
@@ -111,7 +114,8 @@ class UserManagementApiTest extends TestCase
     {
         $response = $this->withHeader('Authorization', 'Bearer ' . $this->adminToken)
             ->postJson('/api/admin/users', [
-                'name' => 'New User',
+                'first_name' => 'New',
+                'last_name' => 'User',
                 'email' => 'newuser@test.com',
                 'password' => 'password123',
                 'role' => 'student',
@@ -129,7 +133,8 @@ class UserManagementApiTest extends TestCase
     {
         $response = $this->withHeader('Authorization', 'Bearer ' . $this->adminToken)
             ->postJson('/api/admin/users', [
-                'name' => 'Duplicate',
+                'first_name' => 'Duplicate',
+                'last_name' => '',
                 'email' => 'admin@test.com',
                 'password' => 'password123',
                 'role' => 'student',
@@ -155,7 +160,8 @@ class UserManagementApiTest extends TestCase
     {
         $response = $this->withHeader('Authorization', 'Bearer ' . $this->adminToken)
             ->putJson('/api/admin/users/' . $this->tutorUser->id, [
-                'name' => 'Updated Tutor',
+                'first_name' => 'Updated',
+                'last_name' => 'Tutor',
                 'role' => 'student',
             ]);
 
@@ -164,7 +170,8 @@ class UserManagementApiTest extends TestCase
 
         $this->assertDatabaseHas('users', [
             'id' => $this->tutorUser->id,
-            'name' => 'Updated Tutor',
+            'first_name' => 'Updated',
+            'last_name' => 'Tutor',
             'role_id' => Role::where('name', 'student')->first()->id,
         ]);
     }

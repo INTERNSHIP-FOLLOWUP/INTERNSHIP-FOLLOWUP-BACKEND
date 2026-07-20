@@ -18,13 +18,19 @@ class Student extends Model
         'student_code',
         'batch_id',
         'tutor_id',
-        'name',
+        'first_name',
+        'last_name',
         'gender',
         'phone',
         'email',
         'photo',
         'status',
     ];
+
+    public function getNameAttribute(): string
+    {
+        return trim(($this->first_name ?? '') . ' ' . ($this->last_name ?? ''));
+    }
 
     protected $casts = [
         'batch_id' => 'integer',

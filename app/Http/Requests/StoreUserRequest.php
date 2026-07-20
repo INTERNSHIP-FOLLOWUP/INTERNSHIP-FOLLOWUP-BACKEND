@@ -14,7 +14,8 @@ class StoreUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8'],
             'role' => ['required', 'string', 'in:admin,tutor,student,company'],
@@ -25,9 +26,10 @@ class StoreUserRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.required' => 'The name field is required.',
-            'name.string' => 'The name must be a string.',
-            'name.max' => 'The name may not exceed 255 characters.',
+            'first_name.required' => 'The first name field is required.',
+            'first_name.max' => 'The first name may not exceed 255 characters.',
+            'last_name.required' => 'The last name field is required.',
+            'last_name.max' => 'The last name may not exceed 255 characters.',
             'email.required' => 'The email field is required.',
             'email.email' => 'Please provide a valid email address.',
             'email.unique' => 'This email is already registered.',

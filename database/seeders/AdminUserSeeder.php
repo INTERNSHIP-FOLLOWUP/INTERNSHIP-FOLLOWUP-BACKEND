@@ -12,12 +12,14 @@ class AdminUserSeeder extends Seeder
     {
         $users = [
             [
-                'name'  => 'Admin User',
+                'first_name' => 'Admin',
+                'last_name'  => 'User',
                 'email' => 'admin@gmail.com',
                 'role'  => 'admin',
             ],
             [
-                'name'  => 'Company User',
+                'first_name' => 'Company',
+                'last_name'  => 'User',
                 'email' => 'company@gmail.com',
                 'role'  => 'company',
             ],
@@ -27,17 +29,19 @@ class AdminUserSeeder extends Seeder
             $role = Role::where('name', $userData['role'])->first();
 
             if ($role === null) {
-                $this->command->warn("Role '{$userData['role']}' not found — skipping user '{$userData['name']}'.");
+                $this->command->warn("Role '{$userData['role']}' not found — skipping user '{$userData['first_name']} {$userData['last_name']}'.");
                 continue;
             }
 
             User::firstOrCreate(
                 ['email' => $userData['email']],
                 [
-                    'name'     => $userData['name'],
-                    'email'    => $userData['email'],
-                    'password' => '12345678',
-                    'role_id'  => $role->id,
+                    'first_name' => $userData['first_name'],
+                    'last_name'  => $userData['last_name'],
+                    'email'      => $userData['email'],
+                    'password'   => '12345678',
+                    'role_id'    => $role->id,
+                    'theme'      => 'light',
                 ]
             );
         }

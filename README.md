@@ -1,59 +1,229 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Internship Follow-up System — Backend
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel 12 backend API for managing student internships, worklogs, evaluations, and reporting.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Setup Commands
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+```bash
+# Install PHP dependencies
+composer install
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+# Copy environment file (if not exists)
+cp .env.example .env
 
-## Learning Laravel
+# Generate application key
+php artisan key:generate
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+# Run database migrations
+php artisan migrate
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+# Seed the database with all required data
+php artisan db:seed
 
-## Laravel Sponsors
+# Or seed individual seeders:
+php artisan db:seed --class=RoleSeeder
+php artisan db:seed --class=AdminUserSeeder
+php artisan db:seed --class=BatchSeeder
+php artisan db:seed --class=TutorSeeder
+php artisan db:seed --class=CompanySeeder
+php artisan db:seed --class=StudentUserSeeder
+php artisan db:seed --class=InternshipAssignmentSeeder
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+# Seed batches via API (alternative)
+curl -X POST http://localhost:8000/api/admin/batches/seed
 
-### Premium Partners
+# Install & build frontend assets
+npm install
+npm run build
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+**One-command setup:**
+```bash
+composer run setup
+```
 
-## Contributing
+---
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Development Commands
 
-## Code of Conduct
+```bash
+# Start all dev servers (Laravel + Queue + Logs + Vite)
+composer run dev
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+# Or start individually:
+php artisan serve                          # Laravel dev server (localhost:8000)
+php artisan queue:listen --tries=1         # Queue worker
+php artisan pail                           # Log viewer
+npm run dev                                # Vite HMR
 
-## Security Vulnerabilities
+# Run tests
+composer run test
+# or
+php artisan test
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+---
 
-## License
+## Database Commands
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+# Run migrations
+php artisan migrate
+
+# Rollback last migration batch
+php artisan migrate:rollback
+
+# Rollback all migrations and re-run
+php artisan migrate:fresh
+
+# Fresh migrate + seed
+php artisan migrate:fresh --seed
+
+# Create a new migration
+php artisan make:migration create_example_table
+```
+
+---
+
+## Model / Controller / Other Artisan Commands
+
+```bash
+# Create a model with migration, controller, etc.
+php artisan make:model Example -mc
+
+# Create a controller
+php artisan make:controller Api/ExampleController
+
+# Create a custom Artisan command
+php artisan make:command SendReportEmails
+
+# Create a mail class
+php artisan make:mail ReportGenerated
+
+# Create a notification
+php artisan make:notification InternshipAssigned
+
+# Create an event + listener
+php artisan make:event InternshipCompleted
+php artisan make:listener SendCompletionNotification --event=InternshipCompleted
+
+# Create a form request
+php artisan make:request StoreInternshipRequest
+
+# Create a resource
+php artisan make:resource InternshipResource
+
+# Create a seeder
+php artisan make:seeder ExampleSeeder
+
+# Create a factory
+php artisan make:factory ExampleFactory --model=Example
+```
+
+---
+
+## Report & Export Endpoints
+
+All report endpoints are protected by `auth:sanctum` + `role:admin`.
+
+### General Reports
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/admin/reports` | JSON report data (supports filters) |
+| GET | `/api/admin/reports/export/pdf` | Download PDF report |
+| GET | `/api/admin/reports/export/excel` | Download Excel report (.xlsx) |
+
+**Available filters:** `batch_id`, `company_id`, `tutor_id`, `status`, `date_from`, `date_to`, `department`, `min_duration`, `max_duration`
+
+### Batch Exports
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/admin/batches/{batch}/export/pdf` | Download batch student list as PDF |
+| GET | `/api/admin/batches/{batch}/export/excel` | Download batch student list as Excel |
+
+### Example Requests
+
+```bash
+# Get report as JSON with filters
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  "http://localhost:8000/api/admin/reports?batch_id=1&status=Completed"
+
+# Download PDF report
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  "http://localhost:8000/api/admin/reports/export/pdf" \
+  --output report.pdf
+
+# Download Excel report
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  "http://localhost:8000/api/admin/reports/export/excel" \
+  --output report.xlsx
+
+# Download batch student PDF
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  "http://localhost:8000/api/admin/batches/1/export/pdf" \
+  --output batch-students.pdf
+```
+
+---
+
+## API Routes Overview
+
+### Public Auth
+| Method | Endpoint |
+|--------|----------|
+| POST | `/api/register` |
+| POST | `/api/login` |
+| POST | `/api/forgot-password` |
+| POST | `/api/reset-password` |
+
+### Authenticated (auth:sanctum)
+| Method | Endpoint(s) |
+|--------|-------------|
+| GET/POST | `/api/user`, `/api/logout` |
+| CRUD | `/api/worklogs` |
+| CRUD | `/api/company/profile` |
+| CRUD | `/api/evaluations` |
+| CRUD | `/api/issues` |
+
+### Admin (role:admin)
+| Method | Endpoint(s) |
+|--------|-------------|
+| CRUD | `/api/admin/users`, `/api/admin/batches`, `/api/admin/companies`, `/api/admin/students`, `/api/admin/assignments`, `/api/admin/worklogs` |
+| GET | `/api/admin/dashboard` |
+| GET | `/api/admin/reports` + `/export/pdf`, `/export/excel` |
+
+---
+
+## Packages Installed
+
+| Package | Purpose |
+|---------|---------|
+| `barryvdh/laravel-dompdf` | PDF generation |
+| `maatwebsite/excel` | Excel export |
+| `laravel/sanctum` | API authentication |
+| `laravel/tinker` | REPL playground |
+| `laravel/pail` | Log viewer |
+| `vite` + `tailwindcss` | Frontend build |
+
+---
+
+## Useful Composer Scripts
+
+```bash
+composer run setup    # Full project setup (install, env, key, migrate)
+composer run dev      # Start all dev servers concurrently
+composer run test     # Run test suite
+```
+
+---
+
+## Requirements
+
+- PHP ^8.2
+- Composer
+- Node.js & npm
+- Database (SQLite, MySQL, or PostgreSQL — configured in `.env`)

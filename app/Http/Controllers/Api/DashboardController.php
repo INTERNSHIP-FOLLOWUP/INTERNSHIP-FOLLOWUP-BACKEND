@@ -73,7 +73,7 @@ class DashboardController extends Controller
                     'studentsCount' => $tutor->tutor_students_count,
                 ]);
 
-            $recentWorklogs = Worklog::with('student:id,name')
+            $recentWorklogs = Worklog::with('student:id,first_name,last_name')
                 ->latest()
                 ->take(5)
                 ->get()
@@ -87,7 +87,7 @@ class DashboardController extends Controller
                     'type' => 'worklog',
                 ]);
 
-            $recentIssues = Issue::with('student:id,name')
+            $recentIssues = Issue::with('student:id,first_name,last_name')
                 ->latest()
                 ->take(5)
                 ->get()
@@ -101,7 +101,7 @@ class DashboardController extends Controller
                     'type' => 'issue',
                 ]);
 
-            $recentEvaluations = Evaluation::with('student:id,name', 'company:id,company_name')
+            $recentEvaluations = Evaluation::with('student:id,first_name,last_name', 'company:id,company_name')
                 ->latest()
                 ->take(5)
                 ->get()
@@ -115,7 +115,7 @@ class DashboardController extends Controller
                     'type' => 'evaluation',
                 ]);
 
-            $recentAssignments = InternshipAssignment::with('student:id,name', 'company:id,company_name')
+            $recentAssignments = InternshipAssignment::with('student:id,first_name,last_name', 'company:id,company_name')
                 ->latest()
                 ->take(5)
                 ->get()
