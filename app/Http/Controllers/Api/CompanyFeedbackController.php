@@ -71,4 +71,13 @@ class CompanyFeedbackController extends Controller
 
         return response()->noContent();
     }
+
+    public function adminIndex()
+    {
+        $feedback = CompanyFeedback::with('company')
+            ->latest()
+            ->paginate(15);
+
+        return response()->json($feedback);
+    }
 }

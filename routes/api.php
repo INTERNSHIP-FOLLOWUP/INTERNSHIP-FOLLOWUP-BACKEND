@@ -137,6 +137,12 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
     Route::put('/assignments/{assignment}', [\App\Http\Controllers\Api\AssignmentController::class, 'update'])->name('assignments.update');
     Route::delete('/assignments/{assignment}', [\App\Http\Controllers\Api\AssignmentController::class, 'destroy'])->name('assignments.destroy');
 
+    // Evaluation Routes (Admin read access)
+    Route::get('/evaluations', [App\Http\Controllers\Api\EvaluationController::class, 'index'])->name('evaluations.index');
+
+    // Company Feedback Routes (Admin read access)
+    Route::get('/feedback', [App\Http\Controllers\Api\CompanyFeedbackController::class, 'adminIndex'])->name('feedback.index');
+
     // Worklog Management Routes (Admin full access)
     Route::get('/worklogs', [WorklogController::class, 'index'])->name('worklogs.index');
     Route::post('/worklogs', [WorklogController::class, 'store'])->name('worklogs.store');
