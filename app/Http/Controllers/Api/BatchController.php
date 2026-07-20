@@ -11,13 +11,32 @@ class BatchController extends Controller
 {
     
     // Display a listing of all batches.
-    public function index()
+    public function index(Request $request)
     {
-        $batches = Batch::all();
+        $query = Batch::withCount('students');
+
+        if ($request->has('year') && $request->year !== '') {
+            $query->where('year', $request->year);
+        }
+
+        $batches = $query->get();
         
         return response()->json([
             'data' => $batches,
             'message' => 'Batches retrieved successfully.'
+        ], 200);
+    }
+
+    // Seed batches (2025-2027)
+    public function seed()
+    {
+        \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'BatchSeeder', '--force' => true]);
+        
+        $batches = Batch::withCount('students')->get();
+
+        return response()->json([
+            'data' => $batches,
+            'message' => 'Batches seeded successfully.'
         ], 200);
     }
 
