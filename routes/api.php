@@ -110,6 +110,9 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
     Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+    Route::put('/users/{user}/activate', [UserController::class, 'activate'])->name('users.activate');
+    Route::put('/users/{user}/deactivate', [UserController::class, 'deactivate'])->name('users.deactivate');
+    Route::post('/users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
     // Batch Management Routes
     Route::get('/batches', [BatchController::class, 'index'])->name('batches.index');
     Route::post('/batches', [BatchController::class, 'store'])->name('batches.store');

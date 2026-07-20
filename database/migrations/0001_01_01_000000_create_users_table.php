@@ -21,7 +21,9 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        DB::statement("ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin', 'tutor', 'student', 'company'))");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin', 'tutor', 'student', 'company'))");
+        }
 
         Schema::create('sessions', function (Blueprint $table) {
             $table->string('id')->primary();
