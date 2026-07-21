@@ -11,6 +11,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
@@ -25,6 +26,8 @@ class User extends Authenticatable
         'avatar',
     ];
 
+    protected $appends = ['avatar_url'];
+
     protected $hidden = [
         'password',
         'remember_token',
@@ -36,6 +39,18 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        if (!$this->avatar) return null;
+
+        if (str_starts_with($this->avatar, 'http://') ||
+            str_starts_with($this->avatar, 'https://')) {
+            return $this->avatar;
+        }
+
+        return Storage::url($this->avatar);
     }
 
     public function role(): BelongsTo

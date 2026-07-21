@@ -8,6 +8,7 @@ use App\Models\Company;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
     
 class CompanyController extends Controller
 {
@@ -40,6 +41,22 @@ class CompanyController extends Controller
     public function store(CompanyRequest $request)
     {
         $data = $request->validated();
+
+        // Handle company_image upload
+        if ($request->hasFile('company_image')) {
+            $data['company_image'] = $request->file('company_image')
+                ->store('companies', 'public');
+        } elseif ($request->filled('company_image')) {
+            $data['company_image'] = $request->input('company_image');
+        }
+
+        // Handle company_profile_image upload
+        if ($request->hasFile('company_profile_image')) {
+            $data['company_profile_image'] = $request->file('company_profile_image')
+                ->store('avatars', 'public');
+        } elseif ($request->filled('company_profile_image')) {
+            $data['company_profile_image'] = $request->input('company_profile_image');
+        }
 
         // Password is not needed on the Company model
         $companyData = $data;
@@ -90,6 +107,32 @@ class CompanyController extends Controller
     public function update(CompanyRequest $request, Company $company)
     {
         $data = $request->validated();
+
+        // Handle company_image upload
+        if ($request->hasFile('company_image')) {
+            if ($company->company_image &&
+                !str_starts_with($company->company_image, 'http://') &&
+                !str_starts_with($company->company_image, 'https://')) {
+                Storage::disk('public')->delete($company->company_image);
+            }
+            $data['company_image'] = $request->file('company_image')
+                ->store('companies', 'public');
+        } elseif ($request->filled('company_image')) {
+            $data['company_image'] = $request->input('company_image');
+        }
+
+        // Handle company_profile_image upload
+        if ($request->hasFile('company_profile_image')) {
+            if ($company->company_profile_image &&
+                !str_starts_with($company->company_profile_image, 'http://') &&
+                !str_starts_with($company->company_profile_image, 'https://')) {
+                Storage::disk('public')->delete($company->company_profile_image);
+            }
+            $data['company_profile_image'] = $request->file('company_profile_image')
+                ->store('avatars', 'public');
+        } elseif ($request->filled('company_profile_image')) {
+            $data['company_profile_image'] = $request->input('company_profile_image');
+        }
 
         if (empty($data['password'])) {
             unset($data['password']);

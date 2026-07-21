@@ -137,6 +137,31 @@ class IssueController extends Controller
     }
 
     /**
+     * Get issue statistics (counts by status).
+     */
+    public function stats(Request $request)
+    {
+        $user = Auth::user();
+        $query = Issue::query();
+
+        if ($user->role->name === 'student') {
+            $student = Student::where('email', $user->email)->first();
+            if ($student) {
+                $query->where('student_id', $student->id);
+            }
+        } elseif ($user->role->name === 'tutor') {
+            $query->where('tutor_id', $user->id);
+        }
+
+        return response()->json([
+            'total' => (clone $query)->count(),
+            'open' => (clone $query)->where('status', 'Open')->count(),
+            'inProgress' => (clone $query)->where('status', 'In Progress')->count(),
+            'resolved' => (clone $query)->whereIn('status', ['Resolved', 'Closed'])->count(),
+        ]);
+    }
+
+    /**
      * Remove the specified resource from storage.
      */
     public function destroy(string $id)
