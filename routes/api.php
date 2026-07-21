@@ -9,6 +9,9 @@ use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WorklogController;
+use App\Http\Controllers\Api\FollowupController;
+use App\Http\Controllers\Api\AssignmentController;
+// use App\Http\Controllers\AuthController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -54,6 +57,18 @@ Route::middleware('auth:sanctum')->prefix('worklogs')->name('worklogs.')->group(
 Route::middleware(['auth:sanctum', 'role:company'])->prefix('company')->name('company.')->group(function () {
     Route::get('/profile', [CompanyDashboardController::class, 'profile'])->name('profile');
     Route::put('/profile', [CompanyDashboardController::class, 'updateProfile'])->name('profile.update');
+    Route::get('/students', [CompanyDashboardController::class, 'students'])->name('students');
+    Route::get('/feedback', [App\Http\Controllers\Api\CompanyFeedbackController::class, 'index'])->name('feedback.index');
+    Route::post('/feedback', [App\Http\Controllers\Api\CompanyFeedbackController::class, 'store'])->name('feedback.store');
+    Route::get('/feedback/{companyFeedback}', [App\Http\Controllers\Api\CompanyFeedbackController::class, 'show'])->name('feedback.show');
+    Route::put('/feedback/{companyFeedback}', [App\Http\Controllers\Api\CompanyFeedbackController::class, 'update'])->name('feedback.update');
+    Route::delete('/feedback/{companyFeedback}', [App\Http\Controllers\Api\CompanyFeedbackController::class, 'destroy'])->name('feedback.destroy');
+
+    // Company-Tutor Messaging
+    Route::get('/messages', [App\Http\Controllers\Api\CompanyMessageController::class, 'conversations'])->name('messages.conversations');
+    Route::get('/messages/poll', [App\Http\Controllers\Api\CompanyMessageController::class, 'poll'])->name('messages.poll');
+    Route::get('/messages/{otherParty}', [App\Http\Controllers\Api\CompanyMessageController::class, 'messages'])->name('messages.show');
+    Route::post('/messages/{otherParty}', [App\Http\Controllers\Api\CompanyMessageController::class, 'send'])->name('messages.send');
 });
 
 Route::middleware(['auth:sanctum', 'role:company'])->prefix('evaluations')->name('evaluations.')->group(function () {
@@ -67,9 +82,30 @@ Route::middleware(['auth:sanctum', 'role:company'])->prefix('evaluations')->name
 Route::middleware(['auth:sanctum', 'role:tutor,student'])->prefix('issues')->name('issues.')->group(function () {
     Route::get('/', [App\Http\Controllers\Api\IssueController::class, 'index'])->name('index');
     Route::post('/', [App\Http\Controllers\Api\IssueController::class, 'store'])->name('store');
+    Route::get('/stats', [App\Http\Controllers\Api\IssueController::class, 'stats'])->name('stats');
     Route::get('/{issue}', [App\Http\Controllers\Api\IssueController::class, 'show'])->name('show');
     Route::put('/{issue}', [App\Http\Controllers\Api\IssueController::class, 'update'])->name('update');
     Route::delete('/{issue}', [App\Http\Controllers\Api\IssueController::class, 'destroy'])->name('destroy');
+});
+
+Route::middleware(['auth:sanctum', 'role:admin,tutor,student'])->prefix('followups')->name('followups.')->group(function () {
+    Route::get('/', [FollowupController::class, 'index'])->name('index');
+    Route::post('/', [FollowupController::class, 'store'])->name('store');
+    Route::get('/{followup}', [FollowupController::class, 'show'])->name('show');
+    Route::put('/{followup}', [FollowupController::class, 'update'])->name('update');
+    Route::delete('/{followup}', [FollowupController::class, 'destroy'])->name('destroy');
+});
+
+Route::middleware(['auth:sanctum', 'role:student'])->prefix('student')->name('student.')->group(function () {
+    Route::get('/internship', [AssignmentController::class, 'myInternship'])->name('internship');
+});
+
+// Tutor Messaging Routes (accessible by tutor and company)
+Route::middleware(['auth:sanctum', 'role:tutor'])->prefix('tutor')->name('tutor.')->group(function () {
+    Route::get('/messages', [App\Http\Controllers\Api\CompanyMessageController::class, 'conversations'])->name('messages.conversations');
+    Route::get('/messages/poll', [App\Http\Controllers\Api\CompanyMessageController::class, 'poll'])->name('messages.poll');
+    Route::get('/messages/{otherParty}', [App\Http\Controllers\Api\CompanyMessageController::class, 'messages'])->name('messages.show');
+    Route::post('/messages/{otherParty}', [App\Http\Controllers\Api\CompanyMessageController::class, 'send'])->name('messages.send');
 });
 
 Route::middleware(['auth:sanctum', 'role:admin,tutor,student'])->prefix('worklogs')->name('worklogs.')->group(function () {
@@ -127,6 +163,13 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
     Route::put('/assignments/{assignment}', [\App\Http\Controllers\Api\AssignmentController::class, 'update'])->name('assignments.update');
     Route::delete('/assignments/{assignment}', [\App\Http\Controllers\Api\AssignmentController::class, 'destroy'])->name('assignments.destroy');
 
+    // Evaluation Routes (Admin read access)
+    Route::get('/evaluations', [App\Http\Controllers\Api\EvaluationController::class, 'index'])->name('evaluations.index');
+
+    // Company Feedback Routes (Admin read access)
+    Route::get('/feedback', [App\Http\Controllers\Api\CompanyFeedbackController::class, 'adminIndex'])->name('feedback.index');
+
+    // Worklog Management Routes (Admin full access)
     Route::get('/worklogs', [WorklogController::class, 'index'])->name('worklogs.index');
     Route::post('/worklogs', [WorklogController::class, 'store'])->name('worklogs.store');
     Route::get('/worklogs/{worklog}', [WorklogController::class, 'show'])->name('worklogs.show');
