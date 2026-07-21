@@ -3,7 +3,6 @@
 namespace App\Events;
 
 use App\Models\CompanyMessage;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -37,7 +36,9 @@ class NewMessage implements ShouldBroadcast
         }
 
         // Tutor channel
-        $channels[] = new PrivateChannel('tutor.' . $this->message->tutor_id);
+        if ($this->message->tutor) {
+            $channels[] = new PrivateChannel('tutor.' . $this->message->tutor->user_id);
+        }
 
         return $channels;
     }

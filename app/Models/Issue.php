@@ -41,7 +41,7 @@ class Issue extends Model
 
     public function tutor(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'tutor_id');
+        return $this->belongsTo(Tutor::class, 'tutor_id');
     }
 
     /**

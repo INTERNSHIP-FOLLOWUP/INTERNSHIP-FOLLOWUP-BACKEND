@@ -5,6 +5,7 @@ namespace App\Imports;
 use App\Models\Batch;
 use App\Models\Role;
 use App\Models\Student;
+use App\Models\Tutor;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -60,14 +61,13 @@ class StudentImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnF
         $tutorId = null;
         if (!empty($row['tutor'])) {
             $name = trim($row['tutor']);
-            $tutorUser = User::whereHas('role', fn($q) => $q->where('name', 'tutor'))
-                ->where(function ($q) use ($name) {
+            $tutor = Tutor::where(function ($q) use ($name) {
                     $q->where(DB::raw("CONCAT(first_name, ' ', last_name)"), 'like', "%{$name}%")
                       ->orWhere('first_name', 'like', "%{$name}%")
                       ->orWhere('last_name', 'like', "%{$name}%");
                 })
                 ->first();
-            $tutorId = $tutorUser?->id;
+            $tutorId = $tutor?->id;
         }
 
         $code = !empty($row['student_code']) ? $row['student_code'] : 'STU-' . str_pad(Student::max('id') + 1, 3, '0', STR_PAD_LEFT);

@@ -24,7 +24,7 @@ class IssueRequest extends FormRequest
     {
         return [
             'student_id' => ['required', 'exists:students,id'],
-            'tutor_id' => ['required', 'exists:users,id'],
+            'tutor_id' => ['required', 'exists:tutors,id'],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
             'status' => ['nullable', 'in:Open,In Progress,Resolved,Closed'],

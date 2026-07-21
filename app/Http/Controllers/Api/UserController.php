@@ -3,12 +3,17 @@
 namespace App\Http\Controllers\Api;
 
 use App\Exports\UserImportTemplateExport;
+use App\Exports\UsersExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Imports\UserImport;
+use App\Models\InternshipAssignment;
 use App\Models\Role;
+use App\Models\Student;
+use App\Models\Tutor;
 use App\Models\User;
+use App\Models\Worklog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -39,7 +44,10 @@ class UserController extends Controller
             $query->where('role_id', $role?->id);
 
             if ($request->role === 'tutor') {
-                $query->withCount('tutorStudents');
+                $query->withTutorStudentCount();
+            }
+            if ($request->role === 'student') {
+                $query->with('studentProfile');
             }
         }
 
@@ -52,11 +60,22 @@ class UserController extends Controller
             });
         }
 
-        $users = $query->orderBy('created_at', 'desc')->paginate($request->per_page ?? 15);
+        if ($request->filled('sort')) {
+            match ($request->sort) {
+                'name_asc' => $query->orderBy('first_name')->orderBy('last_name'),
+                'name_desc' => $query->orderBy('first_name', 'desc')->orderBy('last_name', 'desc'),
+                'oldest' => $query->orderBy('created_at'),
+                default => $query->orderBy('created_at', 'desc'),
+            };
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        $users = $query->paginate($request->per_page ?? 15);
 
         $roleCounts = [
             'admin' => User::whereHas('role', fn($q) => $q->where('name', 'admin'))->count(),
-            'tutor' => User::whereHas('role', fn($q) => $q->where('name', 'tutor'))->count(),
+            'tutor' => Tutor::count(),
             'student' => User::whereHas('role', fn($q) => $q->where('name', 'student'))->count(),
             'company' => User::whereHas('role', fn($q) => $q->where('name', 'company'))->count(),
         ];
@@ -77,7 +96,7 @@ class UserController extends Controller
 
     public function show(User $user): JsonResponse
     {
-        $user->loadMissing(['role', 'studentProfile', 'tutorStudents', 'tutoredAssignments']);
+        $user->loadMissing(['role', 'studentProfile', 'tutorProfile']);
 
         return response()->json($user);
     }
@@ -91,6 +110,23 @@ class UserController extends Controller
         unset($validated['role']);
 
         $user = User::create($validated);
+
+        if ($validated['role_id'] === Role::where('name', 'student')->first()?->id) {
+            Student::create([
+                'user_id' => $user->id,
+                'first_name' => $validated['first_name'],
+                'last_name' => $validated['last_name'],
+                'email' => $validated['email'],
+                'status' => 'active',
+            ]);
+        } elseif ($validated['role_id'] === Role::where('name', 'tutor')->first()?->id) {
+            Tutor::create([
+                'user_id' => $user->id,
+                'name' => $user->name,
+                'email' => $validated['email'],
+                'status' => 'active',
+            ]);
+        }
 
         return response()->json($user->load('role'), 201);
     }
@@ -131,6 +167,28 @@ class UserController extends Controller
 
         return response()->json([
             'message' => 'User deactivated successfully.',
+        ]);
+    }
+
+    public function bulkDelete(Request $request): JsonResponse
+    {
+        $request->validate([
+            'ids'   => 'required|array|min:1',
+            'ids.*' => 'required|integer|exists:users,id',
+        ]);
+
+        $currentUserId = $request->user()->id;
+        $ids = collect($request->ids)->reject(fn($id) => $id === $currentUserId)->values();
+
+        if ($ids->isEmpty()) {
+            return response()->json(['message' => 'No valid users to delete (cannot delete your own account).'], 422);
+        }
+
+        $deleted = User::whereIn('id', $ids)->delete();
+
+        return response()->json([
+            'message' => "Deleted {$deleted} user(s) successfully.",
+            'deleted_count' => $deleted,
         ]);
     }
 
@@ -181,6 +239,11 @@ class UserController extends Controller
         ]);
     }
 
+    public function exportExcel()
+    {
+        return Excel::download(new UsersExport, 'users.xlsx');
+    }
+
     public function import(Request $request): JsonResponse
     {
         $request->validate([
@@ -217,9 +280,37 @@ class UserController extends Controller
 
     public function tutorActivity(string $id): JsonResponse
     {
-        $user = User::withTrashed()->withCount('tutorStudents')->findOrFail($id);
+        $user = User::withTrashed()->find($id);
 
-        $students = $user->tutorStudents()
+        if (!$user) {
+            $tutorRecord = Tutor::withTrashed()->find($id);
+            if ($tutorRecord && $tutorRecord->user_id) {
+                $user = User::withTrashed()->find($tutorRecord->user_id);
+            }
+        }
+
+        if (!$user) {
+            return response()->json(['message' => 'Tutor not found.'], 404);
+        }
+
+        $tutor = Tutor::withTrashed()->where('user_id', $user->id)->withCount('students')->first();
+
+        if (!$tutor) {
+            return response()->json([
+                'tutor' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'students_count' => 0,
+                ],
+                'students' => [],
+                'worklog_stats' => ['total' => 0, 'submitted' => 0, 'approved' => 0, 'rejected' => 0],
+                'issues' => [],
+                'assignments' => [],
+            ]);
+        }
+
+        $students = $tutor->students()
             ->with(['batch:id,batch_name', 'user:id,email,first_name,last_name'])
             ->withCount(['worklogs', 'issues'])
             ->get()
@@ -236,30 +327,39 @@ class UserController extends Controller
                 'user_id' => $s->user_id,
             ]);
 
+        $studentIds = $students->pluck('id');
+
+        $counts = Worklog::whereIn('student_id', $studentIds)
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw("SUM(CASE WHEN status = 'submitted' THEN 1 ELSE 0 END) as submitted")
+            ->selectRaw("SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved")
+            ->selectRaw("SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected")
+            ->first();
+
         $worklogStats = [
-            'total' => \App\Models\Worklog::whereIn('student_id', $students->pluck('id'))->count(),
-            'submitted' => \App\Models\Worklog::whereIn('student_id', $students->pluck('id'))->where('status', 'submitted')->count(),
-            'approved' => \App\Models\Worklog::whereIn('student_id', $students->pluck('id'))->where('status', 'approved')->count(),
-            'rejected' => \App\Models\Worklog::whereIn('student_id', $students->pluck('id'))->where('status', 'rejected')->count(),
+            'total' => (int) ($counts->total ?? 0),
+            'submitted' => (int) ($counts->submitted ?? 0),
+            'approved' => (int) ($counts->approved ?? 0),
+            'rejected' => (int) ($counts->rejected ?? 0),
         ];
 
-        $issues = $user->assignedIssues()
+        $issues = $tutor->issues()
             ->select('id', 'student_id', 'title', 'status', 'priority', 'created_at')
             ->with('student:id,first_name,last_name')
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $assignments = \App\Models\InternshipAssignment::where('tutor_id', $user->id)
+        $assignments = InternshipAssignment::where('tutor_id', $tutor->id)
             ->with('company:id,company_name', 'student:id,first_name,last_name')
             ->orderBy('created_at', 'desc')
             ->get();
 
         return response()->json([
             'tutor' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'students_count' => $user->tutor_students_count,
+                'id' => $tutor->user_id,
+                'name' => $tutor->name,
+                'email' => $tutor->email,
+                'students_count' => $tutor->students_count,
             ],
             'students' => $students,
             'worklog_stats' => $worklogStats,
@@ -270,10 +370,38 @@ class UserController extends Controller
 
     public function activity(string $id): JsonResponse
     {
-        $user = User::withTrashed()->findOrFail($id);
+        $user = User::withTrashed()->find($id);
+
+        if (!$user) {
+            $studentRecord = Student::withTrashed()->find($id);
+            if ($studentRecord && $studentRecord->user_id) {
+                $user = User::withTrashed()->find($studentRecord->user_id);
+            }
+        }
+
+        if (!$user) {
+            return response()->json(['message' => 'Student not found.'], 404);
+        }
 
         if (!$user->studentProfile) {
-            return response()->json(['message' => 'User is not a student.'], 422);
+            return response()->json([
+                'student' => [
+                    'id' => null,
+                    'student_code' => null,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => null,
+                    'photo' => null,
+                    'status' => $user->deleted_at ? 'deactivated' : 'active',
+                    'batch' => null,
+                ],
+                'worklogs' => [],
+                'worklog_stats' => ['total' => 0, 'submitted' => 0, 'approved' => 0, 'rejected' => 0],
+                'evaluations' => [],
+                'average_score' => null,
+                'issues' => [],
+                'assignment' => null,
+            ]);
         }
 
         $student = $user->studentProfile;

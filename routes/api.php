@@ -126,11 +126,13 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
     Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+    Route::delete('/users/bulk-delete', [UserController::class, 'bulkDelete'])->name('users.bulk-delete');
     Route::put('/users/{user}/activate', [UserController::class, 'activate'])->name('users.activate');
     Route::put('/users/{user}/deactivate', [UserController::class, 'deactivate'])->name('users.deactivate');
     Route::post('/users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
     Route::post('/users/import', [UserController::class, 'import'])->name('users.import');
     Route::get('/users/import/template', [UserController::class, 'importTemplate'])->name('users.import-template');
+    Route::get('/users/export/excel', [UserController::class, 'exportExcel'])->name('users.export.excel');
 
     Route::get('/students/{id}/activity', [UserController::class, 'activity'])->name('students.activity');
     Route::get('/tutors/{id}/activity', [UserController::class, 'tutorActivity'])->name('tutors.activity');

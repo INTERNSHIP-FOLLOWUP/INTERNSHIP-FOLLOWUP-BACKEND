@@ -5,7 +5,7 @@ namespace Database\Seeders;
 use App\Models\Company;
 use App\Models\InternshipAssignment;
 use App\Models\Student;
-use App\Models\User;
+use App\Models\Tutor;
 use Illuminate\Database\Seeder;
 
 class InternshipAssignmentSeeder extends Seeder
@@ -14,7 +14,7 @@ class InternshipAssignmentSeeder extends Seeder
     {
         $students = Student::all();
         $companies = Company::all();
-        $tutors = User::whereHas('role', fn($q) => $q->where('name', 'tutor'))->get();
+        $tutors = Tutor::all();
 
         if ($students->isEmpty() || $companies->isEmpty() || $tutors->isEmpty()) {
             $this->command->warn('Missing students, companies, or tutors — skipping InternshipAssignmentSeeder.');

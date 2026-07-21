@@ -10,9 +10,9 @@ class BatchSeeder extends Seeder
     public function run(): void
     {
         $batches = [
-            ['batch_name' => 'Batch 2025', 'year' => '2025'],
-            ['batch_name' => 'Batch 2026', 'year' => '2026'],
-            ['batch_name' => 'Batch 2027', 'year' => '2027'],
+            ['batch_name' => 'PNC2025', 'year' => '2025'],
+            ['batch_name' => 'PNC2026', 'year' => '2026'],
+            ['batch_name' => 'PNC2027', 'year' => '2027'],
         ];
 
         foreach ($batches as $batch) {

@@ -21,7 +21,8 @@ class FollowupController extends Controller
         if ($user->role->name === 'student') {
             $query->where('student_id', $request->input('student_id', $user->id));
         } elseif ($user->role->name === 'tutor') {
-            $query->where('tutor_id', $request->input('tutor_id', $user->id));
+            $tutorId = $user->tutorProfile?->id;
+            $query->where('tutor_id', $request->input('tutor_id', $tutorId));
         }
 
         if ($request->has('student_id') && $user->role->name === 'admin') {
@@ -45,7 +46,7 @@ class FollowupController extends Controller
         $data = $request->validated();
 
         if ($user->role->name === 'tutor') {
-            $data['tutor_id'] = $user->id;
+            $data['tutor_id'] = $user->tutorProfile->id;
         } elseif ($user->role->name === 'student') {
             $data['student_id'] = $user->id;
             $student = Student::where('user_id', $user->id)->first();
@@ -69,7 +70,7 @@ class FollowupController extends Controller
         if ($user->role->name === 'student' && $followup->student_id !== $user->id) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
-        if ($user->role->name === 'tutor' && $followup->tutor_id !== $user->id) {
+        if ($user->role->name === 'tutor' && $followup->tutor_id !== $user->tutorProfile?->id) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 

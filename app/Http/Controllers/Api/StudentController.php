@@ -50,8 +50,19 @@ class StudentController extends Controller
             });
         }
 
+        if ($request->filled('sort')) {
+            match ($request->sort) {
+                'name_asc' => $query->orderBy('first_name')->orderBy('last_name'),
+                'name_desc' => $query->orderBy('first_name', 'desc')->orderBy('last_name', 'desc'),
+                'oldest' => $query->orderBy('created_at'),
+                default => $query->orderBy('created_at', 'desc'),
+            };
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
         $perPage = min((int) $request->per_page, 100) ?: 15;
-        $students = $query->orderBy('created_at', 'desc')->paginate($perPage);
+        $students = $query->paginate($perPage);
 
         return response()->json([
             'data' => StudentResource::collection($students->items()),

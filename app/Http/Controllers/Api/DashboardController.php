@@ -8,7 +8,7 @@ use App\Models\Company;
 use App\Models\InternshipAssignment;
 use App\Models\Issue;
 use App\Models\Student;
-use App\Models\User;
+use App\Models\Tutor;
 use App\Models\Worklog;
 use App\Models\Evaluation;
 use Illuminate\Support\Facades\Cache;
@@ -63,14 +63,13 @@ class DashboardController extends Controller
                     'count' => $batch->students_count,
                 ]);
 
-            $tutors = User::whereHas('role', fn($q) => $q->where('name', 'tutor'))
-                ->withCount('tutorStudents')
+            $tutors = Tutor::withCount('students')
                 ->get()
                 ->map(fn($tutor) => [
                     'id' => $tutor->id,
                     'name' => $tutor->name,
                     'email' => $tutor->email,
-                    'studentsCount' => $tutor->tutor_students_count,
+                    'studentsCount' => $tutor->students_count,
                 ]);
 
             $recentWorklogs = Worklog::with('student:id,first_name,last_name')

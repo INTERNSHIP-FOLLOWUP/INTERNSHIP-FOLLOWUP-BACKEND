@@ -25,7 +25,7 @@ class IssueController extends Controller
             }
             $query->where('student_id', $student->id);
         } elseif ($user->role->name === 'tutor') {
-            $query->where('tutor_id', $user->id);
+            $query->where('tutor_id', $user->tutorProfile?->id);
         }
 
         if ($request->filled('student_id')) {
@@ -51,7 +51,7 @@ class IssueController extends Controller
         $user = Auth::user();
         $validated = $request->validate([
             'student_id' => 'required|exists:students,id',
-            'tutor_id' => 'required|exists:users,id',
+            'tutor_id' => 'required|exists:tutors,id',
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'status' => 'nullable|in:Open,In Progress,Resolved,Closed',
@@ -64,7 +64,7 @@ class IssueController extends Controller
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
         } elseif ($user->role->name === 'tutor') {
-            if ($validated['tutor_id'] !== $user->id) {
+            if ($validated['tutor_id'] !== $user->tutorProfile?->id) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
         } else {
@@ -90,7 +90,7 @@ class IssueController extends Controller
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
         } elseif ($user->role->name === 'tutor') {
-            if ($issue->tutor_id !== $user->id) {
+            if ($issue->tutor_id !== $user->tutorProfile?->id) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
         }
@@ -117,7 +117,7 @@ class IssueController extends Controller
                 'status' => 'nullable|in:Open,In Progress,Resolved,Closed',
             ]);
         } elseif ($user->role->name === 'tutor') {
-            if ($issue->tutor_id !== $user->id) {
+            if ($issue->tutor_id !== $user->tutorProfile?->id) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
 
@@ -150,7 +150,7 @@ class IssueController extends Controller
                 $query->where('student_id', $student->id);
             }
         } elseif ($user->role->name === 'tutor') {
-            $query->where('tutor_id', $user->id);
+            $query->where('tutor_id', $user->tutorProfile?->id);
         }
 
         return response()->json([
