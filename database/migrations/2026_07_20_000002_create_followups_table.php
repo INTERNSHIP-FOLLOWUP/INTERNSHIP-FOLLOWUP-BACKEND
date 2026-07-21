@@ -10,15 +10,15 @@ return new class extends Migration
     {
         Schema::create('followups', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('student_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('student_id')->constrained()->cascadeOnDelete();
             $table->foreignId('tutor_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('company_id')->nullable()->constrained()->cascadeOnDelete();
-            $table->enum('meeting_type', ['Monthly', 'Quarterly', 'Annual']);
-            $table->date('meeting_date');
-            $table->text('notes');
-            $table->text('action_items')->nullable();
-            $table->date('next_followup')->nullable();
+            $table->string('type')->default('General Meeting');
+            $table->dateTime('scheduled_at');
+            $table->text('notes')->nullable();
+            $table->enum('status', ['Scheduled', 'Completed', 'Missed', 'Cancelled'])->default('Scheduled');
             $table->timestamps();
+
+            $table->index(['tutor_id', 'scheduled_at']);
         });
     }
 

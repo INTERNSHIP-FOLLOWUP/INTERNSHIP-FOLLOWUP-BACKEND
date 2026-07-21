@@ -219,12 +219,75 @@ class AuthController extends Controller
 
     public function user(Request $request): JsonResponse
     {
-        return response()->json($this->userResponse($request->user()));
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        return response()->json($this->userResponse($user));
+    }
+    
+    public function uploadAvatar(Request $request)
+    {
+        $user = $request->user();
+
+        $validator = Validator::make($request->all(), [
+            'avatar' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation error',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        // Delete old avatar if exists
+        if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+            Storage::disk('public')->delete($user->avatar);
+        }
+
+        // Store new avatar
+        $path = $request->file('avatar')->store('avatars', 'public');
+        $user->avatar = $path;
+        $user->save();
+
+        return response()->json([
+            'message' => 'Avatar uploaded successfully',
+            'avatar'  => $user->avatar,
+        ]);
+    }
+
+    /**
+     * Remove avatar for authenticated user.
+     * DELETE /api/profile/avatar
+     */
+    public function removeAvatar(Request $request)
+    {
+        $user = $request->user();
+
+        if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+            Storage::disk('public')->delete($user->avatar);
+        }
+
+        $user->avatar = null;
+        $user->save();
+
+        return response()->json([
+            'message' => 'Avatar removed successfully',
+        ]);
     }
 
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $user->tokens()->delete();
 
         return response()->json([
             'message' => 'Logged out successfully.'
