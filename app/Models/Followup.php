@@ -10,14 +10,18 @@ class Followup extends Model
     protected $fillable = [
         'student_id',
         'tutor_id',
+        'company_id',
         'type',
         'scheduled_at',
         'notes',
+        'action_items',
+        'next_followup',
         'status',
     ];
 
     protected $casts = [
         'scheduled_at' => 'datetime',
+        'next_followup' => 'date',
     ];
 
     public function student(): BelongsTo
@@ -29,4 +33,10 @@ class Followup extends Model
     {
         return $this->belongsTo(User::class, 'tutor_id');
     }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
 }
+
