@@ -31,11 +31,10 @@ class AdminUserSeeder extends Seeder
                 continue;
             }
 
-            User::firstOrCreate(
+            User::updateOrCreate(
                 ['email' => $userData['email']],
                 [
                     'name'     => $userData['name'],
-                    'email'    => $userData['email'],
                     'password' => '12345678',
                     'role_id'  => $role->id,
                 ]
