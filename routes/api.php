@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WorklogController;
 use App\Http\Controllers\Api\FollowupController;
 use App\Http\Controllers\Api\AssignmentController;
+use App\Http\Controllers\Api\StudentDashboardController;
 // use App\Http\Controllers\AuthController;
 
 use Illuminate\Http\Request;
@@ -102,6 +103,10 @@ Route::middleware(['auth:sanctum', 'role:admin,tutor,student'])->prefix('followu
 
 Route::middleware(['auth:sanctum', 'role:student'])->prefix('student')->name('student.')->group(function () {
     Route::get('/internship', [AssignmentController::class, 'myInternship'])->name('internship');
+    Route::get('/profile', [StudentDashboardController::class, 'profile'])->name('profile');
+    Route::put('/profile', [StudentDashboardController::class, 'updateProfile'])->name('profile.update');
+    Route::post('/profile/photo', [StudentDashboardController::class, 'uploadPhoto'])->name('profile.photo');
+    Route::put('/profile/password', [StudentDashboardController::class, 'updatePassword'])->name('profile.password');
 });
 
 Route::middleware(['auth:sanctum', 'role:admin,tutor,student'])->prefix('worklogs')->name('worklogs.')->group(function () {
