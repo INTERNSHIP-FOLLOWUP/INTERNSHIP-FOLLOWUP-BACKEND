@@ -23,6 +23,10 @@ class Worklog extends Model
         'reviewed_at',
     ];
 
+    protected $appends = [
+        'submitted_at',
+        'tutor_review',
+    ];
 
     protected function casts(): array
     {
@@ -39,5 +43,24 @@ class Worklog extends Model
     public function attachments(): HasMany
     {
         return $this->hasMany(Attachment::class);
+    }
+
+    public function getSubmittedAtAttribute(): ?string
+    {
+        return $this->submission_date?->toIso8601String();
+    }
+
+    public function getTutorReviewAttribute(): ?array
+    {
+        if ($this->feedback === null || $this->feedback === '') {
+            return null;
+        }
+
+        return [
+            'tutor_name' => data_get($this, 'student.user.name'),
+            'reviewed_at' => $this->updated_at?->toIso8601String(),
+            'feedback' => $this->feedback,
+            'status' => $this->status,
+        ];
     }
 }

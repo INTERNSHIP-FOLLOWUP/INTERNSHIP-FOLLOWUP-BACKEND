@@ -85,7 +85,7 @@ class StudentUserSeeder extends Seeder
                 ? $batches[$index % $batches->count()]->id
                 : null;
 
-            $user = User::firstOrCreate(
+            $user = User::updateOrCreate(
                 ['email' => $studentData['email']],
                 [
                     'first_name' => $studentData['first_name'],
