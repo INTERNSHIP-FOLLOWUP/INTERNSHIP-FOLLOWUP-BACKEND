@@ -13,6 +13,7 @@ use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
@@ -110,21 +111,41 @@ class StudentController extends Controller
         ], 201);
     }
 
-    public function show(Student $student): JsonResponse
+    public function show(int $student): JsonResponse
     {
+        $studentModel = Student::with(['batch', 'tutor'])->find($student);
+
+        if (!$studentModel) {
+            $studentModel = Student::with(['batch', 'tutor'])->where('user_id', $student)->first();
+        }
+
+        if (!$studentModel) {
+            return response()->json(['message' => 'Student not found.'], 404);
+        }
+
         return response()->json([
-            'data' => new StudentResource($student->load(['batch', 'tutor'])),
+            'data' => new StudentResource($studentModel),
             'message' => 'Student retrieved successfully.',
         ]);
     }
 
-    public function update(StudentRequest $request, Student $student): JsonResponse
+    public function update(StudentRequest $request, int $student): JsonResponse
     {
+        $studentModel = Student::find($student);
+
+        if (!$studentModel) {
+            $studentModel = Student::where('user_id', $student)->first();
+        }
+
+        if (!$studentModel) {
+            return response()->json(['message' => 'Student not found.'], 404);
+        }
+
         $data = $request->validated();
 
         if ($request->hasFile('photo')) {
-            if ($student->photo) {
-                Storage::disk('public')->delete($student->photo);
+            if ($studentModel->photo) {
+                Storage::disk('public')->delete($studentModel->photo);
             }
             $data['photo'] = $request->file('photo')->store('students', 'public');
         }
@@ -137,7 +158,7 @@ class StudentController extends Controller
         }
         unset($data['password'], $data['password_confirmation']);
 
-        $student->update($data);
+        $studentModel->update($data);
 
         return response()->json([
             'data' => new StudentResource($student->fresh()->load(['batch', 'tutor'])),
@@ -165,28 +186,74 @@ class StudentController extends Controller
     public function import(Request $request): JsonResponse
     {
         $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls,csv',
+            'file' => 'required|file|mimes:xlsx,xls|max:20480', // Increased to 20MB
         ]);
 
-        $import = new StudentImport();
-        Excel::import($import, $request->file('file'));
+        try {
+            // Increase PHP limits for large imports
+            set_time_limit(600); // 10 minutes
+            ini_set('memory_limit', '1024M'); // 1GB memory
+            ini_set('default_socket_timeout', 600); // 10 minutes socket timeout
+            ini_set('max_input_time', 600); // 10 minutes input time
+            
+            $import = new StudentImport();
+            Excel::import($import, $request->file('file'));
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            $failures = $e->failures();
+            $errors = [];
+            foreach ($failures as $failure) {
+                $errors[] = [
+                    'row' => $failure->row(),
+                    'reason' => implode(', ', $failure->errors()),
+                ];
+            }
+            return response()->json([
+                'message' => 'Import failed due to validation errors.',
+                'imported' => 0,
+                'failed' => count($errors),
+                'errors' => $errors,
+            ], 422);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Import failed: ' . $e->getMessage(),
+                'imported' => 0,
+                'failed' => 1,
+                'errors' => [
+                    ['row' => 0, 'reason' => $e->getMessage()],
+                ],
+            ], 500);
+        }
 
-        $failures = $import->failures();
-        $failedRows = [];
+        $errors = $import->getErrors();
+        $importedCount = $import->getImportedCount();
+        $failedCount = count($errors);
 
-        foreach ($failures as $failure) {
-            $failedRows[] = [
-                'row' => $failure->row(),
-                'attribute' => $failure->attribute(),
-                'errors' => $failure->errors(),
-                'values' => $failure->values(),
+        $failedRows = array_map(function ($err) {
+            return [
+                'row' => $err['row'],
+                'errors' => [$err['reason']],
+                'reason' => $err['reason'],
             ];
+        }, $errors);
+
+        // Generate appropriate message based on results
+        if ($failedCount === 0 && $importedCount > 0) {
+            $message = "Import completed successfully. {$importedCount} students imported.";
+        } elseif ($importedCount === 0 && $failedCount > 0) {
+            $message = "Import failed. All {$failedCount} rows could not be imported.";
+        } elseif ($importedCount > 0 && $failedCount > 0) {
+            $message = "Import completed with warnings. {$importedCount} students imported, {$failedCount} rows failed.";
+        } else {
+            $message = "Import completed. No data found to import.";
         }
 
         return response()->json([
-            'message' => 'Import completed.',
-            'success_count' => $import->getImportedCount(),
-            'failed_count' => count($failures),
+            'message' => $message,
+            'imported' => $importedCount,
+            'failed' => $failedCount,
+            'errors' => $errors,
+            'success_count' => $importedCount,
+            'failed_count' => $failedCount,
             'failed_rows' => $failedRows,
         ]);
     }

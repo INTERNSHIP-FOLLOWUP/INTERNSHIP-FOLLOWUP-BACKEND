@@ -7,6 +7,7 @@ use App\Exports\UsersExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
+use App\Imports\StudentImport;
 use App\Imports\UserImport;
 use App\Models\InternshipAssignment;
 use App\Models\Role;
@@ -16,7 +17,9 @@ use App\Models\User;
 use App\Models\Worklog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 
 class UserController extends Controller
@@ -114,9 +117,11 @@ class UserController extends Controller
         if ($validated['role_id'] === Role::where('name', 'student')->first()?->id) {
             Student::create([
                 'user_id' => $user->id,
+                'student_code' => 'STU' . str_pad((string)$user->id, 4, '0', STR_PAD_LEFT),
                 'first_name' => $validated['first_name'],
                 'last_name' => $validated['last_name'],
                 'email' => $validated['email'],
+                'gender' => $validated['gender'] ?? 'N/A',
                 'status' => 'active',
             ]);
         } elseif ($validated['role_id'] === Role::where('name', 'tutor')->first()?->id) {
@@ -154,20 +159,38 @@ class UserController extends Controller
         ]);
     }
 
-    public function destroy(User $user): JsonResponse
+    public function destroy(string $id): JsonResponse
     {
+        $user = User::withTrashed()->find($id);
+        if (!$user) {
+            return response()->json(['message' => 'User not found.'], 404);
+        }
+
         if ($user->id === request()->user()->id) {
             return response()->json(['message' => 'You cannot delete your own account.'], 403);
         }
 
-        if ($user->trashed()) {
-            return response()->json(['message' => 'User is already deactivated.'], 422);
+        if ($user->studentProfile) {
+            $student = $user->studentProfile;
+            if ($student->photo) {
+                Storage::disk('public')->delete($student->photo);
+            }
+            $student->delete();
         }
 
-        $user->delete();
+        if ($user->tutorProfile) {
+            $user->tutorProfile->delete();
+        }
+
+        if ($user->company) {
+            $user->company->delete();
+        }
+
+        $user->tokens()->delete();
+        $user->forceDelete();
 
         return response()->json([
-            'message' => 'User deactivated successfully.',
+            'message' => 'User deleted successfully.',
         ]);
     }
 
@@ -175,7 +198,7 @@ class UserController extends Controller
     {
         $request->validate([
             'ids'   => 'required|array|min:1',
-            'ids.*' => 'required|integer|exists:users,id',
+            'ids.*' => 'required|integer',
         ]);
 
         $currentUserId = $request->user()->id;
@@ -185,11 +208,59 @@ class UserController extends Controller
             return response()->json(['message' => 'No valid users to delete (cannot delete your own account).'], 422);
         }
 
-        $deleted = User::whereIn('id', $ids)->delete();
+        $deletedCount = 0;
+        $errors = [];
+
+        foreach ($ids as $userId) {
+            try {
+                // Always use withTrashed to find soft-deleted users
+                $user = User::withTrashed()->find($userId);
+                
+                if (!$user) {
+                    $errors[] = "User ID {$userId} not found";
+                    continue;
+                }
+
+                // If user is a student, delete student record first
+                if ($user->studentProfile) {
+                    $student = $user->studentProfile;
+                    if ($student->photo) {
+                        Storage::disk('public')->delete($student->photo);
+                    }
+                    $student->delete();
+                }
+
+                // If user is a tutor, delete tutor record first
+                if ($user->tutorProfile) {
+                    $user->tutorProfile->delete();
+                }
+
+                // If user is a company, delete company record first
+                if ($user->company) {
+                    $user->company->delete();
+                }
+
+                $user->tokens()->delete();
+                $user->forceDelete();
+
+                $deletedCount++;
+            } catch (\Exception $e) {
+                $errors[] = "Failed to delete user ID {$userId}: " . $e->getMessage();
+            }
+        }
+
+        if ($deletedCount === 0 && !empty($errors)) {
+            return response()->json([
+                'message' => 'Failed to delete any users',
+                'deleted_count' => 0,
+                'errors' => $errors,
+            ], 422);
+        }
 
         return response()->json([
-            'message' => "Deleted {$deleted} user(s) successfully.",
-            'deleted_count' => $deleted,
+            'message' => "Deleted {$deletedCount} user(s) successfully.",
+            'deleted_count' => $deletedCount,
+            'errors' => $errors,
         ]);
     }
 
@@ -248,28 +319,42 @@ class UserController extends Controller
     public function import(Request $request): JsonResponse
     {
         $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls,csv',
+            'file' => 'required|file|mimes:xlsx,xls|max:10240',
         ]);
 
-        $import = new UserImport();
-        Excel::import($import, $request->file('file'));
-
-        $failures = $import->failures();
-        $failedRows = [];
-
-        foreach ($failures as $failure) {
-            $failedRows[] = [
-                'row' => $failure->row(),
-                'attribute' => $failure->attribute(),
-                'errors' => $failure->errors(),
-                'values' => $failure->values(),
-            ];
+        try {
+            $import = new StudentImport();
+            Excel::import($import, $request->file('file'));
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Import failed due to a critical error.',
+                'imported' => 0,
+                'failed' => 1,
+                'errors' => [
+                    ['row' => 0, 'reason' => $e->getMessage()],
+                ],
+            ], 500);
         }
+
+        $errors = $import->getErrors();
+        $importedCount = $import->getImportedCount();
+        $failedCount = count($errors);
+
+        $failedRows = array_map(function ($err) {
+            return [
+                'row' => $err['row'],
+                'errors' => [$err['reason']],
+                'reason' => $err['reason'],
+            ];
+        }, $errors);
 
         return response()->json([
             'message' => 'Import completed.',
-            'success_count' => $import->getImportedCount(),
-            'failed_count' => count($failures),
+            'imported' => $importedCount,
+            'failed' => $failedCount,
+            'errors' => $errors,
+            'success_count' => $importedCount,
+            'failed_count' => $failedCount,
             'failed_rows' => $failedRows,
         ]);
     }
