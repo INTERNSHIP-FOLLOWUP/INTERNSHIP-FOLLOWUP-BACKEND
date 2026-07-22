@@ -8,9 +8,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
@@ -18,16 +20,25 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     protected $fillable = [
-        'name',
+        'first_name',
+        'last_name',
         'email',
+        'phone',
         'password',
         'role_id',
         'avatar',
+        'theme',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
+    ];
+
+    protected $appends = [
+        'avatar_url',
+        'name',
+        'student_code',
     ];
 
     protected function casts(): array
@@ -38,29 +49,41 @@ class User extends Authenticatable
         ];
     }
 
+    public function getNameAttribute(): string
+    {
+        return trim(($this->first_name ?? '') . ' ' . ($this->last_name ?? ''));
+    }
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        if (!$this->avatar) return null;
+
+        if (str_starts_with($this->avatar, 'http://') ||
+            str_starts_with($this->avatar, 'https://')) {
+            return $this->avatar;
+        }
+
+        return Storage::url($this->avatar);
+    }
+
+    public function getStudentCodeAttribute(): ?string
+    {
+        return $this->studentProfile?->student_code;
+    }
+
     public function role(): BelongsTo
     {
         return $this->belongsTo(Role::class);
     }
 
-    public function tutorStudents(): HasMany
+    public function tutorProfile(): HasOne
     {
-        return $this->hasMany(Student::class, 'tutor_id');
+        return $this->hasOne(Tutor::class, 'user_id');
     }
 
     public function studentProfile(): HasOne
     {
         return $this->hasOne(Student::class, 'user_id');
-    }
-
-    public function tutoredAssignments(): HasMany
-    {
-        return $this->hasMany(InternshipAssignment::class, 'tutor_id');
-    }
-
-    public function assignedIssues(): HasMany
-    {
-        return $this->hasMany(Issue::class, 'tutor_id');
     }
 
     public function company(): HasOne
@@ -71,5 +94,12 @@ class User extends Authenticatable
     public function sendPasswordResetNotification($token): void
     {
         $this->notify(new \App\Notifications\PasswordResetNotification($token));
+    }
+
+    public function scopeWithTutorStudentCount(Builder $query): void
+    {
+        $query->select('*')->addSelect(DB::raw(
+            '(SELECT COUNT(*) FROM students WHERE tutor_id IN (SELECT id FROM tutors WHERE user_id = users.id)) as students_count'
+        ));
     }
 }

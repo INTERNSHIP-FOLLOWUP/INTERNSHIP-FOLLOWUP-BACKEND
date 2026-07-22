@@ -33,7 +33,8 @@ class StudentRequest extends FormRequest
                 'max:255',
                 Rule::unique('students', 'student_code')->ignore($studentId),
             ],
-            'name' => ['required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
             'gender' => ['required', 'string', 'in:Male,Female'],
             'email' => [
                 'required',
@@ -43,7 +44,7 @@ class StudentRequest extends FormRequest
             ],
             'phone' => ['nullable', 'string', 'max:50'],
             'batch_id' => ['nullable', 'integer', 'exists:batches,id'],
-            'tutor_id' => ['nullable', 'integer', 'exists:users,id'],
+            'tutor_id' => ['nullable', 'integer', 'exists:tutors,id'],
             'user_id' => ['nullable', 'integer', 'exists:users,id'],
             'status' => ['nullable', 'string', 'max:50'],
             'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],

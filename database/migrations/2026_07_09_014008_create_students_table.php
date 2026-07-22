@@ -16,7 +16,8 @@ return new class extends Migration
             $table->string('student_code')->unique();
             $table->foreignId('batch_id')->nullable()->constrained()->onDelete('set null');
             $table->foreignId('tutor_id')->nullable()->constrained('users')->onDelete('set null');
-            $table->string('name');
+            $table->string('first_name');
+            $table->string('last_name');
             $table->string('gender');
             $table->string('phone')->nullable();
             $table->string('email')->nullable();

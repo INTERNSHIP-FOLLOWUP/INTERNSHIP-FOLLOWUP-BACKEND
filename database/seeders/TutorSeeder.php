@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Role;
+use App\Models\Tutor;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
@@ -19,27 +20,51 @@ class TutorSeeder extends Seeder
 
         $tutors = [
             [
-                'name'  => 'HEY him',
-                'email' => 'hey.him@tutor.com',
+                'first_name' => 'Hey',
+                'last_name'  => 'HIM',
+                'email'      => 'hey.him@tutor.com',
+                'gender'     => 'Male',
+                'phone'      => '012 111 111',
             ],
             [
-                'name'  => 'YEN yon',
-                'email' => 'yen.yon@tutor.com',
+                'first_name' => 'Yen',
+                'last_name'  => 'YON',
+                'email'      => 'yen.yon@tutor.com',
+                'gender'     => 'Male',
+                'phone'      => '012 222 222',
             ],
             [
-                'name'  => 'MENG HEANG',
-                'email' => 'meng.heang@tutor.com',
+                'first_name' => 'Meng Heng',
+                'last_name'  => 'PHO',
+                'email'      => 'meng.heang@tutor.com',
+                'gender'     => 'Male',
+                'phone'      => '012 333 333',
             ],
         ];
 
         foreach ($tutors as $tutorData) {
-            User::firstOrCreate(
+            $user = User::firstOrCreate(
                 ['email' => $tutorData['email']],
                 [
-                    'name'     => $tutorData['name'],
-                    'email'    => $tutorData['email'],
-                    'password' => '12345678',
-                    'role_id'  => $role->id,
+                    'first_name' => $tutorData['first_name'],
+                    'last_name'  => $tutorData['last_name'],
+                    'email'      => $tutorData['email'],
+                    'password'   => '12345678',
+                    'role_id'    => $role->id,
+                    'theme'      => 'light',
+                ]
+            );
+
+            Tutor::firstOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'user_id'    => $user->id,
+                    'first_name' => $tutorData['first_name'],
+                    'last_name'  => $tutorData['last_name'],
+                    'gender'     => $tutorData['gender'],
+                    'phone'      => $tutorData['phone'],
+                    'email'      => $tutorData['email'],
+                    'status'     => 'active',
                 ]
             );
         }

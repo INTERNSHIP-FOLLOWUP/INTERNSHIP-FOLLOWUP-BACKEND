@@ -37,6 +37,36 @@ class Company extends Model
         ];
     }
 
+    public function getNameAttribute(): string
+    {
+        return $this->company_name ?? '';
+    }
+    public function getCompanyImageUrlAttribute(): ?string
+    {
+        if (!$this->company_image) return null;
+
+        if (str_starts_with($this->company_image, 'http://') ||
+            str_starts_with($this->company_image, 'https://')) {
+            return $this->company_image;
+        }
+
+        return Storage::url($this->company_image);
+    }
+
+    public function getCompanyProfileImageUrlAttribute(): ?string
+    {
+        if (!$this->company_profile_image) return null;
+
+        // Already a URL — return as-is
+        if (str_starts_with($this->company_profile_image, 'http://') ||
+            str_starts_with($this->company_profile_image, 'https://')) {
+            return $this->company_profile_image;
+        }
+
+        // File path — generate storage URL
+        return Storage::url($this->company_profile_image);
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');

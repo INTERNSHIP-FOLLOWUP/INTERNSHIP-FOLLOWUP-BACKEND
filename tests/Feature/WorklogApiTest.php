@@ -40,7 +40,8 @@ class WorklogApiTest extends TestCase
 
         // Create student user
         $this->studentUser = User::create([
-            'name' => 'Test Student',
+            'first_name' => 'Test',
+            'last_name' => 'Student',
             'email' => 'student@test.com',
             'password' => bcrypt('password'),
             'role_id' => $studentRole->id,
@@ -58,7 +59,8 @@ class WorklogApiTest extends TestCase
 
         // Create tutor user
         $this->tutorUser = User::create([
-            'name' => 'Test Tutor',
+            'first_name' => 'Test',
+            'last_name' => 'Tutor',
             'email' => 'tutor@test.com',
             'password' => bcrypt('password'),
             'role_id' => $tutorRole->id,
@@ -653,7 +655,8 @@ class WorklogApiTest extends TestCase
         $adminRole = Role::where('name', 'admin')->first();
 
         $this->adminUser = User::create([
-            'name' => 'Test Admin',
+            'first_name' => 'Test',
+            'last_name' => 'Admin',
             'email' => 'admin@test.com',
             'password' => bcrypt('password'),
             'role_id' => $adminRole->id,

@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Batch;
 use App\Models\Role;
 use App\Models\Student;
+use App\Models\Tutor;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
@@ -17,54 +18,60 @@ class StudentUserSeeder extends Seeder
 
         $students = [
             [
-                'name'         => 'Serey Phem',
+                'first_name'   => 'Serey',
+                'last_name'    => 'Phem',
                 'email'        => 'serey.phem@student.passerellesnumeriques.org',
-                'student_code' => 'STU-001',
+                'student_code' => 'STU001',
                 'gender'       => 'Male',
                 'phone'        => '011 111 111',
                 'status'       => 'active',
                 'tutor_email'  => 'hey.him@tutor.com',
             ],
             [
-                'name'         => 'Dane Miok',
+                'first_name'   => 'Dane',
+                'last_name'    => 'Miok',
                 'email'        => 'dane.miok@student.passerellesnumeriques.org',
-                'student_code' => 'STU-002',
+                'student_code' => 'STU002',
                 'gender'       => 'Female',
                 'phone'        => '011 222 222',
                 'status'       => 'active',
                 'tutor_email'  => 'yen.yon@tutor.com',
             ],
             [
-                'name'         => 'Vicheka Hav',
+                'first_name'   => 'Vicheka',
+                'last_name'    => 'Hav',
                 'email'        => 'vicheka.hav@student.passerellesnumeriques.org',
-                'student_code' => 'STU-003',
+                'student_code' => 'STU003',
                 'gender'       => 'Female',
                 'phone'        => '011 333 333',
                 'status'       => 'active',
                 'tutor_email'  => 'meng.heang@tutor.com',
             ],
             [
-                'name'         => 'Sreyroth Sang',
+                'first_name'   => 'Sreyroth',
+                'last_name'    => 'Sang',
                 'email'        => 'sreyroth.sang@student.passerellesnumeriques.org',
-                'student_code' => 'STU-004',
+                'student_code' => 'STU004',
                 'gender'       => 'Female',
                 'phone'        => '011 444 555',
                 'status'       => 'active',
                 'tutor_email'  => 'meng.heang@tutor.com',
             ],
             [
-                'name'         => 'Vakhim Krean',
+                'first_name'   => 'Vakhim',
+                'last_name'    => 'Krean',
                 'email'        => 'vakhim.krean@student.passerellesnumeriques.org',
-                'student_code' => 'STU-005',
+                'student_code' => 'STU005',
                 'gender'       => 'Male',
                 'phone'        => '011 555 555',
                 'status'       => 'active',
                 'tutor_email'  => 'meng.heang@tutor.com',
             ],
             [
-                'name'         => 'Seyha Ny',
+                'first_name'   => 'Seyha',
+                'last_name'    => 'Ny',
                 'email'        => 'seyha.ny@student.passerellesnumeriques.org',
-                'student_code' => 'STU-006',
+                'student_code' => 'STU006',
                 'gender'       => 'Male',
                 'phone'        => '011 666 666',
                 'status'       => 'active',
@@ -73,7 +80,7 @@ class StudentUserSeeder extends Seeder
         ];
 
         foreach ($students as $index => $studentData) {
-            $tutorId = User::where('email', $studentData['tutor_email'])->value('id');
+            $tutorId = Tutor::where('email', $studentData['tutor_email'])->value('id');
             $batchId = $batches->isNotEmpty()
                 ? $batches[$index % $batches->count()]->id
                 : null;
@@ -81,10 +88,12 @@ class StudentUserSeeder extends Seeder
             $user = User::firstOrCreate(
                 ['email' => $studentData['email']],
                 [
-                    'name'     => $studentData['name'],
-                    'email'    => $studentData['email'],
-                    'password' => '12345678',
-                    'role_id'  => $studentRoleId,
+                    'first_name' => $studentData['first_name'],
+                    'last_name'  => $studentData['last_name'],
+                    'email'      => $studentData['email'],
+                    'password'   => '12345678',
+                    'role_id'    => $studentRoleId,
+                    'theme'      => 'light',
                 ]
             );
 
@@ -95,7 +104,8 @@ class StudentUserSeeder extends Seeder
                     'student_code' => $studentData['student_code'],
                     'batch_id'     => $batchId,
                     'tutor_id'     => $tutorId,
-                    'name'         => $studentData['name'],
+                    'first_name'   => $studentData['first_name'],
+                    'last_name'    => $studentData['last_name'],
                     'gender'       => $studentData['gender'],
                     'phone'        => $studentData['phone'],
                     'email'        => $studentData['email'],

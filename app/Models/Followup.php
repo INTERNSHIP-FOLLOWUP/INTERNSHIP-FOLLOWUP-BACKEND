@@ -11,28 +11,32 @@ class Followup extends Model
         'student_id',
         'tutor_id',
         'company_id',
-        'meeting_type',
-        'meeting_date',
+        'type',
+        'scheduled_at',
         'notes',
         'action_items',
         'next_followup',
+        'status',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'meeting_date' => 'date:Y-m-d',
-            'next_followup' => 'date:Y-m-d',
-        ];
-    }
+    protected $casts = [
+        'scheduled_at' => 'datetime',
+        'next_followup' => 'date',
+    ];
 
     public function student(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'student_id');
+        return $this->belongsTo(Student::class);
     }
 
     public function tutor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'tutor_id');
     }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
 }
+

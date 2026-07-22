@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
@@ -14,32 +15,28 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    /**
-     * Format user response with role name
-     */
     private function userResponse(User $user): array
     {
         return [
             'id'     => $user->id,
+            'first_name' => $user->first_name,
+            'last_name' => $user->last_name,
             'name'   => $user->name,
             'email'  => $user->email,
             'avatar' => $user->avatar,
             'role'   => $user->role?->name ?? '',
+            'theme'  => $user->theme ?? 'light',
         ];
     }
 
-    /**
-     * BE-10: Register Endpoint
-     */
-    public function register(Request $request)
+    public function register(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'name'                  => 'required|string|max:255',
-            'email'                 => 'required|string|email|max:255|unique:users',
-            'password'              => ['required', 'string', 'min:6'],
+            'first_name' => 'required|string|max:255',
+            'last_name'  => 'required|string|max:255',
+            'email'      => 'required|string|email|max:255|unique:users',
+            'password'   => ['required', 'string', 'min:6'],
             'password_confirmation' => 'required|string|same:password',
-        ], [
-            'password.regex' => 'The password must contain at least one letter and one number.',
         ]);
 
         if ($validator->fails()) {
@@ -52,10 +49,11 @@ class AuthController extends Controller
         $studentRole = Role::where('name', 'student')->first();
 
         $user = User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
-            'password' => Hash::make($request->password),
-            'role_id'  => $studentRole?->id,
+            'first_name' => $request->first_name,
+            'last_name'  => $request->last_name,
+            'email'      => $request->email,
+            'password'   => Hash::make($request->password),
+            'role_id'    => $studentRole?->id,
         ]);
 
         $token = $user->createToken('api-token')->plainTextToken;
@@ -67,10 +65,7 @@ class AuthController extends Controller
         ], 201);
     }
 
-    /**
-     * BE-11: Login Endpoint
-     */
-    public function login(Request $request)
+    public function login(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'email'    => ['required', 'string', 'email'],
@@ -95,17 +90,15 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * BE-14: Update Profile Endpoint
-     */
-    public function updateProfile(Request $request)
+    public function updateProfile(Request $request): JsonResponse
     {
         $user = $request->user();
 
         $validator = Validator::make($request->all(), [
-            'name'   => 'required|string|max:255',
-            'email'  => 'required|string|email|max:255|unique:users,email,' . $user->id,
-            'avatar' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'first_name' => 'required|string|max:255',
+            'last_name'  => 'required|string|max:255',
+            'email'      => 'required|string|email|max:255|unique:users,email,' . $user->id,
+            'avatar'     => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -123,8 +116,9 @@ class AuthController extends Controller
             $user->avatar = $path;
         }
 
-        $user->name  = $request->name;
-        $user->email = $request->email;
+        $user->first_name = $request->first_name;
+        $user->last_name  = $request->last_name;
+        $user->email      = $request->email;
         $user->save();
 
         return response()->json([
@@ -133,10 +127,55 @@ class AuthController extends Controller
         ], 200);
     }
 
-    /**
-     * BE-13: Forgot Password
-     */
-    public function forgotPassword(Request $request)
+    public function changePassword(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'current_password' => 'required|string',
+            'password' => 'required|string|min:6|confirmed',
+            'password_confirmation' => 'required|string|same:password',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation error',
+                'errors'  => $validator->errors()
+            ], 422);
+        }
+
+        $user = $request->user();
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json([
+                'message' => 'Current password is incorrect.',
+                'errors'  => ['current_password' => ['The current password does not match our records.']]
+            ], 422);
+        }
+
+        $user->password = Hash::make($request->password);
+        $user->save();
+
+        return response()->json([
+            'message' => 'Password changed successfully.',
+        ]);
+    }
+
+    public function updateTheme(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'theme' => 'required|in:light,dark',
+        ]);
+
+        $user = $request->user();
+        $user->theme = $validated['theme'];
+        $user->save();
+
+        return response()->json([
+            'message' => 'Theme updated successfully.',
+            'theme'   => $user->theme,
+        ]);
+    }
+
+    public function forgotPassword(Request $request): JsonResponse
     {
         $request->validate(['email' => 'required|email']);
 
@@ -153,10 +192,7 @@ class AuthController extends Controller
         return response()->json(['message' => 'Unable to send password reset link.'], 500);
     }
 
-    /**
-     * BE-16: Reset Password
-     */
-    public function resetPassword(Request $request)
+    public function resetPassword(Request $request): JsonResponse
     {
         $request->validate([
             'email'                 => 'required|email',
@@ -165,42 +201,93 @@ class AuthController extends Controller
             'password_confirmation' => 'required|string|same:password',
         ]);
 
-        $credentials = $request->only('email', 'token', 'password', 'password_confirmation');
+        $status = Password::reset(
+            $request->only('email', 'token', 'password', 'password_confirmation'),
+            function (User $user, string $password) {
+                $user->forceFill(['password' => Hash::make($password)])->save();
+                $user->tokens()->delete();
+            }
+        );
 
-        $status = Password::reset($credentials, function (User $user, string $password) {
-            $user->forceFill(['password' => Hash::make($password)])->save();
-            $user->tokens()->delete();
-        });
+        return match ($status) {
+            Password::PASSWORD_RESET => response()->json(['message' => 'Password reset successfully.'], 200),
+            Password::INVALID_TOKEN  => response()->json(['message' => 'Invalid or expired reset token.'], 400),
+            Password::INVALID_USER   => response()->json(['message' => 'We cannot find a user with that email address.'], 404),
+            default                  => response()->json(['message' => 'Unable to reset password.'], 500),
+        };
+    }
 
-        if ($status === Password::PASSWORD_RESET) {
-            return response()->json(['message' => 'Password reset successfully.'], 200);
+    public function user(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
-        if ($status === Password::INVALID_TOKEN) {
-            return response()->json(['message' => 'Invalid or expired reset token.'], 400);
+        return response()->json($this->userResponse($user));
+    }
+    
+    public function uploadAvatar(Request $request)
+    {
+        $user = $request->user();
+
+        $validator = Validator::make($request->all(), [
+            'avatar' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation error',
+                'errors'  => $validator->errors(),
+            ], 422);
         }
 
-        if ($status === Password::INVALID_USER) {
-            return response()->json(['message' => 'We cannot find a user with that email address.'], 404);
+        // Delete old avatar if exists
+        if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+            Storage::disk('public')->delete($user->avatar);
         }
 
-        return response()->json(['message' => 'Unable to reset password.'], 500);
+        // Store new avatar
+        $path = $request->file('avatar')->store('avatars', 'public');
+        $user->avatar = $path;
+        $user->save();
+
+        return response()->json([
+            'message' => 'Avatar uploaded successfully',
+            'avatar'  => $user->avatar,
+        ]);
     }
 
     /**
-     * BE-15: Get Current User
+     * Remove avatar for authenticated user.
+     * DELETE /api/profile/avatar
      */
-    public function user(Request $request)
+    public function removeAvatar(Request $request)
     {
-        return response()->json($this->userResponse($request->user()));
+        $user = $request->user();
+
+        if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+            Storage::disk('public')->delete($user->avatar);
+        }
+
+        $user->avatar = null;
+        $user->save();
+
+        return response()->json([
+            'message' => 'Avatar removed successfully',
+        ]);
     }
 
-    /**
-     * BE-12: Logout Endpoint
-     */
-    public function logout(Request $request)
+    public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $user->tokens()->delete();
 
         return response()->json([
             'message' => 'Logged out successfully.'

@@ -18,13 +18,19 @@ class Student extends Model
         'student_code',
         'batch_id',
         'tutor_id',
-        'name',
+        'first_name',
+        'last_name',
         'gender',
         'phone',
         'email',
         'photo',
         'status',
     ];
+
+    public function getNameAttribute(): string
+    {
+        return trim(($this->first_name ?? '') . ' ' . ($this->last_name ?? ''));
+    }
 
     protected $casts = [
         'batch_id' => 'integer',
@@ -39,7 +45,7 @@ class Student extends Model
 
     public function tutor(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'tutor_id');
+        return $this->belongsTo(Tutor::class, 'tutor_id');
     }
 
     public function user(): BelongsTo

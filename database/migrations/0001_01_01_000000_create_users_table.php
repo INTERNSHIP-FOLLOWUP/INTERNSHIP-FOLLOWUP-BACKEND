@@ -11,17 +11,21 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('first_name');
+            $table->string('last_name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->string('role')->default('student');
             $table->string('avatar')->nullable();
+            $table->string('theme')->default('light');
             $table->rememberToken();
             $table->timestamps();
         });
 
-        DB::statement("ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin', 'tutor', 'student', 'company'))");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin', 'tutor', 'student', 'company'))");
+        }
 
         Schema::create('sessions', function (Blueprint $table) {
             $table->string('id')->primary();
