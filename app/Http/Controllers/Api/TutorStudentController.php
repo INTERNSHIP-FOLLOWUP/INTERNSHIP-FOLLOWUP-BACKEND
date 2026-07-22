@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\StudentResource;
 use App\Models\Student;
+use App\Models\Tutor;
 use App\Services\TutorStudentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,12 +15,32 @@ class TutorStudentController extends Controller
 {
     public function __construct(private TutorStudentService $students) {}
 
+    /**
+     * Resolve the tutors.id from the authenticated user.
+     */
+    private function resolveTutorId(\Illuminate\Contracts\Auth\Authenticatable $user): ?int
+    {
+        return Tutor::where('user_id', $user->getAuthIdentifier())->value('id');
+    }
+
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
 
         if (!$user || $user->role?->name !== 'tutor') {
             return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        $tutorId = $this->resolveTutorId($user);
+        if (!$tutorId) {
+            return response()->json([
+                'success' => true,
+                'data' => [],
+                'meta' => [
+                    'total' => 0, 'per_page' => 15, 'current_page' => 1,
+                    'last_page' => 1, 'from' => null, 'to' => null,
+                ],
+            ], 200);
         }
 
         $filters = $request->validate([
@@ -32,15 +53,13 @@ class TutorStudentController extends Controller
 
         $perPage = (int) ($request->query('per_page') ?? 15);
 
-        $records = $this->students->list($user->id, [
+        $records = $this->students->list($tutorId, [
             'search' => $filters['search'] ?? null,
             'status' => $filters['status'] ?? null,
             'batch_id' => $filters['batch_id'] ?? null,
             'has_open_issue' => $request->boolean('has_open_issue'),
             'per_page' => $perPage,
         ]);
-
-        $groups = $records->groupBy(fn ($s) => $s->id);
 
         return response()->json([
             'success' => true,
@@ -64,7 +83,12 @@ class TutorStudentController extends Controller
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
-        $student = $this->students->get($user->id, $id);
+        $tutorId = $this->resolveTutorId($user);
+        if (!$tutorId) {
+            return response()->json(['message' => 'Student not found.'], 404);
+        }
+
+        $student = $this->students->get($tutorId, $id);
 
         if (!$student) {
             return response()->json(['message' => 'Student not found.'], 404);
@@ -73,7 +97,7 @@ class TutorStudentController extends Controller
         // load relations for detail view
         $student = $student->load([
             'batch:id,batch_name,year',
-            'tutor:id,name,email',
+            'tutor:id,first_name,last_name,email',
             'worklogs' => fn ($q) => $q->latest(),
             'issues' => fn ($q) => $q->latest(),
             'evaluations' => fn ($q) => $q->latest(),
@@ -105,8 +129,13 @@ class TutorStudentController extends Controller
             ], 422);
         }
 
+        $tutorId = $this->resolveTutorId($user);
+        if (!$tutorId) {
+            return response()->json(['message' => 'Student assignment not found.'], 404);
+        }
+
         $student = Student::where('id', $id)
-            ->where('tutor_id', $user->id)
+            ->where('tutor_id', $tutorId)
             ->with(['internshipAssignment:id,student_id,company_id,status'])
             ->first();
 
@@ -114,7 +143,7 @@ class TutorStudentController extends Controller
             return response()->json(['message' => 'Student assignment not found.'], 404);
         }
 
-        $assignment = $this->students->updateStatus($user->id, $id, $request->input('status'));
+        $assignment = $this->students->updateStatus($tutorId, $id, $request->input('status'));
 
         return response()->json([
             'success' => true,
@@ -128,3 +157,4 @@ class TutorStudentController extends Controller
         ], 200);
     }
 }
+

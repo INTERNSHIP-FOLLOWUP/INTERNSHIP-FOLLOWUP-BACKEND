@@ -16,7 +16,8 @@ class StoreFollowupRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'student_id' => 'required|integer|exists:users,id',
+            'student_id' => 'required|integer|exists:students,id',
+            'company_id' => 'nullable|integer|exists:companies,id',
             'meeting_type' => 'required|in:Monthly,Quarterly,Annual',
             'meeting_date' => 'required|date',
             'notes' => 'required|string|max:5000',
@@ -30,6 +31,7 @@ class StoreFollowupRequest extends FormRequest
         return [
             'student_id.required' => 'The student field is required.',
             'student_id.exists' => 'The selected student does not exist.',
+            'company_id.exists' => 'The selected company does not exist.',
             'meeting_type.required' => 'The meeting type is required.',
             'meeting_type.in' => 'The meeting type must be one of: Monthly, Quarterly, Annual.',
             'meeting_date.required' => 'The meeting date is required.',

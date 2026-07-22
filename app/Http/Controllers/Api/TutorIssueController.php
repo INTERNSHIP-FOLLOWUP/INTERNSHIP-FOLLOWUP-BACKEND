@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\IssueResource;
 use App\Models\Issue;
 use App\Models\Student;
+use App\Models\Tutor;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,6 +15,31 @@ use Illuminate\Support\Facades\Storage;
 
 class TutorIssueController extends Controller
 {
+    /**
+     * Decode a formatted issue ID (e.g., "ISSUE-001") to its numeric value.
+     * If the ID is already numeric, return it as-is.
+     */
+    private function decodeIssueId(string $id): string
+    {
+        // Strip "ISSUE-" prefix and leading zeros
+        if (preg_match('/^ISSUE-0*(\d+)$/i', $id, $matches)) {
+            return $matches[1];
+        }
+        // If it's already numeric, return as-is
+        if (is_numeric($id)) {
+            return $id;
+        }
+        return $id;
+    }
+
+    /**
+     * Resolve the tutors.id from the authenticated user.
+     */
+    private function resolveTutorId(\Illuminate\Contracts\Auth\Authenticatable $user): ?int
+    {
+        return Tutor::where('user_id', $user->getAuthIdentifier())->value('id');
+    }
+
     /**
      * GET /api/tutor/issues/{id}
      *
@@ -25,15 +51,21 @@ class TutorIssueController extends Controller
         $user = Auth::user();
 
         // Ensure user is a tutor
-        if ($user->role->name !== 'tutor') {
+        if (!$user || $user->role->name !== 'tutor') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $issue = Issue::with(['student', 'tutor', 'reporter', 'assignedUser', 'attachments', 'history.user'])
-            ->findOrFail($id);
+        $tutorId = $this->resolveTutorId($user);
+        if (!$tutorId) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
 
-        // Check tutor permission: can only view issues related to their assigned students
-        if ($issue->tutor_id !== $user->id) {
+        $decodedId = $this->decodeIssueId($id);
+        $issue = Issue::with(['student', 'tutor', 'reporter', 'assignedUser', 'attachments', 'history.user'])
+            ->findOrFail($decodedId);
+
+        // Check tutor permission: can only view issues where issue.tutor_id matches the tutor's tutors.id
+        if ($issue->tutor_id !== $tutorId) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -53,15 +85,21 @@ class TutorIssueController extends Controller
         $user = Auth::user();
 
         // Ensure user is a tutor
-        if ($user->role->name !== 'tutor') {
+        if (!$user || $user->role->name !== 'tutor') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
+        $tutorId = $this->resolveTutorId($user);
+        if (!$tutorId) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $decodedId = $this->decodeIssueId($id);
         $issue = Issue::with(['student', 'tutor', 'reporter', 'assignedUser', 'attachments'])
-            ->findOrFail($id);
+            ->findOrFail($decodedId);
 
         // Check tutor permission: can only edit issues related to their assigned students
-        if ($issue->tutor_id !== $user->id) {
+        if ($issue->tutor_id !== $tutorId) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -76,9 +114,9 @@ class TutorIssueController extends Controller
             'due_date' => 'nullable|date',
         ]);
 
-        // Verify the student belongs to this tutor using the relationship
-        $student = $user->tutorStudents()
-            ->where('id', $validated['student_id'])
+        // Verify the student belongs to this tutor
+        $student = Student::where('id', $validated['student_id'])
+            ->where('tutor_id', $tutorId)
             ->first();
 
         if (!$student) {

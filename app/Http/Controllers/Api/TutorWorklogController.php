@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Student;
+use App\Models\Tutor;
 use App\Models\Worklog;
 use Illuminate\Http\Request;
 
@@ -12,6 +13,14 @@ use Illuminate\Support\Facades\DB;
 
 class TutorWorklogController extends Controller
 {
+    /**
+     * Resolve the tutors.id from the authenticated user.
+     */
+    private function resolveTutorId(\Illuminate\Contracts\Auth\Authenticatable $user): ?int
+    {
+        return Tutor::where('user_id', $user->getAuthIdentifier())->value('id');
+    }
+
     /**
      * GET /api/tutor/worklogs
      * Return tutor-assigned worklogs (newest first).
@@ -25,13 +34,20 @@ class TutorWorklogController extends Controller
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
+        $tutorId = $this->resolveTutorId($user);
+        if (!$tutorId) {
+            return response()->json(['success' => true, 'data' => [], 'meta' => [
+                'total' => 0, 'per_page' => 15, 'current_page' => 1, 'last_page' => 1, 'from' => null, 'to' => null,
+            ]], 200);
+        }
+
         $studentIds = Student::query()
-            ->where('tutor_id', $user->id)
+            ->where('tutor_id', $tutorId)
             ->pluck('id');
 
         $query = Worklog::query()
             ->whereIn('student_id', $studentIds)
-            ->with(['student:id,name,email,phone', 'attachments']);
+            ->with(['student:id,first_name,last_name,email,phone', 'attachments']);
 
         if ($request->filled('student_id')) {
             $query->where('student_id', $request->student_id);
@@ -72,9 +88,14 @@ class TutorWorklogController extends Controller
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
+        $tutorId = $this->resolveTutorId($user);
+        if (!$tutorId) {
+            return response()->json(['message' => 'Worklog not found.'], 404);
+        }
+
         $studentBelongsToTutor = Student::query()
             ->where('id', $worklog->student_id)
-            ->where('tutor_id', $user->id)
+            ->where('tutor_id', $tutorId)
             ->exists();
 
         if (!$studentBelongsToTutor) {
@@ -83,7 +104,7 @@ class TutorWorklogController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $worklog->load(['student:id,name,email,phone', 'attachments']),
+            'data' => $worklog->load(['student:id,first_name,last_name,email,phone', 'attachments']),
         ], 200);
     }
 
@@ -99,9 +120,14 @@ class TutorWorklogController extends Controller
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
+        $tutorId = $this->resolveTutorId($user);
+        if (!$tutorId) {
+            return response()->json(['message' => 'Worklog not found.'], 404);
+        }
+
         $studentBelongsToTutor = Student::query()
             ->where('id', $worklog->student_id)
-            ->where('tutor_id', $user->id)
+            ->where('tutor_id', $tutorId)
             ->exists();
 
         if (!$studentBelongsToTutor) {
@@ -131,7 +157,7 @@ class TutorWorklogController extends Controller
             $worklog->reviewed_at = now();
             $worklog->save();
 
-            return $worklog->load(['student:id,name,email,phone', 'attachments']);
+            return $worklog->load(['student:id,first_name,last_name,email,phone', 'attachments']);
         });
 
         return response()->json([
