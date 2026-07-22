@@ -122,7 +122,8 @@ class UserController extends Controller
         } elseif ($validated['role_id'] === Role::where('name', 'tutor')->first()?->id) {
             Tutor::create([
                 'user_id' => $user->id,
-                'name' => $user->name,
+                'first_name' => $validated['first_name'],
+                'last_name' => $validated['last_name'],
                 'email' => $validated['email'],
                 'status' => 'active',
             ]);

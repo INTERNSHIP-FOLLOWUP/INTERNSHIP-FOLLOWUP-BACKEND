@@ -45,7 +45,7 @@ class AssignmentService
     public function update(InternshipAssignment $assignment, array $data): InternshipAssignment
     {
         return DB::transaction(function () use ($assignment, $data) {
-            if (isset($data['status'])) {
+            if (isset($data['status']) && $data['status'] !== $assignment->status) {
                 $currentStatus = AssignmentStatus::from($assignment->status);
                 $newStatus = AssignmentStatus::from($data['status']);
 

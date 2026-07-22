@@ -205,6 +205,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
     Route::get('/students/export/pdf', [\App\Http\Controllers\Api\StudentController::class, 'exportPdf'])->name('students.export.pdf');
     Route::get('/students/export/excel', [\App\Http\Controllers\Api\StudentController::class, 'exportExcel'])->name('students.export.excel');
     Route::apiResource('students', \App\Http\Controllers\Api\StudentController::class);
+    Route::apiResource('tutors', \App\Http\Controllers\Api\TutorController::class)->only(['index']);
 
     Route::get('/assignments', [\App\Http\Controllers\Api\AssignmentController::class, 'index'])->name('assignments.index');
     Route::post('/assignments', [\App\Http\Controllers\Api\AssignmentController::class, 'store'])->name('assignments.store');

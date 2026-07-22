@@ -73,10 +73,11 @@ class CompanyController extends Controller
         }
 
         $user = User::create([
-            'name'     => $data['contact_person'],
-            'email'    => $data['email'],
-            'password' => $data['password'],
-            'role_id'  => $role->id,
+            'first_name' => $data['contact_person'],
+            'last_name'  => '',
+            'email'      => $data['email'],
+            'password'   => $data['password'],
+            'role_id'    => $role->id,
         ]);
 
         // Link the newly created user back to the company record
@@ -151,7 +152,7 @@ class CompanyController extends Controller
                     $user->password = $data['password'];
                 }
                 if (isset($data['contact_person'])) {
-                    $user->name = $data['contact_person'];
+                    $user->first_name = $data['contact_person'];
                 }
                 $user->save();
             }
