@@ -33,11 +33,10 @@ class TutorSeeder extends Seeder
         ];
 
         foreach ($tutors as $tutorData) {
-            User::firstOrCreate(
+            User::updateOrCreate(
                 ['email' => $tutorData['email']],
                 [
                     'name'     => $tutorData['name'],
-                    'email'    => $tutorData['email'],
                     'password' => '12345678',
                     'role_id'  => $role->id,
                 ]
