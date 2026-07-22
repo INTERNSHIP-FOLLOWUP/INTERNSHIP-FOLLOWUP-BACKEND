@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WorklogController;
 use App\Http\Controllers\Api\FollowupController;
 use App\Http\Controllers\Api\AssignmentController;
+use App\Http\Controllers\Api\StudentController;
 // use App\Http\Controllers\AuthController;
 
 use Illuminate\Support\Facades\Route;
@@ -170,10 +171,10 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
 
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::post('/users', [UserController::class, 'store'])->name('users.store');
+    Route::match(['delete', 'post'], '/users/bulk-delete', [UserController::class, 'bulkDelete'])->name('users.bulk-delete');
     Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
-    Route::delete('/users/bulk-delete', [UserController::class, 'bulkDelete'])->name('users.bulk-delete');
     Route::put('/users/{user}/activate', [UserController::class, 'activate'])->name('users.activate');
     Route::put('/users/{user}/deactivate', [UserController::class, 'deactivate'])->name('users.deactivate');
     Route::post('/users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
@@ -200,11 +201,13 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
     Route::put('/companies/{company}', [CompanyController::class, 'update'])->name('companies.update');
     Route::delete('/companies/{company}', [CompanyController::class, 'destroy'])->name('companies.destroy');
 
-    Route::get('/students/import/template', [\App\Http\Controllers\Api\StudentController::class, 'importTemplate'])->name('students.import-template');
-    Route::post('/students/import', [\App\Http\Controllers\Api\StudentController::class, 'import'])->name('students.import');
     Route::get('/students/export/pdf', [\App\Http\Controllers\Api\StudentController::class, 'exportPdf'])->name('students.export.pdf');
     Route::get('/students/export/excel', [\App\Http\Controllers\Api\StudentController::class, 'exportExcel'])->name('students.export.excel');
     Route::apiResource('students', \App\Http\Controllers\Api\StudentController::class);
+
+    // Student import endpoints (admin only)
+    Route::get('/students/import/template', [\App\Http\Controllers\Api\StudentController::class, 'importTemplate'])->name('students.import-template');
+    Route::post('/students/import', [\App\Http\Controllers\Api\StudentController::class, 'import'])->name('students.import');
 
     Route::get('/assignments', [\App\Http\Controllers\Api\AssignmentController::class, 'index'])->name('assignments.index');
     Route::post('/assignments', [\App\Http\Controllers\Api\AssignmentController::class, 'store'])->name('assignments.store');
@@ -230,4 +233,9 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/export/pdf', [ReportController::class, 'exportPdf'])->name('reports.export.pdf');
     Route::get('/reports/export/excel', [ReportController::class, 'exportExcel'])->name('reports.export.excel');
+});
+
+Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+    Route::post('/users/import', [StudentController::class, 'import'])->name('users.import');
+    Route::get('/users/import/template', [StudentController::class, 'importTemplate'])->name('users.import-template');
 });

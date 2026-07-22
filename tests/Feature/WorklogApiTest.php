@@ -49,9 +49,11 @@ class WorklogApiTest extends TestCase
 
         // Create Student record
         $this->student = Student::create([
+            'user_id' => $this->studentUser->id,
             'student_code' => 'STU001',
             'batch_id' => $batch->id,
-            'name' => 'Test Student',
+            'first_name' => 'Test',
+            'last_name' => 'Student',
             'gender' => 'Male',
             'email' => 'student@test.com',
             'status' => 'Active',
