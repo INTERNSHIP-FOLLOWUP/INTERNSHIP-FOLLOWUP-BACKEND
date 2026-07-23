@@ -8,7 +8,6 @@ use App\Http\Requests\UpdateFollowupRequest;
 use App\Http\Resources\FollowupResource;
 use App\Models\Followup;
 use App\Models\Student;
-use App\Models\Tutor;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,11 +16,11 @@ use Illuminate\Support\Facades\Auth;
 class FollowupController extends Controller
 {
     /**
-     * Resolve the tutors.id from the authenticated user.
+     * Resolve the user's ID — tutor_id columns reference users.id, not tutors.id.
      */
     private function resolveTutorId(Authenticatable $user): ?int
     {
-        return Tutor::where('user_id', $user->getAuthIdentifier())->value('id');
+        return $user->getAuthIdentifier();
     }
 
     public function index(Request $request): JsonResponse

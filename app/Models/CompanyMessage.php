@@ -29,6 +29,7 @@ class CompanyMessage extends Model
 
     public function tutor(): BelongsTo
     {
-        return $this->belongsTo(Tutor::class, 'tutor_id');
+        // tutor_id references users.id, not tutors.id
+        return $this->belongsTo(User::class, 'tutor_id');
     }
 }

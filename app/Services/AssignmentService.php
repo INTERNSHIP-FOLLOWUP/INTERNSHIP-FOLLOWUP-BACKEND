@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\AssignmentStatus;
 use App\Http\Resources\AssignmentResource;
 use App\Models\InternshipAssignment;
+use App\Models\Student;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
@@ -38,13 +39,24 @@ class AssignmentService
         return DB::transaction(function () use ($data) {
             $data['status'] = AssignmentStatus::Assigned->value;
 
-            return InternshipAssignment::create($data);
+            $assignment = InternshipAssignment::create($data);
+
+            // Sync the student's tutor_id to match the assigned tutor
+            if (isset($data['student_id'], $data['tutor_id'])) {
+                Student::where('id', $data['student_id'])
+                    ->update(['tutor_id' => $data['tutor_id']]);
+            }
+
+            return $assignment;
         });
     }
 
     public function update(InternshipAssignment $assignment, array $data): InternshipAssignment
     {
         return DB::transaction(function () use ($assignment, $data) {
+            // Capture original values before update() since syncOriginal() is called after
+            $originalTutorId = $assignment->getOriginal('tutor_id');
+
             if (isset($data['status']) && $data['status'] !== $assignment->status) {
                 $currentStatus = AssignmentStatus::from($assignment->status);
                 $newStatus = AssignmentStatus::from($data['status']);
@@ -55,6 +67,12 @@ class AssignmentService
             }
 
             $assignment->update($data);
+
+            // Sync the student's tutor_id when tutor changes
+            if (isset($data['tutor_id']) && $data['tutor_id'] !== $originalTutorId) {
+                Student::where('id', $assignment->student_id)
+                    ->update(['tutor_id' => $data['tutor_id']]);
+            }
 
             return $assignment->fresh()->load(['student', 'company', 'tutor']);
         });

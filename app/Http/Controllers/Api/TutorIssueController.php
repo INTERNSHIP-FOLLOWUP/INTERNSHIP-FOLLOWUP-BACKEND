@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\IssueResource;
 use App\Models\Issue;
 use App\Models\Student;
-use App\Models\Tutor;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -33,11 +32,11 @@ class TutorIssueController extends Controller
     }
 
     /**
-     * Resolve the tutors.id from the authenticated user.
+     * Resolve the user's ID — tutor_id columns reference users.id, not tutors.id.
      */
     private function resolveTutorId(\Illuminate\Contracts\Auth\Authenticatable $user): ?int
     {
-        return Tutor::where('user_id', $user->getAuthIdentifier())->value('id');
+        return $user->getAuthIdentifier();
     }
 
     /**
@@ -64,7 +63,7 @@ class TutorIssueController extends Controller
         $issue = Issue::with(['student', 'tutor', 'reporter', 'assignedUser', 'attachments', 'history.user'])
             ->findOrFail($decodedId);
 
-        // Check tutor permission: can only view issues where issue.tutor_id matches the tutor's tutors.id
+        // Check tutor permission: can only view issues where issue.tutor_id matches the tutor's users.id
         if ($issue->tutor_id !== $tutorId) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }

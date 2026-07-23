@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Events\NewTutorStudentMessage;
 use App\Http\Controllers\Controller;
 use App\Models\Student;
-use App\Models\Tutor;
 use App\Models\TutorStudentMessage;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -13,11 +12,12 @@ use Illuminate\Http\Request;
 class TutorStudentMessageController extends Controller
 {
     /**
-     * Resolve tutors.id from the authenticated user.
+     * Resolve the tutor's users.id from the authenticated user.
+     * students.tutor_id references users.id, so we use $user->id directly.
      */
     private function resolveTutorId(\Illuminate\Contracts\Auth\Authenticatable $user): ?int
     {
-        return Tutor::where('user_id', $user->getAuthIdentifier())->value('id');
+        return $user->getAuthIdentifier();
     }
 
     /**
@@ -36,7 +36,7 @@ class TutorStudentMessageController extends Controller
         $tutorId = $this->resolveTutorId($user);
 
         // Only students assigned to this tutor
-        $assignedStudentIds = Student::where('tutor_id', $tutorId)
+        $assignedStudentIds = Student::where('tutor_id', $tutorUserId)
             ->pluck('id');
 
         $conversations = Student::whereIn('id', $assignedStudentIds)->get()->map(function ($student) use ($tutorUserId) {
@@ -87,12 +87,11 @@ class TutorStudentMessageController extends Controller
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
-        $tutorId = $this->resolveTutorId($user);
         $tutorUserId = $user->id;
 
         // Verify student is assigned to this tutor
         $isAssigned = Student::where('id', $studentId)
-            ->where('tutor_id', $tutorId)
+            ->where('tutor_id', $tutorUserId)
             ->exists();
 
         if (!$isAssigned) {
@@ -139,11 +138,11 @@ class TutorStudentMessageController extends Controller
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
-        $tutorId = $this->resolveTutorId($user);
+        $tutorUserId = $user->id;
 
         // Verify student is assigned to this tutor
         $isAssigned = Student::where('id', $studentId)
-            ->where('tutor_id', $tutorId)
+            ->where('tutor_id', $tutorUserId)
             ->exists();
 
         if (!$isAssigned) {
@@ -245,6 +244,7 @@ class TutorStudentMessageController extends Controller
 
     /**
      * Get recent messages for a student (their conversations with tutors).
+     * Also returns the tutor's name so the frontend can display it even when no messages exist yet.
      */
     public function studentConversations(Request $request)
     {
@@ -260,6 +260,16 @@ class TutorStudentMessageController extends Controller
         }
 
         $studentId = $student->id;
+
+        // Resolve tutor info — use the internship assignment's tutor (users.id) which is the source of truth,
+        // not the student's tutors.id which may be outdated.
+        $tutorName = null;
+        $tutorPhotoUrl = null;
+        $assignment = $student->internshipAssignment()->with('tutor')->first();
+        if ($assignment && $assignment->tutor) {
+            $tutorName = $assignment->tutor->name;
+            $tutorPhotoUrl = $assignment->tutor?->avatar ?? null;
+        }
 
         $messages = TutorStudentMessage::where('student_id', $studentId)
             ->with('tutor')
@@ -286,6 +296,8 @@ class TutorStudentMessageController extends Controller
 
         return response()->json([
             'data' => $messages,
+            'tutor_name' => $tutorName,
+            'tutor_photo_url' => $tutorPhotoUrl,
         ]);
     }
 }

@@ -59,7 +59,8 @@ class Student extends Model
 
     public function tutor(): BelongsTo
     {
-        return $this->belongsTo(Tutor::class, 'tutor_id');
+        // tutor_id references users.id, so join on tutors.user_id not tutors.id
+        return $this->belongsTo(Tutor::class, 'tutor_id', 'user_id');
     }
 
     public function user(): BelongsTo
