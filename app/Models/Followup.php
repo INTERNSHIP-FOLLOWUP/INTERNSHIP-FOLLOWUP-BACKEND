@@ -11,16 +11,15 @@ class Followup extends Model
         'student_id',
         'tutor_id',
         'company_id',
-        'type',
-        'scheduled_at',
+        'meeting_type',
+        'meeting_date',
         'notes',
         'action_items',
         'next_followup',
-        'status',
     ];
 
     protected $casts = [
-        'scheduled_at' => 'datetime',
+        'meeting_date' => 'date',
         'next_followup' => 'date',
     ];
 

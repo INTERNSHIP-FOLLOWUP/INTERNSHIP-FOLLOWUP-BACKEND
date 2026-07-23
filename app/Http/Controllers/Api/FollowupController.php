@@ -3,43 +3,38 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreFollowupRequest;
-use App\Http\Requests\UpdateFollowupRequest;
 use App\Http\Resources\FollowupResource;
 use App\Models\Followup;
 use App\Models\Student;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class FollowupController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
+        $role = $user->role?->name;
 
-        if (!$user || $user->role?->name !== 'tutor') {
-            return response()->json(['message' => 'Forbidden.'], 403);
+        $query = Followup::query()->with(['student:id,name']);
+
+        if ($role === 'student') {
+            $student = Student::where('user_id', $user->id)->firstOrFail();
+            $query->where('student_id', $student->id);
+        } elseif ($role === 'tutor') {
+            $query->where('tutor_id', $user->id);
         }
 
-        $query = Followup::query()
-            ->where('tutor_id', $user->id)
-            ->with(['student:id,name,email,phone', 'company:id,company_name']);
-
-        if ($request->filled('student_id')) {
+        if ($role !== 'student' && $request->filled('student_id')) {
             $query->where('student_id', $request->student_id);
         }
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
         if ($request->filled('from')) {
-            $query->where('scheduled_at', '>=', $request->from);
+            $query->where('meeting_date', '>=', $request->from);
         }
 
         if ($request->filled('to')) {
-            $query->where('scheduled_at', '<=', $request->to);
+            $query->where('meeting_date', '<=', $request->to);
         }
 
         if ($request->filled('search')) {
@@ -49,10 +44,10 @@ class FollowupController extends Controller
             });
         }
 
-        $followups = $query->latest('scheduled_at')->paginate(15);
+        $perPage = min((int) $request->input('per_page', 15), 100);
+        $followups = $query->latest('meeting_date')->latest('id')->paginate($perPage);
 
         return response()->json([
-            'success' => true,
             'data' => FollowupResource::collection($followups->items()),
             'meta' => [
                 'total' => $followups->total(),
@@ -68,69 +63,99 @@ class FollowupController extends Controller
     public function store(Request $request): JsonResponse
     {
         $user = $request->user();
+        $role = $user->role?->name;
 
-        if (!$user || $user->role?->name !== 'tutor') {
-            return response()->json(['message' => 'Forbidden.'], 403);
-        }
-
-        $validated = $request->validate([
-            'student_id' => ['required', 'exists:students,id'],
-            'company_id' => ['nullable', 'exists:companies,id'],
-            'meeting_type' => ['required', 'string', 'in:In-Person,Online,Phone,Virtual'],
+        $rules = [
+            'meeting_type' => ['required', 'string', 'in:Monthly,Quarterly,Annual'],
             'meeting_date' => ['required', 'date'],
             'notes' => ['nullable', 'string'],
             'action_items' => ['nullable', 'string'],
             'next_followup' => ['nullable', 'date'],
-        ]);
+            'company_id' => ['nullable', 'exists:companies,id'],
+        ];
 
-        $studentAssigned = Student::where('id', $validated['student_id'])
-            ->where('tutor_id', $user->id)
-            ->exists();
+        if ($role === 'tutor') {
+            $rules['student_id'] = ['required', 'exists:students,id'];
+        }
 
-        if (!$studentAssigned) {
-            return response()->json(['message' => 'Student not assigned to you.'], 403);
+        $validated = $request->validate($rules);
+
+        if ($role === 'student') {
+            $student = Student::where('user_id', $user->id)->firstOrFail();
+            $validated['student_id'] = $student->id;
+        }
+
+        if ($role === 'tutor') {
+            $studentAssigned = Student::where('id', $validated['student_id'])
+                ->where('tutor_id', $user->id)
+                ->exists();
+
+            if (!$studentAssigned) {
+                return response()->json(['message' => 'Student not assigned to you.'], 403);
+            }
         }
 
         $followup = Followup::create([
             'student_id' => $validated['student_id'],
-            'tutor_id' => $user->id,
+            'tutor_id' => $role === 'tutor' ? $user->id : null,
             'company_id' => $validated['company_id'] ?? null,
-            'type' => $validated['meeting_type'],
-            'scheduled_at' => $validated['meeting_date'],
+            'meeting_type' => $validated['meeting_type'],
+            'meeting_date' => $validated['meeting_date'],
             'notes' => $validated['notes'] ?? null,
             'action_items' => $validated['action_items'] ?? null,
             'next_followup' => $validated['next_followup'] ?? null,
-            'status' => 'Scheduled',
         ]);
 
         return response()->json([
-            'success' => true,
+            'data' => new FollowupResource($followup->load(['student'])),
             'message' => 'Follow-up created successfully.',
-            'data' => new FollowupResource($followup->load(['student', 'company'])),
         ], 201);
+    }
+
+    public function show(Followup $followup): JsonResponse
+    {
+        $user = request()->user();
+        $role = $user->role?->name;
+
+        if ($role === 'student') {
+            $student = Student::where('user_id', $user->id)->firstOrFail();
+            if ($followup->student_id !== $student->id) {
+                return response()->json(['message' => 'Forbidden.'], 403);
+            }
+        } elseif ($role === 'tutor' && $followup->tutor_id !== $user->id) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        return response()->json([
+            'data' => new FollowupResource($followup->load(['student'])),
+        ]);
     }
 
     public function update(Request $request, Followup $followup): JsonResponse
     {
         $user = $request->user();
+        $role = $user->role?->name;
 
-        if (!$user || $user->role?->name !== 'tutor') {
-            return response()->json(['message' => 'Forbidden.'], 403);
-        }
-
-        if ($followup->tutor_id !== $user->id) {
-            return response()->json(['message' => 'Follow-up not found.'], 404);
+        if ($role === 'student') {
+            $student = Student::where('user_id', $user->id)->firstOrFail();
+            if ($followup->student_id !== $student->id) {
+                return response()->json(['message' => 'Forbidden.'], 403);
+            }
+        } elseif ($role === 'tutor') {
+            if ($followup->tutor_id !== $user->id) {
+                return response()->json(['message' => 'Follow-up not found.'], 404);
+            }
         }
 
         $validated = $request->validate([
             'student_id' => ['sometimes', 'required', 'exists:students,id'],
             'company_id' => ['nullable', 'exists:companies,id'],
-            'meeting_type' => ['sometimes', 'required', 'string', 'in:In-Person,Online,Phone,Virtual'],
+            'meeting_type' => ['sometimes', 'required', 'string', 'in:Monthly,Quarterly,Annual'],
             'meeting_date' => ['sometimes', 'required', 'date'],
             'notes' => ['nullable', 'string'],
             'action_items' => ['nullable', 'string'],
             'next_followup' => ['nullable', 'date'],
-            'status' => ['sometimes', 'required', 'string', 'in:Scheduled,Completed,Missed,Cancelled'],
+
         ]);
 
         $updateData = [];
@@ -142,10 +167,10 @@ class FollowupController extends Controller
             $updateData['company_id'] = $validated['company_id'];
         }
         if (isset($validated['meeting_type'])) {
-            $updateData['type'] = $validated['meeting_type'];
+            $updateData['meeting_type'] = $validated['meeting_type'];
         }
         if (isset($validated['meeting_date'])) {
-            $updateData['scheduled_at'] = $validated['meeting_date'];
+            $updateData['meeting_date'] = $validated['meeting_date'];
         }
         if (array_key_exists('notes', $validated)) {
             $updateData['notes'] = $validated['notes'];
@@ -156,35 +181,33 @@ class FollowupController extends Controller
         if (array_key_exists('next_followup', $validated)) {
             $updateData['next_followup'] = $validated['next_followup'];
         }
-        if (isset($validated['status'])) {
-            $updateData['status'] = $validated['status'];
-        }
-
         $followup->update($updateData);
 
         return response()->json([
-            'success' => true,
+            'data' => new FollowupResource($followup->load(['student'])),
             'message' => 'Follow-up updated successfully.',
-            'data' => new FollowupResource($followup->load(['student', 'company'])),
         ], 200);
     }
 
     public function destroy(Request $request, Followup $followup): JsonResponse
     {
         $user = $request->user();
+        $role = $user->role?->name;
 
-        if (!$user || $user->role?->name !== 'tutor') {
-            return response()->json(['message' => 'Forbidden.'], 403);
-        }
-
-        if ($followup->tutor_id !== $user->id) {
-            return response()->json(['message' => 'Follow-up not found.'], 404);
+        if ($role === 'student') {
+            $student = Student::where('user_id', $user->id)->firstOrFail();
+            if ($followup->student_id !== $student->id) {
+                return response()->json(['message' => 'Forbidden.'], 403);
+            }
+        } elseif ($role === 'tutor') {
+            if ($followup->tutor_id !== $user->id) {
+                return response()->json(['message' => 'Follow-up not found.'], 404);
+            }
         }
 
         $followup->delete();
 
         return response()->json([
-            'success' => true,
             'message' => 'Follow-up deleted successfully.',
         ], 200);
     }
