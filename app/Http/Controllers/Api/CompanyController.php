@@ -77,6 +77,7 @@ class CompanyController extends Controller
             'last_name'  => '',
             'email'      => $data['email'],
             'password'   => $data['password'],
+            'must_change_password' => true,
             'role_id'    => $role->id,
         ]);
 
@@ -150,6 +151,7 @@ class CompanyController extends Controller
                 }
                 if (isset($data['password'])) {
                     $user->password = $data['password'];
+                    $user->must_change_password = true;
                 }
                 if (isset($data['contact_person'])) {
                     $user->first_name = $data['contact_person'];

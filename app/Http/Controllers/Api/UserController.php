@@ -113,6 +113,8 @@ class UserController extends Controller
         unset($validated['role']);
 
         $user = User::create($validated);
+        $user->must_change_password = $user->role?->name === 'company';
+        $user->save();
 
         if ($validated['role_id'] === Role::where('name', 'student')->first()?->id) {
             Student::create([
@@ -143,6 +145,7 @@ class UserController extends Controller
 
         if (isset($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
+            $validated['must_change_password'] = $user->role?->name === 'company';
         }
 
         if (isset($validated['role'])) {
@@ -302,6 +305,7 @@ class UserController extends Controller
         ]);
 
         $user->password = Hash::make($validated['password']);
+        $user->must_change_password = $user->role?->name === 'company';
         $user->save();
 
         $user->tokens()->delete();
