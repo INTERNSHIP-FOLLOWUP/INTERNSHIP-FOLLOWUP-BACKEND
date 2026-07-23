@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Tutor;
 use App\Services\TutorDashboardService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,7 +20,12 @@ class TutorDashboardController extends Controller
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
-        $payload = $this->dashboards->getTutorDashboard($user->id);
+        $tutorId = Tutor::where('user_id', $user->getAuthIdentifier())->value('id');
+        if (!$tutorId) {
+            return response()->json(['message' => 'Tutor profile not found.'], 404);
+        }
+
+        $payload = $this->dashboards->getTutorDashboard($tutorId);
 
         return response()->json([
             'success' => true,
