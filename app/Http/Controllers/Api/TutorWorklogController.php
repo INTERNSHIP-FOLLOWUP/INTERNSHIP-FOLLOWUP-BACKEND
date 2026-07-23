@@ -135,23 +135,24 @@ class TutorWorklogController extends Controller
         }
 
         $validated = $request->validate([
-            'status' => ['required', 'in:Approved,Rejected,Reviewed,Pending'],
+            'status' => ['sometimes', 'required', 'in:Approved,Rejected,Reviewed,Pending'],
             'feedback' => ['nullable', 'string', 'max:5000'],
         ]);
 
-        $dbStatus = match ($validated['status']) {
-            'Approved' => 'Approved',
-            'Rejected' => 'Rejected',
-            'Reviewed' => 'Reviewed',
-            'Pending' => 'Pending',
-            default => throw new \InvalidArgumentException('Invalid status.'),
-        };
+        // Feedback-only update: if no status is supplied, keep the current one.
+        $dbStatus = $worklog->status;
+        if ($request->filled('status')) {
+            $dbStatus = match ($validated['status']) {
+                'Approved' => 'Approved',
+                'Rejected' => 'Rejected',
+                'Reviewed' => 'Reviewed',
+                'Pending' => 'Pending',
+                default => throw new \InvalidArgumentException('Invalid status.'),
+            };
+        }
 
-        $updated = DB::transaction(function () use ($worklog, $validated, $user) {
-            $worklog->status = $validated['status'] === 'Approved' ? 'Approved'
-                : ($validated['status'] === 'Rejected' ? 'Rejected'
-                : ($validated['status'] === 'Pending' ? 'Pending' : 'Reviewed'));
-
+        $updated = DB::transaction(function () use ($worklog, $validated, $user, $dbStatus) {
+            $worklog->status = $dbStatus;
             $worklog->feedback = $validated['feedback'] ?? $worklog->feedback;
             $worklog->reviewer_id = $user->id;
             $worklog->reviewed_at = now();
