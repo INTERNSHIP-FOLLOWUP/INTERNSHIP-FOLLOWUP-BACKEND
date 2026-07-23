@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Student;
+use App\Models\Tutor;
 use App\Models\Worklog;
 use App\Models\Issue;
 use App\Models\Followup;
@@ -19,14 +20,14 @@ class TutorStudentService
             ->where('tutor_id', $tutorId)
             ->with([
                 'batch:id,batch_name,year',
-                'tutor:id,name,email',
+                'tutor:id,first_name,last_name,email',
                 'internshipAssignment:id,student_id,company_id,status,position',
                 'internshipAssignment.company:id,company_name',
             ]);
 
         if ($search = Arr::get($filters, 'search')) {
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
+                $q->where(DB::raw("CONCAT(first_name, ' ', last_name)"), 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%")
                     ->orWhere('student_code', 'like', "%{$search}%");
             });
@@ -80,7 +81,7 @@ class TutorStudentService
         $student = Student::query()
             ->where('id', $studentId)
             ->where('tutor_id', $tutorId)
-            ->with(['batch:id,batch_name,year', 'tutor:id,name,email', 'worklogs', 'issues', 'evaluations'])
+            ->with(['batch:id,batch_name,year', 'tutor:id,first_name,last_name,email', 'worklogs', 'issues', 'evaluations'])
             ->first();
 
         if (!$student) {
@@ -99,12 +100,12 @@ class TutorStudentService
     {
         $assignment = InternshipAssignment::query()
             ->where('student_id', $studentId)
-            ->where('tutor_id', $tutorId)
+            ->whereHas('student', fn ($q) => $q->where('tutor_id', $tutorId))
             ->firstOrFail();
 
         $assignment->update(['status' => $status]);
 
-        return $assignment->load(['student:id,name', 'company:id,name']);
+        return $assignment->load(['student:id,first_name,last_name', 'company:id,name']);
     }
 
     public function isAssigned(int $tutorId, int $studentId): bool
@@ -159,3 +160,4 @@ class TutorStudentService
         ];
     }
 }
+
