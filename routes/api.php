@@ -161,6 +161,10 @@ Route::middleware(['auth:sanctum', 'role:tutor'])->prefix('tutor')->name('tutor.
     // Companies (for follow-up dropdown)
     Route::get('/companies', [\App\Http\Controllers\Api\TutorCompanyController::class, 'index'])->name('companies.index');
 
+    // Company Feedback
+    Route::get('/feedback/stats', [\App\Http\Controllers\Api\CompanyFeedbackController::class, 'stats'])->name('feedback.stats');
+    Route::get('/feedback', [\App\Http\Controllers\Api\CompanyFeedbackController::class, 'adminIndex'])->name('feedback.index');
+
     // Issues
     Route::get('/issues/{id}', [\App\Http\Controllers\Api\TutorIssueController::class, 'show'])->name('issues.show');
     Route::put('/issues/{id}', [\App\Http\Controllers\Api\TutorIssueController::class, 'update'])->name('issues.update');
@@ -220,6 +224,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
     Route::get('/evaluations', [App\Http\Controllers\Api\EvaluationController::class, 'index'])->name('evaluations.index');
 
     // Company Feedback Routes (Admin read access)
+    Route::get('/feedback/stats', [App\Http\Controllers\Api\CompanyFeedbackController::class, 'stats'])->name('feedback.stats');
     Route::get('/feedback', [App\Http\Controllers\Api\CompanyFeedbackController::class, 'adminIndex'])->name('feedback.index');
 
     // Worklog Management Routes (Admin full access)

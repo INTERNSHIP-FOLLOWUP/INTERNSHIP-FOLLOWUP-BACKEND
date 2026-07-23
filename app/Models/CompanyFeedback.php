@@ -14,12 +14,58 @@ class CompanyFeedback extends Model
 
     protected $fillable = [
         'company_id',
+        'student_id',
         'title',
         'message',
+        'strengths',
+        'improvement_areas',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'strengths' => 'array',
+            'improvement_areas' => 'array',
+        ];
+    }
+
+    public const STRENGTHS = [
+        'Good Communication',
+        'Strong Teamwork',
+        'Quick Learner',
+        'Responsible',
+        'Punctual',
+        'Good Problem-Solving',
+        'Good Technical Skills',
+        'Positive Attitude',
+        'Takes Initiative',
+        'Adapts Quickly',
+        'Follows Instructions Well',
+        'Professional Behavior',
+    ];
+
+    public const IMPROVEMENT_AREAS = [
+        'Communication Skills',
+        'Teamwork',
+        'Technical Skills',
+        'Time Management',
+        'Problem-Solving',
+        'Confidence',
+        'Responsibility',
+        'Attendance',
+        'Work Quality',
+        'Attention to Detail',
+        'Initiative',
+        'Adaptability',
     ];
 
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function student(): BelongsTo
+    {
+        return $this->belongsTo(Student::class);
     }
 }
