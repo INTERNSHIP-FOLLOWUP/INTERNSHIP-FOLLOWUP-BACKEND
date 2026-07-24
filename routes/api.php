@@ -98,6 +98,9 @@ Route::middleware(['auth:sanctum', 'role:student'])->prefix('student')->name('st
     Route::put('/profile', [StudentDashboardController::class, 'updateProfile'])->name('profile.update');
     Route::post('/profile/photo', [StudentDashboardController::class, 'uploadPhoto'])->name('profile.photo');
     Route::put('/profile/password', [StudentDashboardController::class, 'updatePassword'])->name('profile.password');
+    Route::post('/worklogs', [WorklogController::class, 'store'])->name('worklogs.store');
+    Route::get('/worklogs', [WorklogController::class, 'index'])->name('worklogs.index');
+    Route::get('/worklogs/{worklog}', [WorklogController::class, 'show'])->name('worklogs.show');
 });
 
 Route::middleware(['auth:sanctum', 'role:admin,tutor,student'])->prefix('worklogs')->name('worklogs.')->group(function () {

@@ -40,13 +40,13 @@ class WorklogRequest extends FormRequest
             'week_number'     => $worklogId ? ['sometimes', 'integer', 'min:1', 'max:52'] : ['required', 'integer', 'min:1', 'max:52'],
             'description'     => $worklogId ? ['sometimes', 'string'] : ['required', 'string'],
             'challenges'      => ['nullable', 'string'],
-            'submission_date' => $worklogId ? ['sometimes', 'date'] : ['required', 'date'],
+            'submission_date' => ['nullable', 'date'],
 
             // Status (students can only set Draft or Submitted)
             'status'          => ['sometimes', 'in:Draft,Submitted'],
 
-            // Attachments
-            'attachments'     => ['sometimes', 'array'],
+            // Attachments (supports both array and single file with multipart)
+            'attachments'     => ['sometimes'],
             'attachments.*'   => ['file'],
         ];
 

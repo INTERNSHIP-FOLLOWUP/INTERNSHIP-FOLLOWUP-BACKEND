@@ -98,14 +98,16 @@ class WorklogController extends Controller
             'week_number'     => $request->week_number,
             'description'     => $request->description,
             'challenges'      => $request->challenges,
-            'submission_date' => $request->submission_date,
+            'submission_date' => $request->submission_date ?? now()->toDateString(),
             'status'          => $request->status ?? 'Draft',
         ]);
 
         // Handle file uploads
         if ($request->hasFile('attachments')) {
+            $files = $request->file('attachments');
+            $files = is_array($files) ? $files : [$files];
             $uploadedFiles = [];
-            foreach ($request->file('attachments') as $file) {
+            foreach ($files as $file) {
                 $validation = $uploadService->validate($file);
 
                 if (!$validation['valid']) {
