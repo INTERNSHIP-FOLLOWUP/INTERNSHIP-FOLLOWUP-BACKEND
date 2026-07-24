@@ -400,6 +400,7 @@ class UserController extends Controller
             ]);
         }
 
+        // After fixing Tutor model's students() relationship, this now correctly uses user_id as local key
         $students = $tutor->students()
             ->with(['batch:id,batch_name', 'user:id,email,first_name,last_name'])
             ->withCount(['worklogs', 'issues'])
@@ -439,7 +440,7 @@ class UserController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $assignments = InternshipAssignment::where('tutor_id', $tutor->id)
+        $assignments = InternshipAssignment::where('tutor_id', $tutor->user_id)
             ->with('company:id,company_name', 'student:id,first_name,last_name')
             ->orderBy('created_at', 'desc')
             ->get();
