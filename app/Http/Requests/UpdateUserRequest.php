@@ -14,13 +14,22 @@ class UpdateUserRequest extends FormRequest
 
     public function rules(): array
     {
+        $userParam = $this->route('user');
+        $userId = $userParam instanceof \App\Models\User ? $userParam->id : $userParam;
+
         return [
             'first_name' => ['sometimes', 'string', 'max:255'],
             'last_name' => ['sometimes', 'string', 'max:255'],
-            'email' => ['sometimes', 'string', 'email', 'max:255', Rule::unique('users')->ignore($this->route('user'))],
-            'password' => ['sometimes', 'string', 'min:8'],
+            'email' => ['sometimes', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
+            'password' => ['sometimes', 'nullable', 'string', 'min:8'],
             'role' => ['sometimes', 'string', 'in:admin,tutor,student,company'],
             'avatar' => ['nullable', 'string', 'max:255'],
+            'student_code' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'gender' => ['sometimes', 'nullable', 'string'],
+            'phone' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'batch_id' => ['sometimes', 'nullable', 'integer', 'exists:batches,id'],
+            'tutor_id' => ['sometimes', 'nullable', 'integer'],
+            'status' => ['sometimes', 'nullable', 'string', 'max:50'],
         ];
     }
 

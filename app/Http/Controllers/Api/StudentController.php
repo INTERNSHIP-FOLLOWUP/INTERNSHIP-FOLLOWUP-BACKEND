@@ -41,6 +41,10 @@ class StudentController extends Controller
             $query->where('status', $request->status);
         }
 
+        if ($request->filled('gender')) {
+            $query->where('gender', $request->gender);
+        }
+
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -160,8 +164,21 @@ class StudentController extends Controller
 
         $studentModel->update($data);
 
+        if ($studentModel->user) {
+            $userUpdate = [];
+            if (isset($data['email'])) $userUpdate['email'] = $data['email'];
+            if (isset($data['first_name'])) $userUpdate['first_name'] = $data['first_name'];
+            if (isset($data['last_name'])) $userUpdate['last_name'] = $data['last_name'];
+            if (isset($data['first_name']) || isset($data['last_name'])) {
+                $userUpdate['name'] = trim(($data['first_name'] ?? $studentModel->first_name) . ' ' . ($data['last_name'] ?? $studentModel->last_name));
+            }
+            if (!empty($userUpdate)) {
+                $studentModel->user->update($userUpdate);
+            }
+        }
+
         return response()->json([
-            'data' => new StudentResource($student->fresh()->load(['batch', 'tutor'])),
+            'data' => new StudentResource($studentModel->fresh()->load(['batch', 'tutor'])),
             'message' => 'Student updated successfully.',
         ]);
     }

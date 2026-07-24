@@ -31,7 +31,7 @@ class StudentResource extends JsonResource
             ]),
             'tutor' => $this->whenLoaded('tutor', fn() => [
                 'id' => $this->tutor->id,
-                'name' => $this->tutor->name,
+                'name' => $this->tutor->name ?: trim(($this->tutor->first_name ?? '') . ' ' . ($this->tutor->last_name ?? '')),
                 'email' => $this->tutor->email,
             ]),
         ];

@@ -50,7 +50,23 @@ class UserController extends Controller
                 $query->withTutorStudentCount();
             }
             if ($request->role === 'student') {
-                $query->with('studentProfile');
+                $query->with(['studentProfile.batch', 'studentProfile.tutor']);
+
+                if ($request->filled('batch_id')) {
+                    $query->whereHas('studentProfile', function ($q) use ($request) {
+                        $q->where('batch_id', $request->batch_id);
+                    });
+                }
+                if ($request->filled('gender')) {
+                    $query->whereHas('studentProfile', function ($q) use ($request) {
+                        $q->where('gender', $request->gender);
+                    });
+                }
+                if ($request->filled('student_status')) {
+                    $query->whereHas('studentProfile', function ($q) use ($request) {
+                        $q->where('status', $request->student_status);
+                    });
+                }
             }
         }
 
@@ -154,10 +170,34 @@ class UserController extends Controller
             unset($validated['role']);
         }
 
+        if (isset($validated['first_name']) || isset($validated['last_name'])) {
+            $firstName = $validated['first_name'] ?? $user->first_name;
+            $lastName = $validated['last_name'] ?? $user->last_name;
+            $validated['name'] = trim("{$firstName} {$lastName}");
+        }
+
         $user->update($validated);
 
+        if ($user->studentProfile) {
+            $studentData = array_intersect_key($validated, array_flip([
+                'first_name', 'last_name', 'email', 'student_code', 'gender', 'phone', 'batch_id', 'tutor_id', 'status'
+            ]));
+            if (!empty($studentData)) {
+                $user->studentProfile->update($studentData);
+            }
+        }
+
+        if ($user->tutorProfile) {
+            $tutorData = array_intersect_key($validated, array_flip([
+                'first_name', 'last_name', 'email', 'phone', 'status'
+            ]));
+            if (!empty($tutorData)) {
+                $user->tutorProfile->update($tutorData);
+            }
+        }
+
         return response()->json([
-            'user' => $user->fresh()->load('role'),
+            'user' => $user->fresh()->load(['role', 'studentProfile', 'tutorProfile']),
             'message' => 'User updated successfully.',
         ]);
     }
