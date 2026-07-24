@@ -17,7 +17,7 @@ class CompanySeeder extends Seeder
                 'industry' => 'Information Technology',
                 'email' => 'info@techsolutions-kh.com',
                 'website' => 'https://techsolutions-kh.com',
-                'company_image_url' => '/images/companies/tech-solutions.png',
+                'company_image' => '/images/companies/tech-solutions.png',
             ],
             [
                 'company_name' => 'Digital Innovation Lab',
@@ -25,7 +25,7 @@ class CompanySeeder extends Seeder
                 'industry' => 'Digital Marketing',
                 'email' => 'contact@digital-lab-kh.com',
                 'website' => 'https://digital-lab-kh.com',
-                'company_image_url' => '/images/companies/digital-lab.png',
+                'company_image' => '/images/companies/digital-lab.png',
             ],
         ];
 
