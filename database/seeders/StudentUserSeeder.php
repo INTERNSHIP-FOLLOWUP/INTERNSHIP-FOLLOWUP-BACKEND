@@ -81,9 +81,11 @@ class StudentUserSeeder extends Seeder
 
         foreach ($students as $index => $studentData) {
             $tutorId = Tutor::where('email', $studentData['tutor_email'])->value('id');
-            $batchId = $batches->isNotEmpty()
-                ? $batches[$index % $batches->count()]->id
-                : null;
+            $batch = $batches->isNotEmpty() ? $batches[$index % $batches->count()] : null;
+            $batchId = $batch?->id;
+            $batchName = $batch?->batch_name ?? 'PNC2026';
+            $num = str_pad((string)($index + 1), 3, '0', STR_PAD_LEFT);
+            $studentCode = "{$batchName}-{$num}";
 
             $user = User::updateOrCreate(
                 ['email' => $studentData['email']],
@@ -97,11 +99,11 @@ class StudentUserSeeder extends Seeder
                 ]
             );
 
-            Student::firstOrCreate(
+            Student::updateOrCreate(
                 ['user_id' => $user->id],
                 [
                     'user_id'      => $user->id,
-                    'student_code' => $studentData['student_code'],
+                    'student_code' => $studentCode,
                     'batch_id'     => $batchId,
                     'tutor_id'     => $tutorId,
                     'first_name'   => $studentData['first_name'],

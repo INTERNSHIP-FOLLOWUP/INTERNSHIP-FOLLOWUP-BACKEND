@@ -27,22 +27,54 @@ class StudentController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Student::with(['batch', 'tutor']);
+        $query = Student::withTrashed()->with(['batch', 'tutor', 'user']);
 
         if ($request->filled('batch_id')) {
             $query->where('batch_id', $request->batch_id);
         }
 
         if ($request->filled('tutor_id')) {
-            $query->where('tutor_id', $request->tutor_id);
+            $tutorId = (int) $request->tutor_id;
+
+            // students.tutor_id stores the Tutor model's primary key.
+            // However, the dropdown may send the tutor's user_id (from t.user_id || t.id).
+            // Resolve: if it's a user_id, look up the Tutor record's id.
+            $tutorRecord = \App\Models\Tutor::find($tutorId);
+            if ($tutorRecord) {
+                // Direct Tutor ID match
+                $query->where('tutor_id', $tutorRecord->id);
+            } else {
+                // Might be a user_id — find the Tutor profile
+                $tutorByUserId = \App\Models\Tutor::where('user_id', $tutorId)->first();
+                if ($tutorByUserId) {
+                    $query->where('tutor_id', $tutorByUserId->id);
+                } else {
+                    // No match found — return no results
+                    $query->whereRaw('1 = 0');
+                }
+            }
         }
 
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            $status = strtolower($request->status);
+            if ($status === 'deactivated' || $status === 'inactive') {
+                $query->where(function ($q) {
+                    $q->whereIn('status', ['deactivated', 'inactive'])
+                      ->orWhereNotNull('deleted_at');
+                });
+            } elseif ($status === 'active') {
+                $query->where('status', 'active')
+                      ->whereNull('deleted_at');
+            } else {
+                $query->where('status', $status);
+            }
         }
 
         if ($request->filled('gender')) {
-            $query->where('gender', $request->gender);
+            $gender = strtolower($request->gender);
+            $query->where(function ($q) use ($gender) {
+                $q->whereRaw('LOWER(gender) = ?', [$gender]);
+            });
         }
 
         if ($request->filled('search')) {
@@ -51,7 +83,8 @@ class StudentController extends Controller
                 $q->where('first_name', 'like', "%{$search}%")
                   ->orWhere('last_name', 'like', "%{$search}%")
                   ->orWhere('student_code', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere(DB::raw("CONCAT(first_name, ' ', last_name)"), 'like', "%{$search}%");
             });
         }
 
@@ -163,6 +196,17 @@ class StudentController extends Controller
         unset($data['password'], $data['password_confirmation']);
 
         $studentModel->update($data);
+
+        if (isset($data['status'])) {
+            $user = User::withTrashed()->find($studentModel->user_id);
+            if ($user) {
+                if (($data['status'] === 'inactive' || $data['status'] === 'deactivated') && !$user->trashed()) {
+                    $user->delete();
+                } elseif ($data['status'] === 'active' && $user->trashed()) {
+                    $user->restore();
+                }
+            }
+        }
 
         if ($studentModel->user) {
             $userUpdate = [];

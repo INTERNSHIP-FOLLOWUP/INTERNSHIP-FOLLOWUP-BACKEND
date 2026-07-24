@@ -57,14 +57,41 @@ class UserController extends Controller
                         $q->where('batch_id', $request->batch_id);
                     });
                 }
+                if ($request->filled('tutor_id')) {
+                    $tutorId = (int) $request->tutor_id;
+
+                    // students.tutor_id stores the Tutor model's primary key.
+                    $tutorRecord = \App\Models\Tutor::find($tutorId);
+                    if ($tutorRecord) {
+                        $resolvedTutorId = $tutorRecord->id;
+                    } else {
+                        // May be a user_id sent from dropdown (t.user_id || t.id)
+                        $tutorByUserId = \App\Models\Tutor::where('user_id', $tutorId)->first();
+                        $resolvedTutorId = $tutorByUserId ? $tutorByUserId->id : null;
+                    }
+
+                    if ($resolvedTutorId) {
+                        $query->whereHas('studentProfile', function ($q) use ($resolvedTutorId) {
+                            $q->where('tutor_id', $resolvedTutorId);
+                        });
+                    } else {
+                        $query->whereRaw('1 = 0');
+                    }
+                }
                 if ($request->filled('gender')) {
-                    $query->whereHas('studentProfile', function ($q) use ($request) {
-                        $q->where('gender', $request->gender);
+                    $gender = strtolower($request->gender);
+                    $query->whereHas('studentProfile', function ($q) use ($gender) {
+                        $q->whereRaw('LOWER(gender) = ?', [$gender]);
                     });
                 }
                 if ($request->filled('student_status')) {
-                    $query->whereHas('studentProfile', function ($q) use ($request) {
-                        $q->where('status', $request->student_status);
+                    $status = strtolower($request->student_status);
+                    $query->whereHas('studentProfile', function ($q) use ($status) {
+                        if ($status === 'deactivated' || $status === 'inactive') {
+                            $q->whereIn('status', ['deactivated', 'inactive']);
+                        } else {
+                            $q->where('status', $status);
+                        }
                     });
                 }
             }
@@ -307,33 +334,87 @@ class UserController extends Controller
         ]);
     }
 
-    public function activate(string $id): JsonResponse
+    public function activate(Request $request, string $id): JsonResponse
     {
-        $user = User::onlyTrashed()->findOrFail($id);
+        $user = User::withTrashed()->find($id);
+        $student = null;
 
-        $user->restore();
+        if (!$user) {
+            $student = Student::withTrashed()->find($id);
+            if ($student && $student->user_id) {
+                $user = User::withTrashed()->find($student->user_id);
+            }
+        }
 
-        return response()->json([
-            'user' => $user->fresh()->load('role'),
-            'message' => 'User activated successfully.',
-        ]);
+        if ($user) {
+            if ($user->trashed()) {
+                $user->restore();
+            }
+            if ($user->studentProfile) {
+                if ($user->studentProfile->trashed()) {
+                    $user->studentProfile->restore();
+                }
+                $user->studentProfile->update(['status' => 'active']);
+            }
+            return response()->json([
+                'user' => $user->fresh()->load('role'),
+                'message' => 'User activated successfully.',
+            ]);
+        }
+
+        if ($student) {
+            if ($student->trashed()) {
+                $student->restore();
+            }
+            $student->update(['status' => 'active']);
+            return response()->json([
+                'message' => 'Student activated successfully.',
+            ]);
+        }
+
+        return response()->json(['message' => 'User or Student not found.'], 404);
     }
 
-    public function deactivate(User $user): JsonResponse
+    public function deactivate(Request $request, string $id): JsonResponse
     {
-        if ($user->id === request()->user()->id) {
-            return response()->json(['message' => 'You cannot deactivate your own account.'], 403);
+        $user = User::find($id);
+        $student = null;
+
+        if (!$user) {
+            $student = Student::find($id);
+            if ($student && $student->user_id) {
+                $user = User::find($student->user_id);
+            }
         }
 
-        if ($user->trashed()) {
-            return response()->json(['message' => 'User is already deactivated.'], 422);
+        if ($user) {
+            if ($user->id === $request->user()?->id) {
+                return response()->json(['message' => 'You cannot deactivate your own account.'], 403);
+            }
+
+            if ($user->trashed()) {
+                return response()->json(['message' => 'User is already deactivated.'], 422);
+            }
+
+            if ($user->studentProfile) {
+                $user->studentProfile->update(['status' => 'inactive']);
+            }
+
+            $user->delete();
+
+            return response()->json([
+                'message' => 'User deactivated successfully.',
+            ]);
         }
 
-        $user->delete();
+        if ($student) {
+            $student->update(['status' => 'inactive']);
+            return response()->json([
+                'message' => 'Student deactivated successfully.',
+            ]);
+        }
 
-        return response()->json([
-            'message' => 'User deactivated successfully.',
-        ]);
+        return response()->json(['message' => 'User or Student not found.'], 404);
     }
 
     public function resetPassword(Request $request, string $id): JsonResponse
