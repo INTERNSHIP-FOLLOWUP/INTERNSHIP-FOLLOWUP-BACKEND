@@ -102,4 +102,14 @@ class User extends Authenticatable
             '(SELECT COUNT(*) FROM students WHERE tutor_id IN (SELECT id FROM tutors WHERE user_id = users.id)) as students_count'
         ));
     }
+
+    public function sentNotifications(): HasMany
+    {
+        return $this->hasMany(Notification::class, 'sender_id');
+    }
+
+    public function receivedNotifications(): HasMany
+    {
+        return $this->hasMany(Notification::class, 'receiver_id');
+    }
 }

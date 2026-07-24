@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             CompanySeeder::class,
             StudentUserSeeder::class,
             InternshipAssignmentSeeder::class,
+            NotificationSeeder::class,
         ]);
     }
 }

@@ -50,6 +50,16 @@ Route::middleware('auth:sanctum')->prefix('profile')->name('profile.')->group(fu
     Route::put('/theme', [ProfileController::class, 'updateTheme'])->name('theme');
 });
 
+Route::middleware('auth:sanctum')->prefix('notifications')->name('notifications.')->group(function () {
+    Route::get('/', [App\Http\Controllers\Api\NotificationController::class, 'index'])->name('index');
+    Route::get('/unread-count', [App\Http\Controllers\Api\NotificationController::class, 'unreadCount'])->name('unread-count');
+    Route::get('/{notification}', [App\Http\Controllers\Api\NotificationController::class, 'show'])->name('show');
+    Route::patch('/{notification}/read', [App\Http\Controllers\Api\NotificationController::class, 'markAsRead'])->name('mark-as-read');
+    Route::patch('/read-all', [App\Http\Controllers\Api\NotificationController::class, 'markAllAsRead'])->name('mark-all-read');
+    Route::delete('/{notification}', [App\Http\Controllers\Api\NotificationController::class, 'destroy'])->name('destroy');
+    Route::get('/filter', [App\Http\Controllers\Api\NotificationController::class, 'filter'])->name('filter');
+});
+
 Route::middleware('auth:sanctum')->prefix('worklogs')->name('worklogs.')->group(function () {
     Route::get('/', [WorklogController::class, 'index'])->name('index');
     Route::post('/', [WorklogController::class, 'store'])->name('store');
