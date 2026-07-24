@@ -44,13 +44,6 @@ class CompanySeeder extends Seeder
                 'website' => $data['website'],
             ];
 
-            if ($data['user_email']) {
-                $user = User::where('email', $data['user_email'])->first();
-                if ($user) {
-                    $companyData['user_id'] = $user->id;
-                }
-            }
-
             Company::firstOrCreate(
                 ['company_name' => $data['company_name']],
                 $companyData

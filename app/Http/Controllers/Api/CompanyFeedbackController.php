@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CompanyFeedbackRequest;
-use App\Models\Company;
 use App\Models\CompanyFeedback;
+use App\Models\CompanySupervisor;
 use App\Models\Student;
 use App\Models\Tutor;
 use Illuminate\Http\Request;
@@ -13,18 +13,17 @@ use Illuminate\Support\Facades\Auth;
 
 class CompanyFeedbackController extends Controller
 {
-    private function getCompanyId(): int
+    private function getSupervisor(): CompanySupervisor
     {
         $user = Auth::user();
-        return Company::where('user_id', $user->id)->value('id')
-            ?? throw new \RuntimeException('Company profile not found');
+        return CompanySupervisor::where('user_id', $user->id)->firstOrFail();
     }
 
     public function index()
     {
-        $companyId = $this->getCompanyId();
-        $feedback = CompanyFeedback::with('student')
-            ->where('company_id', $companyId)
+        $supervisor = $this->getSupervisor();
+        $feedback = CompanyFeedback::with(['supervisor.company', 'student'])
+            ->whereHas('supervisor', fn($q) => $q->where('company_id', $supervisor->company_id))
             ->latest()
             ->get();
 
@@ -33,10 +32,10 @@ class CompanyFeedbackController extends Controller
 
     public function store(CompanyFeedbackRequest $request)
     {
-        $companyId = $this->getCompanyId();
+        $supervisor = $this->getSupervisor();
 
         $feedback = CompanyFeedback::create([
-            'company_id' => $companyId,
+            'company_supervisors_id' => $supervisor->id,
             'student_id' => $request->student_id,
             'message' => $request->message,
             'strengths' => $request->strengths,
@@ -49,9 +48,9 @@ class CompanyFeedbackController extends Controller
 
     public function show(string $id)
     {
-        $companyId = $this->getCompanyId();
-        $feedback = CompanyFeedback::with('student')
-            ->where('company_id', $companyId)
+        $supervisor = $this->getSupervisor();
+        $feedback = CompanyFeedback::with(['supervisor.company', 'student'])
+            ->whereHas('supervisor', fn($q) => $q->where('company_id', $supervisor->company_id))
             ->findOrFail($id);
 
         return response()->json($feedback);
@@ -59,9 +58,9 @@ class CompanyFeedbackController extends Controller
 
     public function update(CompanyFeedbackRequest $request, string $id)
     {
-        $companyId = $this->getCompanyId();
-        $feedback = CompanyFeedback::with('student')
-            ->where('company_id', $companyId)
+        $supervisor = $this->getSupervisor();
+        $feedback = CompanyFeedback::with(['supervisor.company', 'student'])
+            ->whereHas('supervisor', fn($q) => $q->where('company_id', $supervisor->company_id))
             ->findOrFail($id);
 
         $feedback->update([
@@ -77,8 +76,8 @@ class CompanyFeedbackController extends Controller
 
     public function destroy(string $id)
     {
-        $companyId = $this->getCompanyId();
-        $feedback = CompanyFeedback::where('company_id', $companyId)
+        $supervisor = $this->getSupervisor();
+        $feedback = CompanyFeedback::whereHas('supervisor', fn($q) => $q->where('company_id', $supervisor->company_id))
             ->findOrFail($id);
 
         $feedback->delete();
@@ -88,7 +87,7 @@ class CompanyFeedbackController extends Controller
 
     public function adminIndex()
     {
-        $feedback = CompanyFeedback::with(['company', 'student'])
+        $feedback = CompanyFeedback::with(['supervisor.company', 'student'])
             ->latest()
             ->paginate(15);
 
@@ -107,7 +106,7 @@ class CompanyFeedbackController extends Controller
     public function stats(Request $request)
     {
         $user = $request->user();
-        $query = CompanyFeedback::with('student:id,first_name,last_name,email,student_code,photo');
+        $query = CompanyFeedback::with('student:id,user_id,student_code');
 
         // Role-based scoping
         if ($user->role->name === 'tutor') {

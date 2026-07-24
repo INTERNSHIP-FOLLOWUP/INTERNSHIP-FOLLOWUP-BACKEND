@@ -37,7 +37,7 @@ class IssueController extends Controller
         $query = Issue::query()
             ->with(['student', 'tutor', 'reporter', 'assignedUser', 'attachments']);
         if ($user->role->name === 'student') {
-            $student = Student::where('email', $user->email)->first();
+            $student = $user->studentProfile;
             if (!$student) {
                 return response()->json(['message' => 'Student profile not found'], 404);
             }
@@ -87,7 +87,7 @@ class IssueController extends Controller
         $user = Auth::user();
         $query = Issue::query();
         if ($user->role->name === 'student') {
-            $student = Student::where('email', $user->email)->first();
+            $student = $user->studentProfile;
             if ($student) {
                 $query->where('student_id', $student->id);
             }
@@ -174,7 +174,7 @@ class IssueController extends Controller
             }
         } elseif ($user->role->name === 'student') {
             // Auto-resolve student from authenticated user
-            $student = Student::where('email', $user->email)->first();
+            $student = $user->studentProfile;
             if (!$student) {
                 return response()->json(['message' => 'Student profile not found'], 404);
             }
@@ -230,7 +230,7 @@ class IssueController extends Controller
         $decodedId = $this->decodeIssueId($id);
         $issue = Issue::findOrFail($decodedId);
         if ($user->role->name === 'student') {
-            $student = Student::where('email', $user->email)->first();
+            $student = $user->studentProfile;
             if (!$student || $issue->student_id !== $student->id) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }

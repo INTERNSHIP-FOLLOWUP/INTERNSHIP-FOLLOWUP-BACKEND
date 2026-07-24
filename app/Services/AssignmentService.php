@@ -14,14 +14,14 @@ class AssignmentService
 {
     public function list(array $filters = []): LengthAwarePaginator
     {
-        $query = InternshipAssignment::with(['student', 'company', 'tutor']);
+        $query = InternshipAssignment::with(['student', 'supervisor.company', 'tutor']);
 
         if ($status = Arr::get($filters, 'status')) {
             $query->where('status', $status);
         }
 
-        if ($companyId = Arr::get($filters, 'company_id')) {
-            $query->where('company_id', $companyId);
+        if ($supervisorId = Arr::get($filters, 'company_supervisors_id')) {
+            $query->where('company_supervisors_id', $supervisorId);
         }
 
         if ($studentId = Arr::get($filters, 'student_id')) {
@@ -56,7 +56,7 @@ class AssignmentService
 
             $assignment->update($data);
 
-            return $assignment->fresh()->load(['student', 'company', 'tutor']);
+            return $assignment->fresh()->load(['student', 'supervisor.company', 'tutor']);
         });
     }
 

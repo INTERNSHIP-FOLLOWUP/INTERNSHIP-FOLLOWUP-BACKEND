@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Tutor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class TutorController extends Controller
 {
@@ -16,14 +17,16 @@ class TutorController extends Controller
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                $q->whereHas('user', fn($qq) => $qq->where('first_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%"))
+                  ->orWhereHas('user', fn($qq) => $qq->where('email', 'like', "%{$search}%"));
             });
         }
 
         $perPage = min((int) $request->per_page, 100) ?: 15;
-        $tutors = $query->orderBy('first_name')->paginate($perPage);
+        $tutors = $query->with('user')->orderBy(
+            DB::raw('(SELECT CONCAT(first_name, \' \', last_name) FROM users WHERE users.id = tutors.user_id)')
+        )->paginate($perPage);
 
         return response()->json([
             'data' => $tutors->items(),

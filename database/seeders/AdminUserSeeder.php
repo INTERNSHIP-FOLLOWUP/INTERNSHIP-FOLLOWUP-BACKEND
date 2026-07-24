@@ -17,12 +17,6 @@ class AdminUserSeeder extends Seeder
                 'email' => 'admin@gmail.com',
                 'role'  => 'admin',
             ],
-            [
-                'first_name' => 'Company',
-                'last_name'  => 'User',
-                'email' => 'company@gmail.com',
-                'role'  => 'company',
-            ],
         ];
 
         foreach ($users as $userData) {

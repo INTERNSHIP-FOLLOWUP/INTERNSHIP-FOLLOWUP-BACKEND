@@ -47,7 +47,7 @@ class TutorWorklogController extends Controller
 
         $query = Worklog::query()
             ->whereIn('student_id', $studentIds)
-            ->with(['student:id,first_name,last_name,email,phone', 'attachments']);
+            ->with(['student:id,user_id', 'attachments']);
 
         if ($request->filled('student_id')) {
             $query->where('student_id', $request->student_id);
@@ -104,7 +104,7 @@ class TutorWorklogController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $worklog->load(['student:id,first_name,last_name,email,phone', 'attachments']),
+            'data' => $worklog->load(['student:id,user_id', 'attachments']),
         ], 200);
     }
 
@@ -157,7 +157,7 @@ class TutorWorklogController extends Controller
             $worklog->reviewed_at = now();
             $worklog->save();
 
-            return $worklog->load(['student:id,first_name,last_name,email,phone', 'attachments']);
+            return $worklog->load(['student:id,user_id', 'attachments']);
         });
 
         return response()->json([

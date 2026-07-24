@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Company;
+use App\Models\CompanySupervisor;
 use App\Models\InternshipAssignment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -12,12 +13,22 @@ use Illuminate\Validation\Rule;
 class CompanyDashboardController extends Controller
 {
     /**
-     * Get the company profile linked to the authenticated user.
+     * Get the company linked to the authenticated supervisor.
+     */
+    private function getCompany(Request $request): Company
+    {
+        $supervisor = CompanySupervisor::where('user_id', $request->user()->id)->firstOrFail();
+
+        return $supervisor->company;
+    }
+
+    /**
+     * Get the company profile linked to the authenticated supervisor.
      */
     public function profile(Request $request)
     {
         $user = $request->user();
-        $company = Company::where('user_id', $user->id)->firstOrFail();
+        $company = $this->getCompany($request);
 
         return response()->json([
             'company' => $company,
@@ -26,12 +37,12 @@ class CompanyDashboardController extends Controller
     }
 
     /**
-     * Update the company profile linked to the authenticated user.
+     * Update the company profile linked to the authenticated supervisor.
      */
     public function updateProfile(Request $request)
     {
         $user = $request->user();
-        $company = Company::where('user_id', $user->id)->firstOrFail();
+        $company = $this->getCompany($request);
 
         $rules = [
             'company_name' => [
@@ -61,13 +72,6 @@ class CompanyDashboardController extends Controller
             $rules['company_profile_image'] = ['nullable', 'string', 'max:255'];
         }
 
-        // Conditional validation: user avatar file upload vs URL string
-        if ($request->hasFile('avatar')) {
-            $rules['avatar'] = ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'];
-        } else {
-            $rules['avatar'] = ['nullable', 'string', 'max:255'];
-        }
-
         $validated = $request->validate($rules);
 
         // Handle company_image upload
@@ -94,20 +98,6 @@ class CompanyDashboardController extends Controller
                 ->store('avatars', 'public');
         }
 
-        // Handle user avatar upload
-        if ($request->hasFile('avatar')) {
-            if ($user->avatar &&
-                !str_starts_with($user->avatar, 'http://') &&
-                !str_starts_with($user->avatar, 'https://')) {
-                Storage::disk('public')->delete($user->avatar);
-            }
-            $user->avatar = $request->file('avatar')->store('avatars', 'public');
-            $user->save();
-        } elseif ($request->filled('avatar')) {
-            $user->avatar = $request->input('avatar');
-            $user->save();
-        }
-
         $company->update($validated);
         $user->refresh();
 
@@ -123,8 +113,7 @@ class CompanyDashboardController extends Controller
      */
     public function students(Request $request)
     {
-        $user = $request->user();
-        $company = Company::where('user_id', $user->id)->firstOrFail();
+        $company = $this->getCompany($request);
 
         $assignments = InternshipAssignment::with(['student.batch', 'tutor'])
             ->where('company_id', $company->id)

@@ -24,7 +24,7 @@ class UserManagementApiTest extends TestCase
         Role::create(['name' => 'admin']);
         Role::create(['name' => 'tutor']);
         Role::create(['name' => 'student']);
-        Role::create(['name' => 'company']);
+        Role::create(['name' => 'supervisor']);
 
         $adminRole = Role::where('name', 'admin')->first();
         $tutorRole = Role::where('name', 'tutor')->first();
@@ -59,7 +59,7 @@ class UserManagementApiTest extends TestCase
             ->assertJsonStructure([
                 'data' => [['id', 'name', 'email', 'role']],
                 'meta' => ['current_page', 'last_page', 'total'],
-                'counts' => ['admin', 'tutor', 'student', 'company'],
+                'counts' => ['admin', 'tutor', 'student', 'supervisor'],
             ]);
     }
 

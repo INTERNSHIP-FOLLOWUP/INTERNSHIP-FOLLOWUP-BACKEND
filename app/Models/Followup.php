@@ -10,7 +10,7 @@ class Followup extends Model
     protected $fillable = [
         'student_id',
         'tutor_id',
-        'company_id',
+        'company_supervisors_id',
         'type',
         'scheduled_at',
         'notes',
@@ -34,9 +34,9 @@ class Followup extends Model
         return $this->belongsTo(User::class, 'tutor_id');
     }
 
-    public function company(): BelongsTo
+    public function supervisor(): BelongsTo
     {
-        return $this->belongsTo(Company::class);
+        return $this->belongsTo(CompanySupervisor::class, 'company_supervisors_id');
     }
 }
 

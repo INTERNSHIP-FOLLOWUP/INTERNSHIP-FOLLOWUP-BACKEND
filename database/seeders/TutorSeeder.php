@@ -49,6 +49,9 @@ class TutorSeeder extends Seeder
                     'first_name' => $tutorData['first_name'],
                     'last_name'  => $tutorData['last_name'],
                     'email'      => $tutorData['email'],
+                    'phone'      => $tutorData['phone'] ?? null,
+                    'gender'     => $tutorData['gender'] ?? null,
+                    'status'     => 'active',
                     'password'   => '12345678',
                     'role_id'    => $role->id,
                     'theme'      => 'light',
@@ -59,12 +62,6 @@ class TutorSeeder extends Seeder
                 ['user_id' => $user->id],
                 [
                     'user_id'    => $user->id,
-                    'first_name' => $tutorData['first_name'],
-                    'last_name'  => $tutorData['last_name'],
-                    'gender'     => $tutorData['gender'],
-                    'phone'      => $tutorData['phone'],
-                    'email'      => $tutorData['email'],
-                    'status'     => 'active',
                 ]
             );
         }

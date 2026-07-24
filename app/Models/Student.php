@@ -18,33 +18,49 @@ class Student extends Model
         'student_code',
         'batch_id',
         'tutor_id',
-        'first_name',
-        'last_name',
-        'gender',
-        'phone',
-        'email',
-        'photo',
-        'status',
     ];
 
     public function getNameAttribute(): string
     {
-        return trim(($this->first_name ?? '') . ' ' . ($this->last_name ?? ''));
+        return $this->user?->name ?? '';
     }
 
     public function getPhotoUrlAttribute(): ?string
     {
-        if (!$this->photo) return null;
-
-        if (str_starts_with($this->photo, 'http://') ||
-            str_starts_with($this->photo, 'https://')) {
-            return $this->photo;
-        }
-
-        return \Illuminate\Support\Facades\Storage::url($this->photo);
+        return $this->user?->avatar_url;
     }
 
-    protected $appends = ['photo_url'];
+    public function getEmailAttribute(): ?string
+    {
+        return $this->user?->email;
+    }
+
+    public function getPhoneAttribute(): ?string
+    {
+        return $this->user?->phone;
+    }
+
+    public function getFirstNameAttribute(): ?string
+    {
+        return $this->user?->first_name;
+    }
+
+    public function getLastNameAttribute(): ?string
+    {
+        return $this->user?->last_name;
+    }
+
+    public function getGenderAttribute(): ?string
+    {
+        return $this->user?->gender;
+    }
+
+    public function getStatusAttribute(): ?string
+    {
+        return $this->user?->status;
+    }
+
+    protected $appends = ['name', 'first_name', 'last_name', 'email', 'phone', 'photo_url', 'gender', 'status'];
 
     protected $casts = [
         'batch_id' => 'integer',

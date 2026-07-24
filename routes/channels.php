@@ -1,7 +1,8 @@
 <?php
 
 use App\Models\Company;
-use App\Models\CompanyMessage;
+use App\Models\CompanySupervisor;
+use App\Models\Tutor;
 use Illuminate\Support\Facades\Broadcast;
 
 /*
@@ -16,13 +17,14 @@ use Illuminate\Support\Facades\Broadcast;
 */
 
 Broadcast::channel('company.{userId}', function ($user, $userId) {
-    // Allow if the user is the company representative (has a company linked)
-    $company = Company::where('user_id', $user->id)->first();
-    return (int) $user->id === (int) $userId && $company !== null;
+    // Allow if the user is a supervisor (has a company via supervisor profile)
+    $supervisor = CompanySupervisor::where('user_id', $user->id)->first();
+    return (int) $user->id === (int) $userId && $supervisor !== null;
 }, ['guards' => ['sanctum']]);
 
 Broadcast::channel('tutor.{userId}', function ($user, $userId) {
-    // Allow if the user is the tutor (has no company linked) and matches
-    $company = Company::where('user_id', $user->id)->first();
-    return (int) $user->id === (int) $userId && $company === null;
+    // Allow if the user is a tutor (not a supervisor) and matches
+    $supervisor = CompanySupervisor::where('user_id', $user->id)->first();
+    $tutor = Tutor::where('user_id', $user->id)->first();
+    return (int) $user->id === (int) $userId && $supervisor === null && $tutor !== null;
 }, ['guards' => ['sanctum']]);

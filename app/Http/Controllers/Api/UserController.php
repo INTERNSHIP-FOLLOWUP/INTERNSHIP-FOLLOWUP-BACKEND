@@ -38,9 +38,9 @@ class UserController extends Controller
 
         if ($request->filled('role')) {
             $request->validate([
-                'role' => 'string|in:admin,tutor,student,company',
+                'role' => 'string|in:admin,tutor,student,supervisor',
             ], [
-                'role.in' => 'The selected role is invalid. Allowed roles: admin, tutor, student, company.',
+                'role.in' => 'The selected role is invalid. Allowed roles: admin, tutor, student, supervisor.',
             ]);
 
             $role = Role::where('name', $request->role)->first();
@@ -51,6 +51,9 @@ class UserController extends Controller
             }
             if ($request->role === 'student') {
                 $query->with('studentProfile');
+            }
+            if ($request->role === 'supervisor') {
+                $query->with('supervisorProfile.company:id,company_name');
             }
         }
 
@@ -80,7 +83,7 @@ class UserController extends Controller
             'admin' => User::whereHas('role', fn($q) => $q->where('name', 'admin'))->count(),
             'tutor' => Tutor::count(),
             'student' => User::whereHas('role', fn($q) => $q->where('name', 'student'))->count(),
-            'company' => User::whereHas('role', fn($q) => $q->where('name', 'company'))->count(),
+            'supervisor' => User::whereHas('role', fn($q) => $q->where('name', 'supervisor'))->count(),
         ];
 
         return response()->json([
@@ -99,7 +102,7 @@ class UserController extends Controller
 
     public function show(User $user): JsonResponse
     {
-        $user->loadMissing(['role', 'studentProfile', 'tutorProfile']);
+        $user->loadMissing(['role', 'studentProfile', 'tutorProfile', 'supervisorProfile.company:id,company_name']);
 
         return response()->json($user);
     }
@@ -113,26 +116,17 @@ class UserController extends Controller
         unset($validated['role']);
 
         $user = User::create($validated);
-        $user->must_change_password = $user->role?->name === 'company';
+        $user->must_change_password = $user->role?->name === 'supervisor';
         $user->save();
 
         if ($validated['role_id'] === Role::where('name', 'student')->first()?->id) {
             Student::create([
                 'user_id' => $user->id,
                 'student_code' => 'STU' . str_pad((string)$user->id, 4, '0', STR_PAD_LEFT),
-                'first_name' => $validated['first_name'],
-                'last_name' => $validated['last_name'],
-                'email' => $validated['email'],
-                'gender' => $validated['gender'] ?? 'N/A',
-                'status' => 'active',
             ]);
         } elseif ($validated['role_id'] === Role::where('name', 'tutor')->first()?->id) {
             Tutor::create([
                 'user_id' => $user->id,
-                'first_name' => $validated['first_name'],
-                'last_name' => $validated['last_name'],
-                'email' => $validated['email'],
-                'status' => 'active',
             ]);
         }
 
@@ -145,7 +139,7 @@ class UserController extends Controller
 
         if (isset($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
-            $validated['must_change_password'] = $user->role?->name === 'company';
+            $validated['must_change_password'] = $user->role?->name === 'supervisor';
         }
 
         if (isset($validated['role'])) {
@@ -175,9 +169,6 @@ class UserController extends Controller
 
         if ($user->studentProfile) {
             $student = $user->studentProfile;
-            if ($student->photo) {
-                Storage::disk('public')->delete($student->photo);
-            }
             $student->delete();
         }
 
@@ -185,8 +176,8 @@ class UserController extends Controller
             $user->tutorProfile->delete();
         }
 
-        if ($user->company) {
-            $user->company->delete();
+        if ($user->supervisorProfile) {
+            $user->supervisorProfile->delete();
         }
 
         $user->tokens()->delete();
@@ -227,8 +218,8 @@ class UserController extends Controller
                 // If user is a student, delete student record first
                 if ($user->studentProfile) {
                     $student = $user->studentProfile;
-                    if ($student->photo) {
-                        Storage::disk('public')->delete($student->photo);
+                    if ($student->user?->avatar) {
+                        Storage::disk('public')->delete($student->user->avatar);
                     }
                     $student->delete();
                 }
@@ -238,9 +229,9 @@ class UserController extends Controller
                     $user->tutorProfile->delete();
                 }
 
-                // If user is a company, delete company record first
-                if ($user->company) {
-                    $user->company->delete();
+                // If user is a supervisor, delete supervisor record first
+                if ($user->supervisorProfile) {
+                    $user->supervisorProfile->delete();
                 }
 
                 $user->tokens()->delete();
@@ -305,7 +296,7 @@ class UserController extends Controller
         ]);
 
         $user->password = Hash::make($validated['password']);
-        $user->must_change_password = $user->role?->name === 'company';
+        $user->must_change_password = $user->role?->name === 'supervisor';
         $user->save();
 
         $user->tokens()->delete();
@@ -435,12 +426,12 @@ class UserController extends Controller
 
         $issues = $tutor->issues()
             ->select('id', 'student_id', 'title', 'status', 'priority', 'created_at')
-            ->with('student:id,first_name,last_name')
+            ->with('student:id,user_id')
             ->orderBy('created_at', 'desc')
             ->get();
 
         $assignments = InternshipAssignment::where('tutor_id', $tutor->id)
-            ->with('company:id,company_name', 'student:id,first_name,last_name')
+            ->with('company:id,company_name', 'student:id,user_id')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -503,7 +494,7 @@ class UserController extends Controller
 
         $evaluations = $student->evaluations()
             ->with('company:id,company_name')
-            ->select('id', 'company_id', 'technical_skill', 'communication', 'professionalism', 'attendance', 'overall_score', 'feedback', 'created_at')
+            ->select('id', 'company_supervisors_id', 'technical_skill', 'communication', 'professionalism', 'attendance', 'overall_score', 'feedback', 'created_at')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -531,8 +522,8 @@ class UserController extends Controller
                 'student_code' => $student->student_code,
                 'name' => $user->name,
                 'email' => $user->email,
-                'phone' => $student->phone,
-                'photo' => $student->photo,
+                'phone' => $user->phone,
+                'photo' => $user->avatar_url,
                 'status' => $student->status,
                 'batch' => $student->batch ? ['id' => $student->batch->id, 'name' => $student->batch->batch_name] : null,
             ],

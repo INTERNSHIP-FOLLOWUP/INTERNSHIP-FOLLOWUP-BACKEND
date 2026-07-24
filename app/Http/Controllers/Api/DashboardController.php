@@ -44,13 +44,12 @@ class DashboardController extends Controller
             });
             $companyTrend = $totalCompanies - $lastSemesterCompanies;
 
-            $companyPlacements = InternshipAssignment::selectRaw('company_id, COUNT(DISTINCT student_id) as count')
-                ->with('company:id,company_name')
-                ->groupBy('company_id')
+            $companyPlacements = InternshipAssignment::with('supervisor.company:id,company_name')
                 ->get()
-                ->map(fn($assignment) => [
-                    'name' => $assignment->company?->company_name ?? 'Unknown',
-                    'count' => (int) $assignment->count,
+                ->groupBy(fn($a) => $a->supervisor?->company_id)
+                ->map(fn($group) => [
+                    'name' => $group->first()->supervisor?->company?->company_name ?? 'Unknown',
+                    'count' => $group->count(),
                 ])
                 ->sortByDesc('count')
                 ->values();
@@ -72,7 +71,7 @@ class DashboardController extends Controller
                     'studentsCount' => $tutor->students_count,
                 ]);
 
-            $recentWorklogs = Worklog::with('student:id,first_name,last_name')
+            $recentWorklogs = Worklog::with('student:id,user_id')
                 ->latest()
                 ->take(5)
                 ->get()
@@ -86,7 +85,7 @@ class DashboardController extends Controller
                     'type' => 'worklog',
                 ]);
 
-            $recentIssues = Issue::with('student:id,first_name,last_name')
+            $recentIssues = Issue::with('student:id,user_id')
                 ->latest()
                 ->take(5)
                 ->get()
@@ -100,13 +99,13 @@ class DashboardController extends Controller
                     'type' => 'issue',
                 ]);
 
-            $recentEvaluations = Evaluation::with('student:id,first_name,last_name', 'company:id,company_name')
+            $recentEvaluations = Evaluation::with('student:id,user_id', 'supervisor.company:id,company_name')
                 ->latest()
                 ->take(5)
                 ->get()
                 ->map(fn($e) => [
                     'id' => $e->id,
-                    'actor' => $e->company?->company_name ?? 'A company',
+                    'actor' => $e->supervisor?->company?->company_name ?? 'A company',
                     'action' => 'completed evaluation for',
                     'target' => $e->student?->name ?? 'a student',
                     'time' => $e->created_at->diffForHumans(),
@@ -114,14 +113,14 @@ class DashboardController extends Controller
                     'type' => 'evaluation',
                 ]);
 
-            $recentAssignments = InternshipAssignment::with('student:id,first_name,last_name', 'company:id,company_name')
+            $recentAssignments = InternshipAssignment::with('student:id,user_id', 'supervisor.company:id,company_name')
                 ->latest()
                 ->take(5)
                 ->get()
                 ->map(fn($a) => [
                     'id' => $a->id,
                     'actor' => $a->student?->name ?? 'A student',
-                    'action' => 'was assigned to ' . ($a->company?->company_name ?? 'a company'),
+                    'action' => 'was assigned to ' . ($a->supervisor?->company?->company_name ?? 'a company'),
                     'target' => null,
                     'time' => $a->created_at->diffForHumans(),
                     'createdAt' => $a->created_at,

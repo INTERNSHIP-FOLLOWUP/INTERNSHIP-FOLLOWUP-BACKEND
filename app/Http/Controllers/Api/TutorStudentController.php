@@ -97,7 +97,7 @@ class TutorStudentController extends Controller
         // load relations for detail view
         $student = $student->load([
             'batch:id,batch_name,year',
-            'tutor:id,first_name,last_name,email',
+            'tutor:id,user_id',
             'worklogs' => fn ($q) => $q->latest(),
             'issues' => fn ($q) => $q->latest(),
             'evaluations' => fn ($q) => $q->latest(),
@@ -136,7 +136,7 @@ class TutorStudentController extends Controller
 
         $student = Student::where('id', $id)
             ->where('tutor_id', $tutorId)
-            ->with(['internshipAssignment:id,student_id,company_id,status'])
+            ->with(['internshipAssignment:id,student_id,company_supervisors_id,status'])
             ->first();
 
         if (!$student || !$student->internshipAssignment) {
@@ -151,7 +151,7 @@ class TutorStudentController extends Controller
             'data' => [
                 'student_id' => $id,
                 'status' => $assignment->status,
-                'company_id' => $assignment->company_id,
+                'company_supervisors_id' => $assignment->company_supervisors_id,
                 'student' => new StudentResource($student),
             ],
         ], 200);

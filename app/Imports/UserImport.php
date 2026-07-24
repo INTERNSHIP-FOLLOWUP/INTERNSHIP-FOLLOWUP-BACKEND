@@ -51,7 +51,7 @@ class UserImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFail
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
-            'role' => 'required|in:admin,tutor,student,company',
+            'role' => 'required|in:admin,tutor,student,supervisor',
         ];
     }
 

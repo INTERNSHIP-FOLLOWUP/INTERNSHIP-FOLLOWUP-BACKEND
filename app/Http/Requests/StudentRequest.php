@@ -40,7 +40,7 @@ class StudentRequest extends FormRequest
                 'required',
                 'email',
                 'max:255',
-                Rule::unique('students', 'email')->ignore($studentId),
+                Rule::unique('users', 'email'),
             ],
             'phone' => ['nullable', 'string', 'max:50'],
             'batch_id' => ['nullable', 'integer', 'exists:batches,id'],

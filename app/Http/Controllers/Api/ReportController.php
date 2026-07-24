@@ -26,7 +26,7 @@ class ReportController extends Controller
             $query = InternshipAssignment::with([
                 'student.user',
                 'student.batch',
-                'company',
+                'supervisor.company',
                 'tutor',
             ]);
 
@@ -80,8 +80,8 @@ class ReportController extends Controller
             });
         }
 
-        if ($request->filled('company_id')) {
-            $query->where('company_id', $request->company_id);
+        if ($request->filled('company_supervisors_id')) {
+            $query->where('company_supervisors_id', $request->company_supervisors_id);
         }
 
         if ($request->filled('tutor_id')) {
@@ -182,11 +182,12 @@ class ReportController extends Controller
     private function getStudentsPerCompany($assignments)
     {
         return $assignments
-            ->groupBy('company_id')
+            ->groupBy(function ($a) { return $a->supervisor?->company_id; })
             ->map(function ($group) {
-                $company = optional($group->first()->company);
+                $company = optional($group->first()->supervisor?->company);
+                $first = $group->first();
                 return [
-                    'company_id' => $company->id ?? null,
+                    'company_supervisors_id' => $first->company_supervisors_id,
                     'company' => $company->company_name ?? 'Unknown',
                     'industry' => $company->industry ?? null,
                     'assigned_count' => $group->count(),
@@ -209,7 +210,7 @@ class ReportController extends Controller
         return $assignments->map(function ($assignment) {
             $student = optional($assignment->student);
             $batch = optional($student->batch);
-            $company = optional($assignment->company);
+            $company = optional($assignment->supervisor?->company);
             $tutor = optional($assignment->tutor);
             return [
                 'id' => $assignment->id,
@@ -219,7 +220,7 @@ class ReportController extends Controller
                 'batch' => $batch->batch_name ?? 'N/A',
                 'batch_year' => $batch->year ?? null,
                 'company' => $company->company_name ?? 'Unknown',
-                'company_id' => $assignment->company_id,
+                'company_supervisors_id' => $assignment->company_supervisors_id,
                 'tutor' => $tutor->name ?? 'Unassigned',
                 'tutor_id' => $assignment->tutor_id,
                 'position' => $assignment->position ?? 'N/A',
@@ -243,7 +244,7 @@ class ReportController extends Controller
         $filters = [];
         $filterMap = [
             'batch_id' => 'Batch',
-            'company_id' => 'Company',
+            'company_supervisors_id' => 'Company Supervisor',
             'tutor_id' => 'Tutor',
             'status' => 'Status',
             'date_from' => 'Date From',
@@ -349,7 +350,7 @@ class ReportController extends Controller
         $query = InternshipAssignment::with([
             'student.user',
             'student.batch',
-            'company',
+            'supervisor.company',
             'tutor',
         ]);
 

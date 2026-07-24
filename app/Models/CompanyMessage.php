@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class CompanyMessage extends Model
 {
     protected $fillable = [
-        'company_id',
+        'company_supervisors_id',
         'tutor_id',
         'sender_type',
         'message',
@@ -22,9 +22,9 @@ class CompanyMessage extends Model
         ];
     }
 
-    public function company(): BelongsTo
+    public function supervisor(): BelongsTo
     {
-        return $this->belongsTo(Company::class);
+        return $this->belongsTo(CompanySupervisor::class, 'company_supervisors_id');
     }
 
     public function tutor(): BelongsTo

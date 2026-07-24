@@ -6,6 +6,7 @@ use App\Events\NewMessage;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\CompanyMessage;
+use App\Models\CompanySupervisor;
 use App\Models\InternshipAssignment;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -13,25 +14,42 @@ use Illuminate\Http\Request;
 class CompanyMessageController extends Controller
 {
     /**
+     * Get the authenticated supervisor's record.
+     */
+    private function getSupervisor(Request $request): ?CompanySupervisor
+    {
+        return CompanySupervisor::where('user_id', $request->user()->id)->first();
+    }
+
+    /**
+     * Get all company supervisor IDs for a given company.
+     */
+    private function getSupervisorIdsForCompany(int $companyId): array
+    {
+        return CompanySupervisor::where('company_id', $companyId)->pluck('id')->toArray();
+    }
+
+    /**
      * Get all conversations for the authenticated user.
-     * - If user is a company, list tutors they've messaged (with last message).
+     * - If user is a supervisor, list tutors they've messaged (with last message).
      * - If user is a tutor, list companies that messaged them (with last message).
      */
     public function conversations(Request $request)
     {
         $user = $request->user();
+        $supervisor = $this->getSupervisor($request);
 
-        // Determine which role the user is acting as
-        $company = Company::where('user_id', $user->id)->first();
+        if ($supervisor) {
+            $company = $supervisor->company;
+            $supervisorIds = $this->getSupervisorIdsForCompany($company->id);
 
-        if ($company) {
-            // Tutors already messaged
-            $messagedTutorIds = CompanyMessage::where('company_id', $company->id)
+            // Tutors already messaged by any supervisor from this company
+            $messagedTutorIds = CompanyMessage::whereIn('company_supervisors_id', $supervisorIds)
                 ->selectRaw('DISTINCT tutor_id')
                 ->pluck('tutor_id');
 
             // Tutors assigned to this company's students (via InternshipAssignment)
-            $assignedTutorIds = InternshipAssignment::where('company_id', $company->id)
+            $assignedTutorIds = InternshipAssignment::whereIn('company_supervisors_id', $supervisorIds)
                 ->whereNotNull('tutor_id')
                 ->selectRaw('DISTINCT tutor_id')
                 ->pluck('tutor_id');
@@ -39,20 +57,20 @@ class CompanyMessageController extends Controller
             // Merge: unique tutor IDs (these are user IDs), messaging history first
             $allUserIds = $messagedTutorIds->merge($assignedTutorIds)->unique()->values();
 
-            $conversations = User::whereIn('id', $allUserIds)->get()->map(function ($user) use ($company, $messagedTutorIds) {
-                $hasMessages = $messagedTutorIds->contains($user->id);
+            $conversations = User::whereIn('id', $allUserIds)->get()->map(function ($convUser) use ($supervisorIds, $messagedTutorIds) {
+                $hasMessages = $messagedTutorIds->contains($convUser->id);
 
                 $lastMessage = null;
                 $unreadCount = 0;
 
                 if ($hasMessages) {
-                    $lastMessage = CompanyMessage::where('company_id', $company->id)
-                        ->where('tutor_id', $user->id)
+                    $lastMessage = CompanyMessage::whereIn('company_supervisors_id', $supervisorIds)
+                        ->where('tutor_id', $convUser->id)
                         ->latest()
                         ->first();
 
-                    $unreadCount = CompanyMessage::where('company_id', $company->id)
-                        ->where('tutor_id', $user->id)
+                    $unreadCount = CompanyMessage::whereIn('company_supervisors_id', $supervisorIds)
+                        ->where('tutor_id', $convUser->id)
                         ->where('sender_type', 'tutor')
                         ->where('is_read', false)
                         ->count();
@@ -60,10 +78,10 @@ class CompanyMessageController extends Controller
 
                 return [
                     'user' => [
-                        'id' => $user->id,
-                        'name' => $user->name,
-                        'email' => $user->email,
-                        'avatar_url' => $user->avatar_url,
+                        'id' => $convUser->id,
+                        'name' => $convUser->name,
+                        'email' => $convUser->email,
+                        'avatar_url' => $convUser->avatar_url,
                     ],
                     'last_message' => $lastMessage ? [
                         'id' => $lastMessage->id,
@@ -74,7 +92,6 @@ class CompanyMessageController extends Controller
                     'unread_count' => $unreadCount,
                 ];
             })->sortBy(function ($conv) {
-                // Sort: conversations with last_message first, then alphabetically
                 return ($conv['last_message'] ? '0' : '1') . ($conv['user']['name'] ?? '');
             })->values();
 
@@ -87,17 +104,22 @@ class CompanyMessageController extends Controller
         // User is a tutor → get companies they've conversed with
         $tutorUserId = $user->id;
 
-        $companyIds = CompanyMessage::where('tutor_id', $tutorUserId)
-            ->selectRaw('DISTINCT company_id')
-            ->pluck('company_id');
+        $supervisorIds = CompanyMessage::where('tutor_id', $tutorUserId)
+            ->selectRaw('DISTINCT company_supervisors_id')
+            ->pluck('company_supervisors_id')
+            ->toArray();
 
-        $conversations = Company::whereIn('id', $companyIds)->get()->map(function ($company) use ($tutorUserId) {
-            $lastMessage = CompanyMessage::where('company_id', $company->id)
+        $companyIds = CompanySupervisor::whereIn('id', $supervisorIds)->pluck('company_id')->unique()->values()->toArray();
+
+        $conversations = Company::whereIn('id', $companyIds)->get()->map(function ($convCompany) use ($tutorUserId) {
+            $supervisorIds = $this->getSupervisorIdsForCompany($convCompany->id);
+
+            $lastMessage = CompanyMessage::whereIn('company_supervisors_id', $supervisorIds)
                 ->where('tutor_id', $tutorUserId)
                 ->latest()
                 ->first();
 
-            $unreadCount = CompanyMessage::where('company_id', $company->id)
+            $unreadCount = CompanyMessage::whereIn('company_supervisors_id', $supervisorIds)
                 ->where('tutor_id', $tutorUserId)
                 ->where('sender_type', 'company')
                 ->where('is_read', false)
@@ -105,10 +127,10 @@ class CompanyMessageController extends Controller
 
             return [
                 'company' => [
-                    'id' => $company->id,
-                    'name' => $company->company_name,
-                    'email' => $company->email,
-                    'logo_url' => $company->company_image_url ?? $company->company_profile_image_url,
+                    'id' => $convCompany->id,
+                    'name' => $convCompany->company_name,
+                    'email' => $convCompany->email,
+                    'logo_url' => $convCompany->company_image_url ?? $convCompany->company_profile_image_url,
                 ],
                 'last_message' => $lastMessage ? [
                     'id' => $lastMessage->id,
@@ -131,21 +153,23 @@ class CompanyMessageController extends Controller
     public function messages(Request $request, $otherPartyId)
     {
         $user = $request->user();
-        $company = Company::where('user_id', $user->id)->first();
+        $supervisor = $this->getSupervisor($request);
 
         $query = CompanyMessage::query();
 
-        if ($company) {
-            // Company viewing messages with a tutor
-            $query->where('company_id', $company->id)
+        if ($supervisor) {
+            $supervisorIds = $this->getSupervisorIdsForCompany($supervisor->company_id);
+            // Supervisor viewing messages with a tutor
+            $query->whereIn('company_supervisors_id', $supervisorIds)
                 ->where('tutor_id', $otherPartyId);
         } else {
-            // Tutor viewing messages with a company
+            // Tutor viewing messages with a company — get all supervisors for that company
+            $tutorSupervisorIds = $this->getSupervisorIdsForCompany($otherPartyId);
             $query->where('tutor_id', $user->id)
-                ->where('company_id', $otherPartyId);
+                ->whereIn('company_supervisors_id', $tutorSupervisorIds);
         }
 
-        $messages = $query->orderBy('created_at', 'asc')->get()->map(function ($msg) use ($company) {
+        $messages = $query->orderBy('created_at', 'asc')->get()->map(function ($msg) {
             return [
                 'id' => $msg->id,
                 'message' => $msg->message,
@@ -156,15 +180,17 @@ class CompanyMessageController extends Controller
         });
 
         // Mark unread messages as read
-        if ($company) {
-            CompanyMessage::where('company_id', $company->id)
+        if ($supervisor) {
+            $supervisorIds = $this->getSupervisorIdsForCompany($supervisor->company_id);
+            CompanyMessage::whereIn('company_supervisors_id', $supervisorIds)
                 ->where('tutor_id', $otherPartyId)
                 ->where('sender_type', 'tutor')
                 ->where('is_read', false)
                 ->update(['is_read' => true]);
         } else {
+            $tutorSupervisorIds = $this->getSupervisorIdsForCompany($otherPartyId);
             CompanyMessage::where('tutor_id', $user->id)
-                ->where('company_id', $otherPartyId)
+                ->whereIn('company_supervisors_id', $tutorSupervisorIds)
                 ->where('sender_type', 'company')
                 ->where('is_read', false)
                 ->update(['is_read' => true]);
@@ -186,16 +212,17 @@ class CompanyMessageController extends Controller
         ]);
 
         $user = $request->user();
-        $company = Company::where('user_id', $user->id)->first();
+        $supervisor = $this->getSupervisor($request);
         $since = $request->input('since');
 
         // Get conversation updates
         $query = CompanyMessage::where('created_at', '>', $since);
 
-        if ($company) {
-            $query->where('company_id', $company->id);
+        if ($supervisor) {
+            $supervisorIds = $this->getSupervisorIdsForCompany($supervisor->company_id);
+            $query->whereIn('company_supervisors_id', $supervisorIds);
             // Count unread from tutor
-            $queryUnread = CompanyMessage::where('company_id', $company->id)
+            $queryUnread = CompanyMessage::whereIn('company_supervisors_id', $supervisorIds)
                 ->where('sender_type', 'tutor')
                 ->where('is_read', false);
         } else {
@@ -209,21 +236,21 @@ class CompanyMessageController extends Controller
         // If a specific conversation is active, only poll for that one
         $otherPartyId = $request->input('other_party_id');
         if ($otherPartyId) {
-            if ($company) {
+            if ($supervisor) {
                 $query->where('tutor_id', $otherPartyId);
             } else {
-                $query->where('company_id', $otherPartyId);
+                $query->where('company_supervisors_id', $otherPartyId);
             }
         }
 
-        $newMessages = $query->orderBy('created_at', 'asc')->get()->map(function ($msg) use ($company) {
+        $newMessages = $query->orderBy('created_at', 'asc')->get()->map(function ($msg) {
             return [
                 'id' => $msg->id,
                 'message' => $msg->message,
                 'sender_type' => $msg->sender_type,
                 'is_read' => $msg->is_read,
                 'created_at' => $msg->created_at->toISOString(),
-                'company_id' => $msg->company_id,
+                'company_supervisors_id' => $msg->company_supervisors_id,
                 'tutor_id' => $msg->tutor_id,
             ];
         });
@@ -248,21 +275,22 @@ class CompanyMessageController extends Controller
         ]);
 
         $user = $request->user();
-        $company = Company::where('user_id', $user->id)->first();
+        $supervisor = $this->getSupervisor($request);
 
-        if ($company) {
-            // Company sending to tutor
+        if ($supervisor) {
+            // Supervisor sending to tutor
             $message = CompanyMessage::create([
-                'company_id' => $company->id,
+                'company_supervisors_id' => $supervisor->id,
                 'tutor_id' => $otherPartyId,
                 'sender_type' => 'company',
                 'message' => $validated['message'],
                 'is_read' => false,
             ]);
         } else {
-            // Tutor sending to company
+            // Tutor sending to company — use first supervisor of that company
+            $targetSupervisor = CompanySupervisor::where('company_id', $otherPartyId)->first();
             $message = CompanyMessage::create([
-                'company_id' => $otherPartyId,
+                'company_supervisors_id' => $targetSupervisor?->id,
                 'tutor_id' => $user->id,
                 'sender_type' => 'tutor',
                 'message' => $validated['message'],

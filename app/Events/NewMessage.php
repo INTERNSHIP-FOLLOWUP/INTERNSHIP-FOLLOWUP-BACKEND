@@ -30,9 +30,16 @@ class NewMessage implements ShouldBroadcast
     {
         $channels = [];
 
-        // Company channel
-        if ($this->message->company) {
-            $channels[] = new PrivateChannel('company.' . $this->message->company->user_id);
+        // Company channel — broadcast to all supervisors of the company
+        if ($this->message->supervisor && $this->message->supervisor->company) {
+            // Get all supervisor user IDs for this company and add channel for each
+            $companyId = $this->message->supervisor->company_id;
+            $supervisorUserIds = \App\Models\CompanySupervisor::where('company_id', $companyId)
+                ->pluck('user_id');
+
+            foreach ($supervisorUserIds as $uid) {
+                $channels[] = new PrivateChannel('company.' . $uid);
+            }
         }
 
         // Tutor channel
@@ -62,7 +69,7 @@ class NewMessage implements ShouldBroadcast
             'sender_type' => $this->message->sender_type,
             'is_read' => $this->message->is_read,
             'created_at' => $this->message->created_at->toISOString(),
-            'company_id' => $this->message->company_id,
+            'company_supervisors_id' => $this->message->company_supervisors_id,
             'tutor_id' => $this->message->tutor_id,
         ];
     }

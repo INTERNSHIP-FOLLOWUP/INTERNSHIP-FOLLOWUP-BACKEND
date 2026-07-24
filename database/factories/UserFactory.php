@@ -53,10 +53,10 @@ class UserFactory extends Factory
         ]);
     }
 
-    public function companyRep(): static
+    public function supervisor(): static
     {
         return $this->state(fn (array $attributes) => [
-            'role_id' => Role::where('name', 'company')->value('id'),
+            'role_id' => Role::where('name', 'supervisor')->value('id'),
         ]);
     }
 }

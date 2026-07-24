@@ -13,7 +13,7 @@ class CompanyFeedback extends Model
     protected $table = 'company_feedback';
 
     protected $fillable = [
-        'company_id',
+        'company_supervisors_id',
         'student_id',
         'title',
         'message',
@@ -59,9 +59,9 @@ class CompanyFeedback extends Model
         'Adaptability',
     ];
 
-    public function company(): BelongsTo
+    public function supervisor(): BelongsTo
     {
-        return $this->belongsTo(Company::class);
+        return $this->belongsTo(CompanySupervisor::class, 'company_supervisors_id');
     }
 
     public function student(): BelongsTo
