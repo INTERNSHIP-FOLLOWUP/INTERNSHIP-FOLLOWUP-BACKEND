@@ -12,21 +12,19 @@ class StudentImportTemplateExport implements FromArray, WithHeadings, WithStyles
     public function array(): array
     {
         return [
-            ['STU001', 'John', 'Doe', 'john.doe@example.com', 'Male', '08123456789', 'Batch 2025A', 'HEY Him'],
+            ['John', 'Doe', 'john.doe@example.com', '08123456789', 'Male', 'PNC2026'],
         ];
     }
 
     public function headings(): array
     {
         return [
-            'Student Code',
-            'First Name',
-            'Last Name',
-            'Email',
-            'Gender',
-            'Phone',
-            'Batch',
-            'Tutor',
+            'first_name',
+            'last_name',
+            'email',
+            'phone',
+            'gender',
+            'batches',
         ];
     }
 

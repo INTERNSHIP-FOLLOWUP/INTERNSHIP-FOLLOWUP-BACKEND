@@ -24,6 +24,7 @@ class ProfileController extends Controller
             'avatar'     => $user->avatar,
             'role'       => $user->role?->name ?? '',
             'theme'      => $user->theme ?? 'light',
+            'must_change_password' => (bool) $user->must_change_password,
         ]);
     }
 
@@ -69,6 +70,7 @@ class ProfileController extends Controller
                 'avatar'     => $user->avatar,
                 'role'       => $user->role?->name ?? '',
                 'theme'      => $user->theme ?? 'light',
+                'must_change_password' => (bool) $user->must_change_password,
             ],
         ]);
     }
@@ -98,6 +100,7 @@ class ProfileController extends Controller
         }
 
         $user->password = Hash::make($request->password);
+        $user->must_change_password = false;
         $user->save();
 
         return response()->json([

@@ -32,6 +32,20 @@ class Student extends Model
         return trim(($this->first_name ?? '') . ' ' . ($this->last_name ?? ''));
     }
 
+    public function getPhotoUrlAttribute(): ?string
+    {
+        if (!$this->photo) return null;
+
+        if (str_starts_with($this->photo, 'http://') ||
+            str_starts_with($this->photo, 'https://')) {
+            return $this->photo;
+        }
+
+        return \Illuminate\Support\Facades\Storage::url($this->photo);
+    }
+
+    protected $appends = ['photo_url'];
+
     protected $casts = [
         'batch_id' => 'integer',
         'tutor_id' => 'integer',
@@ -45,7 +59,8 @@ class Student extends Model
 
     public function tutor(): BelongsTo
     {
-        return $this->belongsTo(Tutor::class, 'tutor_id');
+        // tutor_id references users.id, so join on tutors.user_id not tutors.id
+        return $this->belongsTo(Tutor::class, 'tutor_id', 'user_id');
     }
 
     public function user(): BelongsTo

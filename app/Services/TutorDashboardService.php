@@ -33,10 +33,11 @@ class TutorDashboardService
             ->whereBetween('scheduled_at', [now(), now()->addDays(14)])
             ->count();
 
-        // Open issues
+        // Open issues — count only issues assigned to this tutor with status 'Open'
+        // (Matches the same filtering logic used in IssueController::stats for tutors)
         $openIssues = (int) Issue::query()
-            ->whereIn('student_id', $studentIds)
-            ->whereNotIn('status', ['Resolved', 'Closed'])
+            ->where('tutor_id', $tutorId)
+            ->where('status', 'Open')
             ->count();
 
         // Inactive students: no worklog in 2+ weeks OR no worklogs ever
@@ -49,7 +50,7 @@ class TutorDashboardService
         // Recent worklogs
         $recentWorklogs = Worklog::query()
             ->whereIn('student_id', $studentIds)
-            ->with(['student:id,name,email,phone', 'attachments'])
+            ->with(['student:id,first_name,last_name,email,phone', 'attachments'])
             ->latest()
             ->limit(10)
             ->get()
@@ -75,7 +76,7 @@ class TutorDashboardService
             ->whereIn('student_id', $studentIds)
             ->where('status', 'Scheduled')
             ->whereBetween('scheduled_at', [now()->subDays(1), now()->addDays(14)])
-            ->with('student:id,name,phone')
+            ->with('student:id,first_name,last_name,phone')
             ->orderBy('scheduled_at')
             ->limit(10)
             ->get()
@@ -102,11 +103,11 @@ class TutorDashboardService
             ->values()
             ->all();
 
-        // Open issues
+        // Open issues list — only issues assigned to this tutor with status 'Open'
         $issues = Issue::query()
-            ->whereIn('student_id', $studentIds)
-            ->whereNotIn('status', ['Resolved', 'Closed'])
-            ->with(['student:id,name,email'])
+            ->where('tutor_id', $tutorId)
+            ->where('status', 'Open')
+            ->with(['student:id,first_name,last_name,email'])
             ->latest()
             ->limit(10)
             ->get()

@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WorklogController;
 use App\Http\Controllers\Api\FollowupController;
 use App\Http\Controllers\Api\AssignmentController;
+use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\StudentDashboardController;
 // use App\Http\Controllers\AuthController;
 
@@ -101,6 +102,8 @@ Route::middleware(['auth:sanctum', 'role:student'])->prefix('student')->name('st
     Route::post('/worklogs', [WorklogController::class, 'store'])->name('worklogs.store');
     Route::get('/worklogs', [WorklogController::class, 'index'])->name('worklogs.index');
     Route::get('/worklogs/{worklog}', [WorklogController::class, 'show'])->name('worklogs.show');
+    Route::get('/messages', [\App\Http\Controllers\Api\TutorStudentMessageController::class, 'studentConversations'])->name('messages.index');
+    Route::post('/messages', [\App\Http\Controllers\Api\TutorStudentMessageController::class, 'studentSend'])->name('messages.send');
 });
 
 Route::middleware(['auth:sanctum', 'role:admin,tutor,student'])->prefix('worklogs')->name('worklogs.')->group(function () {
@@ -147,6 +150,21 @@ Route::middleware(['auth:sanctum', 'role:tutor'])->prefix('tutor')->name('tutor.
     // Companies (for follow-up dropdown)
     Route::get('/companies', [\App\Http\Controllers\Api\TutorCompanyController::class, 'index'])->name('companies.index');
 
+    // Company Feedback
+    Route::get('/feedback/stats', [\App\Http\Controllers\Api\CompanyFeedbackController::class, 'stats'])->name('feedback.stats');
+    Route::get('/feedback', [\App\Http\Controllers\Api\CompanyFeedbackController::class, 'adminIndex'])->name('feedback.index');
+
+    // Company-Tutor Messaging
+    Route::get('/messages', [App\Http\Controllers\Api\CompanyMessageController::class, 'conversations'])->name('messages.conversations');
+    Route::get('/messages/poll', [App\Http\Controllers\Api\CompanyMessageController::class, 'poll'])->name('messages.poll');
+    Route::get('/messages/{otherParty}', [App\Http\Controllers\Api\CompanyMessageController::class, 'messages'])->name('messages.show');
+    Route::post('/messages/{otherParty}', [App\Http\Controllers\Api\CompanyMessageController::class, 'send'])->name('messages.send');
+
+    // Tutor-Student Messaging
+    Route::get('/student-messages', [\App\Http\Controllers\Api\TutorStudentMessageController::class, 'conversations'])->name('student-messages.conversations');
+    Route::get('/student-messages/{student}', [\App\Http\Controllers\Api\TutorStudentMessageController::class, 'messages'])->name('student-messages.show');
+    Route::post('/student-messages/{student}', [\App\Http\Controllers\Api\TutorStudentMessageController::class, 'send'])->name('student-messages.send');
+
     // Issues
     Route::get('/issues/{id}', [\App\Http\Controllers\Api\TutorIssueController::class, 'show'])->name('issues.show');
     Route::put('/issues/{id}', [\App\Http\Controllers\Api\TutorIssueController::class, 'update'])->name('issues.update');
@@ -157,10 +175,10 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
 
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::post('/users', [UserController::class, 'store'])->name('users.store');
+    Route::match(['delete', 'post'], '/users/bulk-delete', [UserController::class, 'bulkDelete'])->name('users.bulk-delete');
     Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
-    Route::delete('/users/bulk-delete', [UserController::class, 'bulkDelete'])->name('users.bulk-delete');
     Route::put('/users/{user}/activate', [UserController::class, 'activate'])->name('users.activate');
     Route::put('/users/{user}/deactivate', [UserController::class, 'deactivate'])->name('users.deactivate');
     Route::post('/users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
@@ -187,17 +205,27 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
     Route::put('/companies/{company}', [CompanyController::class, 'update'])->name('companies.update');
     Route::delete('/companies/{company}', [CompanyController::class, 'destroy'])->name('companies.destroy');
 
-    Route::get('/students/import/template', [\App\Http\Controllers\Api\StudentController::class, 'importTemplate'])->name('students.import-template');
-    Route::post('/students/import', [\App\Http\Controllers\Api\StudentController::class, 'import'])->name('students.import');
     Route::get('/students/export/pdf', [\App\Http\Controllers\Api\StudentController::class, 'exportPdf'])->name('students.export.pdf');
     Route::get('/students/export/excel', [\App\Http\Controllers\Api\StudentController::class, 'exportExcel'])->name('students.export.excel');
     Route::apiResource('students', \App\Http\Controllers\Api\StudentController::class);
+    Route::apiResource('tutors', \App\Http\Controllers\Api\TutorController::class)->only(['index']);
+
+    // Student import endpoints (admin only)
+    Route::get('/students/import/template', [\App\Http\Controllers\Api\StudentController::class, 'importTemplate'])->name('students.import-template');
+    Route::post('/students/import', [\App\Http\Controllers\Api\StudentController::class, 'import'])->name('students.import');
 
     Route::get('/assignments', [\App\Http\Controllers\Api\AssignmentController::class, 'index'])->name('assignments.index');
     Route::post('/assignments', [\App\Http\Controllers\Api\AssignmentController::class, 'store'])->name('assignments.store');
     Route::get('/assignments/{assignment}', [\App\Http\Controllers\Api\AssignmentController::class, 'show'])->name('assignments.show');
     Route::put('/assignments/{assignment}', [\App\Http\Controllers\Api\AssignmentController::class, 'update'])->name('assignments.update');
     Route::delete('/assignments/{assignment}', [\App\Http\Controllers\Api\AssignmentController::class, 'destroy'])->name('assignments.destroy');
+
+    // Evaluation Routes (Admin read access)
+    Route::get('/evaluations', [App\Http\Controllers\Api\EvaluationController::class, 'index'])->name('evaluations.index');
+
+    // Company Feedback Routes (Admin read access)
+    Route::get('/feedback/stats', [App\Http\Controllers\Api\CompanyFeedbackController::class, 'stats'])->name('feedback.stats');
+    Route::get('/feedback', [App\Http\Controllers\Api\CompanyFeedbackController::class, 'adminIndex'])->name('feedback.index');
 
     // Worklog Management Routes (Admin full access)
     Route::get('/worklogs', [WorklogController::class, 'index'])->name('worklogs.index');
@@ -211,4 +239,9 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/export/pdf', [ReportController::class, 'exportPdf'])->name('reports.export.pdf');
     Route::get('/reports/export/excel', [ReportController::class, 'exportExcel'])->name('reports.export.excel');
+});
+
+Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+    Route::post('/users/import', [StudentController::class, 'import'])->name('users.import');
+    Route::get('/users/import/template', [StudentController::class, 'importTemplate'])->name('users.import-template');
 });

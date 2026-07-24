@@ -3,14 +3,25 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreFollowupRequest;
+use App\Http\Requests\UpdateFollowupRequest;
 use App\Http\Resources\FollowupResource;
 use App\Models\Followup;
 use App\Models\Student;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class FollowupController extends Controller
 {
+    /**
+     * Resolve the user's ID — tutor_id columns reference users.id, not tutors.id.
+     */
+    private function resolveTutorId(Authenticatable $user): ?int
+    {
+        return $user->getAuthIdentifier();
+    }
+
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -60,7 +71,7 @@ class FollowupController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreFollowupRequest $request): JsonResponse
     {
         $user = $request->user();
         $role = $user->role?->name;
@@ -104,6 +115,7 @@ class FollowupController extends Controller
             'notes' => $validated['notes'] ?? null,
             'action_items' => $validated['action_items'] ?? null,
             'next_followup' => $validated['next_followup'] ?? null,
+            'status' => $validated['status'] ?? 'Scheduled',
         ]);
 
         return response()->json([
@@ -131,7 +143,7 @@ class FollowupController extends Controller
         ]);
     }
 
-    public function update(Request $request, Followup $followup): JsonResponse
+    public function update(UpdateFollowupRequest $request, Followup $followup): JsonResponse
     {
         $user = $request->user();
         $role = $user->role?->name;
@@ -147,16 +159,7 @@ class FollowupController extends Controller
             }
         }
 
-        $validated = $request->validate([
-            'student_id' => ['sometimes', 'required', 'exists:students,id'],
-            'company_id' => ['nullable', 'exists:companies,id'],
-            'meeting_type' => ['sometimes', 'required', 'string', 'in:Monthly,Quarterly,Annual'],
-            'meeting_date' => ['sometimes', 'required', 'date'],
-            'notes' => ['nullable', 'string'],
-            'action_items' => ['nullable', 'string'],
-            'next_followup' => ['nullable', 'date'],
-
-        ]);
+        $validated = $request->validated();
 
         $updateData = [];
 
@@ -212,4 +215,3 @@ class FollowupController extends Controller
         ], 200);
     }
 }
-

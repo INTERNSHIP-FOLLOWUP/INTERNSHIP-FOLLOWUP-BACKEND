@@ -12,17 +12,19 @@ class UserImportTemplateExport implements FromArray, WithHeadings, WithStyles
     public function array(): array
     {
         return [
-            ['John', 'Doe', 'john.doe@example.com', 'student'],
+            ['John', 'Doe', 'john.doe@example.com', '08123456789', 'STU001', 'Batch 2025A'],
         ];
     }
 
     public function headings(): array
     {
         return [
-            'First Name',
-            'Last Name',
-            'Email',
-            'Role',
+            'first_name',
+            'last_name',
+            'email',
+            'phone',
+            'student_code',
+            'batch_name',
         ];
     }
 

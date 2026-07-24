@@ -237,9 +237,9 @@ class UserManagementApiTest extends TestCase
             ->deleteJson('/api/admin/users/' . $this->tutorUser->id);
 
         $response->assertOk()
-            ->assertJsonPath('message', 'User deactivated successfully.');
+            ->assertJsonPath('message', 'User deleted successfully.');
 
-        $this->assertSoftDeleted('users', ['id' => $this->tutorUser->id]);
+        $this->assertDatabaseMissing('users', ['id' => $this->tutorUser->id]);
     }
 
     /** @test */
