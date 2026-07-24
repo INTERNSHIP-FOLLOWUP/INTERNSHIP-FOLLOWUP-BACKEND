@@ -18,19 +18,49 @@ class Student extends Model
         'student_code',
         'batch_id',
         'tutor_id',
-        'first_name',
-        'last_name',
-        'gender',
-        'phone',
-        'email',
-        'photo',
-        'status',
     ];
 
     public function getNameAttribute(): string
     {
-        return trim(($this->first_name ?? '') . ' ' . ($this->last_name ?? ''));
+        return $this->user?->name ?? '';
     }
+
+    public function getPhotoUrlAttribute(): ?string
+    {
+        return $this->user?->avatar_url;
+    }
+
+    public function getEmailAttribute(): ?string
+    {
+        return $this->user?->email;
+    }
+
+    public function getPhoneAttribute(): ?string
+    {
+        return $this->user?->phone;
+    }
+
+    public function getFirstNameAttribute(): ?string
+    {
+        return $this->user?->first_name;
+    }
+
+    public function getLastNameAttribute(): ?string
+    {
+        return $this->user?->last_name;
+    }
+
+    public function getGenderAttribute(): ?string
+    {
+        return $this->user?->gender;
+    }
+
+    public function getStatusAttribute(): ?string
+    {
+        return $this->user?->status;
+    }
+
+    protected $appends = ['name', 'first_name', 'last_name', 'email', 'phone', 'photo_url', 'gender', 'status'];
 
     protected $casts = [
         'batch_id' => 'integer',
@@ -45,7 +75,8 @@ class Student extends Model
 
     public function tutor(): BelongsTo
     {
-        return $this->belongsTo(Tutor::class, 'tutor_id');
+        // tutor_id references users.id, so join on tutors.user_id not tutors.id
+        return $this->belongsTo(Tutor::class, 'tutor_id', 'user_id');
     }
 
     public function user(): BelongsTo

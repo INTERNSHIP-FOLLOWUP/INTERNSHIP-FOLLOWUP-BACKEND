@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\StudentResource;
 use App\Models\Student;
-use App\Models\Tutor;
 use App\Services\TutorStudentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,11 +15,11 @@ class TutorStudentController extends Controller
     public function __construct(private TutorStudentService $students) {}
 
     /**
-     * Resolve the tutors.id from the authenticated user.
+     * Resolve the user's ID — tutor_id columns reference users.id, not tutors.id.
      */
     private function resolveTutorId(\Illuminate\Contracts\Auth\Authenticatable $user): ?int
     {
-        return Tutor::where('user_id', $user->getAuthIdentifier())->value('id');
+        return $user->getAuthIdentifier();
     }
 
     public function index(Request $request): JsonResponse
@@ -97,7 +96,7 @@ class TutorStudentController extends Controller
         // load relations for detail view
         $student = $student->load([
             'batch:id,batch_name,year',
-            'tutor:id,first_name,last_name,email',
+            'tutor:id,user_id',
             'worklogs' => fn ($q) => $q->latest(),
             'issues' => fn ($q) => $q->latest(),
             'evaluations' => fn ($q) => $q->latest(),
@@ -136,7 +135,7 @@ class TutorStudentController extends Controller
 
         $student = Student::where('id', $id)
             ->where('tutor_id', $tutorId)
-            ->with(['internshipAssignment:id,student_id,company_id,status'])
+            ->with(['internshipAssignment:id,student_id,company_supervisors_id,status'])
             ->first();
 
         if (!$student || !$student->internshipAssignment) {
@@ -151,7 +150,7 @@ class TutorStudentController extends Controller
             'data' => [
                 'student_id' => $id,
                 'status' => $assignment->status,
-                'company_id' => $assignment->company_id,
+                'company_supervisors_id' => $assignment->company_supervisors_id,
                 'student' => new StudentResource($student),
             ],
         ], 200);

@@ -119,6 +119,8 @@ class StudentImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnF
                     'last_name' => $lastName,
                     'email' => $email,
                     'phone' => $phone,
+                    'gender' => $gender,
+                    'status' => 'active',
                     'password' => Hash::make('12345678'),
                     'theme' => 'light',
                     'role_id' => $role->id,
@@ -127,14 +129,8 @@ class StudentImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnF
                 // Create student record
                 Student::create([
                     'user_id' => $user->id,
-                    'first_name' => $firstName,
-                    'last_name' => $lastName,
-                    'email' => $email,
-                    'phone' => $phone,
-                    'gender' => $gender,
                     'student_code' => $studentCode,
                     'batch_id' => $batch->id,
-                    'status' => 'active',
                 ]);
 
                 $this->imported++;

@@ -28,14 +28,15 @@ class WorklogController extends Controller
         if ($user->role->name === 'admin') {
             // Admins see all worklogs (no filter)
         } else {
-            $student = Student::where('email', $user->email)->first();
+            $student = $user->studentProfile;
 
             if ($student && $user->role->name === 'student') {
                 // Students see only their own worklogs
                 $query->where('student_id', $student->id);
             } elseif ($user->role->name === 'tutor') {
                 // Tutors see worklogs of students assigned to them
-                $studentIds = Student::where('tutor_id', $user->tutorProfile?->id)->pluck('id');
+                // tutor_id references users.id
+                $studentIds = Student::where('tutor_id', $user->id)->pluck('id');
                 $query->whereIn('student_id', $studentIds);
             }
         }
@@ -76,7 +77,7 @@ class WorklogController extends Controller
     public function store(WorklogRequest $request, FileUploadService $uploadService)
     {
         $user = $request->user();
-        $student = Student::where('email', $user->email)->first();
+        $student = $user->studentProfile;
 
         if (!$student && $user->role->name !== 'admin') {
             return response()->json([
@@ -155,7 +156,7 @@ class WorklogController extends Controller
     public function update(WorklogRequest $request, Worklog $worklog, FileUploadService $uploadService)
     {
         $user = $request->user();
-        $student = Student::where('email', $user->email)->first();
+        $student = $user->studentProfile;
 
         if ($user->role->name !== 'admin') {
             // Non-admin: only the owning student can update
@@ -207,7 +208,7 @@ class WorklogController extends Controller
     public function destroy(Worklog $worklog, FileUploadService $uploadService)
     {
         $user = request()->user();
-        $student = Student::where('email', $user->email)->first();
+        $student = $user->studentProfile;
 
         if ($user->role->name !== 'admin') {
             // Non-admin: only the owning student can delete
@@ -250,8 +251,9 @@ class WorklogController extends Controller
             }
 
             // Check if tutor is assigned to this student
+            // tutor_id references users.id
             $isAssigned = Student::where('id', $worklog->student_id)
-                ->where('tutor_id', $user->tutorProfile?->id)
+                ->where('tutor_id', $user->id)
                 ->exists();
 
             if (!$isAssigned) {
@@ -313,7 +315,7 @@ class WorklogController extends Controller
     public function destroyAttachment(Worklog $worklog, Attachment $attachment, FileUploadService $uploadService)
     {
         $user = request()->user();
-        $student = Student::where('email', $user->email)->first();
+        $student = $user->studentProfile;
 
         if ($user->role->name !== 'admin') {
             // Non-admin: only the owning student can delete attachments
@@ -346,15 +348,16 @@ class WorklogController extends Controller
      */
     private function authorizeAccess($user, Worklog $worklog): void
     {
-        $student = Student::where('email', $user->email)->first();
+        $student = $user->studentProfile;
 
         if ($user->role->name === 'student') {
             if (!$student || $worklog->student_id !== $student->id) {
                 abort(403, 'Forbidden.');
             }
         } elseif ($user->role->name === 'tutor') {
+            // tutor_id references users.id
             $isAssigned = Student::where('id', $worklog->student_id)
-                ->where('tutor_id', $user->tutorProfile?->id)
+                ->where('tutor_id', $user->id)
                 ->exists();
 
             if (!$isAssigned) {

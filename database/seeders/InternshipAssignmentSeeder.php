@@ -1,8 +1,7 @@
 <?php
 
-namespace Database\Seeders;
-
-use App\Models\Company;
+namespace Database\Seeders;    use App\Models\Company;
+use App\Models\CompanySupervisor;
 use App\Models\InternshipAssignment;
 use App\Models\Student;
 use App\Models\Tutor;
@@ -14,6 +13,7 @@ class InternshipAssignmentSeeder extends Seeder
     {
         $students = Student::all();
         $companies = Company::all();
+        $supervisors = CompanySupervisor::all();
         $tutors = Tutor::all();
 
         if ($students->isEmpty() || $companies->isEmpty() || $tutors->isEmpty()) {
@@ -82,15 +82,16 @@ class InternshipAssignmentSeeder extends Seeder
             $student = $students[$a['student_index']];
             $company = $companies[$a['company_index']];
             $tutor = $tutors[$a['tutor_index']];
+            $supervisor = $supervisors->firstWhere('company_id', $company->id);
 
             InternshipAssignment::firstOrCreate(
                 [
                     'student_id' => $student->id,
-                    'company_id' => $company->id,
+                    'company_supervisors_id' => $supervisor?->id,
                 ],
                 [
                     'student_id' => $student->id,
-                    'company_id' => $company->id,
+                    'company_supervisors_id' => $supervisor?->id,
                     'tutor_id' => $tutor->id,
                     'position' => $a['position'],
                     'start_date' => $a['start_date'],

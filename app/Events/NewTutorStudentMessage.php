@@ -2,23 +2,23 @@
 
 namespace App\Events;
 
-use App\Models\CompanyMessage;
+use App\Models\TutorStudentMessage;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class NewMessage implements ShouldBroadcast
+class NewTutorStudentMessage implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public CompanyMessage $message;
+    public TutorStudentMessage $message;
 
     /**
      * Create a new event instance.
      */
-    public function __construct(CompanyMessage $message)
+    public function __construct(TutorStudentMessage $message)
     {
         $this->message = $message;
     }
@@ -30,21 +30,14 @@ class NewMessage implements ShouldBroadcast
     {
         $channels = [];
 
-        // Company channel — broadcast to all supervisors of the company
-        if ($this->message->supervisor && $this->message->supervisor->company) {
-            // Get all supervisor user IDs for this company and add channel for each
-            $companyId = $this->message->supervisor->company_id;
-            $supervisorUserIds = \App\Models\CompanySupervisor::where('company_id', $companyId)
-                ->pluck('user_id');
-
-            foreach ($supervisorUserIds as $uid) {
-                $channels[] = new PrivateChannel('company.' . $uid);
-            }
+        // Tutor channel (by user id)
+        if ($this->message->tutor_id) {
+            $channels[] = new PrivateChannel('tutor.' . $this->message->tutor_id);
         }
 
-        // Tutor channel
-        if ($this->message->tutor) {
-            $channels[] = new PrivateChannel('tutor.' . $this->message->tutor->user_id);
+        // Student channel (by student's user_id)
+        if ($this->message->student && $this->message->student->user_id) {
+            $channels[] = new PrivateChannel('student.' . $this->message->student->user_id);
         }
 
         return $channels;
@@ -55,7 +48,7 @@ class NewMessage implements ShouldBroadcast
      */
     public function broadcastAs(): string
     {
-        return 'new-message';
+        return 'new-tutor-student-message';
     }
 
     /**
@@ -69,8 +62,8 @@ class NewMessage implements ShouldBroadcast
             'sender_type' => $this->message->sender_type,
             'is_read' => $this->message->is_read,
             'created_at' => $this->message->created_at->toISOString(),
-            'company_supervisors_id' => $this->message->company_supervisors_id,
             'tutor_id' => $this->message->tutor_id,
+            'student_id' => $this->message->student_id,
         ];
     }
 }

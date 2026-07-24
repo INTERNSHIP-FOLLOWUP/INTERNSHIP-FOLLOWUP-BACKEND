@@ -8,20 +8,20 @@ use App\Http\Requests\UpdateFollowupRequest;
 use App\Http\Resources\FollowupResource;
 use App\Models\Followup;
 use App\Models\Student;
-use App\Models\Tutor;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class FollowupController extends Controller
 {
     /**
-     * Resolve the tutors.id from the authenticated user.
+     * Resolve the user's ID — tutor_id columns reference users.id, not tutors.id.
      */
     private function resolveTutorId(Authenticatable $user): ?int
     {
-        return Tutor::where('user_id', $user->getAuthIdentifier())->value('id');
+        return $user->getAuthIdentifier();
     }
 
     public function index(Request $request): JsonResponse
@@ -46,7 +46,7 @@ class FollowupController extends Controller
 
         $query = Followup::query()
             ->where('tutor_id', $tutorId)
-            ->with(['student:id,first_name,last_name,email,phone', 'company:id,company_name']);
+            ->with(['student:id,user_id', 'supervisor.company:id,company_name']);
 
         if ($request->filled('student_id')) {
             $query->where('student_id', $request->student_id);
@@ -66,8 +66,8 @@ class FollowupController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->whereHas('student', function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%");
+            $query->whereHas('student.user', function ($q) use ($search) {
+                $q->where(DB::raw("CONCAT(first_name, ' ', last_name)"), 'like', "%{$search}%");
             });
         }
 
@@ -113,7 +113,7 @@ class FollowupController extends Controller
         $followup = Followup::create([
             'student_id' => $validated['student_id'],
             'tutor_id' => $tutorId,
-            'company_id' => $validated['company_id'] ?? null,
+            'company_supervisors_id' => $validated['company_supervisors_id'] ?? null,
             'type' => $validated['meeting_type'],
             'scheduled_at' => $validated['meeting_date'],
             'notes' => $validated['notes'] ?? null,
@@ -125,7 +125,7 @@ class FollowupController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Follow-up created successfully.',
-            'data' => new FollowupResource($followup->load(['student', 'company'])),
+            'data' => new FollowupResource($followup->load(['student', 'supervisor.company'])),
         ], 201);
     }
 
@@ -153,8 +153,8 @@ class FollowupController extends Controller
         if (isset($validated['student_id'])) {
             $updateData['student_id'] = $validated['student_id'];
         }
-        if (array_key_exists('company_id', $validated)) {
-            $updateData['company_id'] = $validated['company_id'];
+        if (array_key_exists('company_supervisors_id', $validated)) {
+            $updateData['company_supervisors_id'] = $validated['company_supervisors_id'];
         }
         if (isset($validated['meeting_type'])) {
             $updateData['type'] = $validated['meeting_type'];
@@ -180,7 +180,7 @@ class FollowupController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Follow-up updated successfully.',
-            'data' => new FollowupResource($followup->load(['student', 'company'])),
+            'data' => new FollowupResource($followup->load(['student', 'supervisor.company'])),
         ], 200);
     }
 

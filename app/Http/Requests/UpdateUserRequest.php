@@ -20,9 +20,10 @@ class UpdateUserRequest extends FormRequest
         return [
             'first_name' => ['sometimes', 'string', 'max:255'],
             'last_name' => ['sometimes', 'string', 'max:255'],
-            'email' => ['sometimes', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
-            'password' => ['sometimes', 'nullable', 'string', 'min:8'],
-            'role' => ['sometimes', 'string', 'in:admin,tutor,student,company'],
+            'email' => ['sometimes', 'string', 'email', 'max:255', Rule::unique('users')->ignore($this->route('user'))],
+            'password' => ['sometimes', 'string', 'min:8'],
+            'phone' => ['nullable', 'string', 'max:50'],
+            'role' => ['sometimes', 'string', 'in:admin,tutor,student,supervisor'],
             'avatar' => ['nullable', 'string', 'max:255'],
             'student_code' => ['sometimes', 'nullable', 'string', 'max:255'],
             'gender' => ['sometimes', 'nullable', 'string'],
@@ -41,7 +42,7 @@ class UpdateUserRequest extends FormRequest
             'email.email' => 'Please provide a valid email address.',
             'email.unique' => 'This email is already registered.',
             'password.min' => 'The password must be at least 8 characters.',
-            'role.in' => 'The selected role is invalid. Allowed roles: admin, tutor, student, company.',
+            'role.in' => 'The selected role is invalid. Allowed roles: admin, tutor, student, supervisor.',
         ];
     }
 }

@@ -21,7 +21,7 @@ class AssignmentController extends Controller
     {
         $assignments = $this->assignmentService->list($request->only([
             'status',
-            'company_id',
+            'company_supervisors_id',
             'student_id',
             'per_page',
         ]));
@@ -45,7 +45,7 @@ class AssignmentController extends Controller
         $assignment = $this->assignmentService->create($request->validated());
 
         return response()->json([
-            'data' => new AssignmentResource($assignment->load(['student', 'company', 'tutor'])),
+            'data' => new AssignmentResource($assignment->load(['student', 'supervisor.company', 'tutor'])),
             'message' => 'Internship assignment created successfully.',
         ], 201);
     }
@@ -53,7 +53,7 @@ class AssignmentController extends Controller
     public function show(InternshipAssignment $assignment): JsonResponse
     {
         return response()->json([
-            'data' => new AssignmentResource($assignment->load(['student', 'company', 'tutor'])),
+            'data' => new AssignmentResource($assignment->load(['student', 'supervisor.company', 'tutor'])),
             'message' => 'Internship assignment retrieved successfully.',
         ]);
     }
@@ -91,7 +91,7 @@ class AssignmentController extends Controller
         }
 
         $assignment = InternshipAssignment::where('student_id', $student->id)
-            ->with(['student', 'company', 'tutor'])
+            ->with(['student', 'supervisor.company', 'tutor'])
             ->latest()
             ->first();
 

@@ -13,7 +13,7 @@ class FollowupResource extends JsonResource
             'id' => $this->id,
             'student_id' => $this->student_id,
             'tutor_id' => $this->tutor_id,
-            'company_id' => $this->company_id,
+            'company_supervisors_id' => $this->company_supervisors_id,
             'meeting_type' => $this->type,
             'meeting_date' => optional($this->scheduled_at)->format('Y-m-d'),
             'scheduled_at' => optional($this->scheduled_at)->toISOString(),
@@ -31,11 +31,11 @@ class FollowupResource extends JsonResource
                 'email' => $this->student->email,
                 'phone' => $this->student->phone,
             ]),
-            'company' => $this->whenLoaded('company', fn() => [
-                'id' => $this->company->id,
-                'company_name' => $this->company->company_name,
-                'name' => $this->company->company_name,
-            ]),
+            'company' => $this->whenLoaded('supervisor', fn() => $this->supervisor->company ? [
+                'id' => $this->supervisor->company->id,
+                'company_name' => $this->supervisor->company->company_name,
+                'name' => $this->supervisor->company->company_name,
+            ] : null),
         ];
     }
 }

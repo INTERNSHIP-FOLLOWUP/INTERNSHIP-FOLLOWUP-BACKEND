@@ -24,6 +24,8 @@ class User extends Authenticatable
         'last_name',
         'email',
         'phone',
+        'gender',
+        'status',
         'password',
         'must_change_password',
         'role_id',
@@ -88,9 +90,9 @@ class User extends Authenticatable
         return $this->hasOne(Student::class, 'user_id');
     }
 
-    public function company(): HasOne
+    public function supervisorProfile(): HasOne
     {
-        return $this->hasOne(Company::class, 'user_id');
+        return $this->hasOne(CompanySupervisor::class, 'user_id');
     }
 
     public function sendPasswordResetNotification($token): void

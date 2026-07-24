@@ -80,7 +80,7 @@ class StudentUserSeeder extends Seeder
         ];
 
         foreach ($students as $index => $studentData) {
-            $tutorId = Tutor::where('email', $studentData['tutor_email'])->value('id');
+            $tutorId = Tutor::whereHas('user', fn($q) => $q->where('email', $studentData['tutor_email']))->value('id');
             $batch = $batches->isNotEmpty() ? $batches[$index % $batches->count()] : null;
             $batchId = $batch?->id;
             $batchName = $batch?->batch_name ?? 'PNC2026';
@@ -96,6 +96,9 @@ class StudentUserSeeder extends Seeder
                     'password'   => '12345678',
                     'role_id'    => $studentRoleId,
                     'theme'      => 'light',
+                    'phone'      => $studentData['phone'] ?? null,
+                    'gender'     => $studentData['gender'] ?? null,
+                    'status'     => $studentData['status'] ?? 'active',
                 ]
             );
 
@@ -106,12 +109,6 @@ class StudentUserSeeder extends Seeder
                     'student_code' => $studentCode,
                     'batch_id'     => $batchId,
                     'tutor_id'     => $tutorId,
-                    'first_name'   => $studentData['first_name'],
-                    'last_name'    => $studentData['last_name'],
-                    'gender'       => $studentData['gender'],
-                    'phone'        => $studentData['phone'],
-                    'email'        => $studentData['email'],
-                    'status'       => $studentData['status'],
                 ]
             );
         }

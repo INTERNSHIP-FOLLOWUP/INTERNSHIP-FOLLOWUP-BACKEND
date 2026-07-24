@@ -80,18 +80,20 @@ class StudentController extends Controller
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
+                $q->whereHas('user', fn($qq) => $qq->where('first_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%"))
                   ->orWhere('student_code', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
                   ->orWhere(DB::raw("CONCAT(first_name, ' ', last_name)"), 'like', "%{$search}%");
             });
         }
 
+        $userSortSubquery = DB::raw('(SELECT CONCAT(first_name, \' \', last_name) FROM users WHERE users.id = students.user_id)');
+
         if ($request->filled('sort')) {
             match ($request->sort) {
-                'name_asc' => $query->orderBy('first_name')->orderBy('last_name'),
-                'name_desc' => $query->orderBy('first_name', 'desc')->orderBy('last_name', 'desc'),
+                'name_asc' => $query->orderBy($userSortSubquery),
+                'name_desc' => $query->orderBy($userSortSubquery, 'desc'),
                 'oldest' => $query->orderBy('created_at'),
                 default => $query->orderBy('created_at', 'desc'),
             };
@@ -127,33 +129,35 @@ class StudentController extends Controller
             'first_name' => $nameParts[0],
             'last_name'  => $nameParts[1] ?? '',
             'email'      => $data['email'],
+            'gender'     => $data['gender'] ?? null,
+            'status'     => $data['status'] ?? 'active',
             'password'   => Hash::make($data['password']),
             'role_id'    => $studentRole?->id,
         ]);
 
+        // Save photo to user avatar if provided
         if ($request->hasFile('photo')) {
-            $data['photo'] = $request->file('photo')->store('students', 'public');
+            $path = $request->file('photo')->store('avatars', 'public');
+            $user->update(['avatar' => $path]);
         }
 
         $data['user_id'] = $user->id;
-        $data['first_name'] = $nameParts[0];
-        $data['last_name'] = $nameParts[1] ?? '';
-        unset($data['name'], $data['password'], $data['password_confirmation']);
+        unset($data['name'], $data['password'], $data['password_confirmation'], $data['first_name'], $data['last_name'], $data['email'], $data['phone'], $data['photo'], $data['gender'], $data['status']);
 
         $student = Student::create($data);
 
         return response()->json([
-            'data' => new StudentResource($student->load(['batch', 'tutor'])),
+            'data' => new StudentResource($student->load(['batch', 'tutor', 'user'])),
             'message' => 'Student created successfully.',
         ], 201);
     }
 
     public function show(int $student): JsonResponse
     {
-        $studentModel = Student::with(['batch', 'tutor'])->find($student);
+        $studentModel = Student::with(['batch', 'tutor', 'user'])->find($student);
 
         if (!$studentModel) {
-            $studentModel = Student::with(['batch', 'tutor'])->where('user_id', $student)->first();
+            $studentModel = Student::with(['batch', 'tutor', 'user'])->where('user_id', $student)->first();
         }
 
         if (!$studentModel) {
@@ -180,20 +184,27 @@ class StudentController extends Controller
 
         $data = $request->validated();
 
-        if ($request->hasFile('photo')) {
-            if ($studentModel->photo) {
-                Storage::disk('public')->delete($studentModel->photo);
-            }
-            $data['photo'] = $request->file('photo')->store('students', 'public');
+        // Save photo to user avatar if provided
+        if ($request->hasFile('photo') && $studentModel->user) {
+            $path = $request->file('photo')->store('avatars', 'public');
+            $studentModel->user->update(['avatar' => $path]);
         }
 
-        if (isset($data['name'])) {
-            $nameParts = explode(' ', $data['name'], 2);
-            $data['first_name'] = $nameParts[0];
-            $data['last_name'] = $nameParts[1] ?? '';
-            unset($data['name']);
+        // Sync gender/status to user if provided
+        if ($studentModel->user) {
+            $userUpdate = [];
+            if (isset($data['gender'])) {
+                $userUpdate['gender'] = $data['gender'];
+            }
+            if (isset($data['status'])) {
+                $userUpdate['status'] = $data['status'];
+            }
+            if (!empty($userUpdate)) {
+                $studentModel->user->update($userUpdate);
+            }
         }
-        unset($data['password'], $data['password_confirmation']);
+
+        unset($data['password'], $data['password_confirmation'], $data['name'], $data['first_name'], $data['last_name'], $data['email'], $data['phone'], $data['photo'], $data['gender'], $data['status']);
 
         $studentModel->update($data);
 
@@ -222,17 +233,13 @@ class StudentController extends Controller
         }
 
         return response()->json([
-            'data' => new StudentResource($studentModel->fresh()->load(['batch', 'tutor'])),
+            'data' => new StudentResource($studentModel->fresh()->load(['batch', 'tutor', 'user'])),
             'message' => 'Student updated successfully.',
         ]);
     }
 
     public function destroy(Student $student): JsonResponse
     {
-        if ($student->photo) {
-            Storage::disk('public')->delete($student->photo);
-        }
-
         if ($student->user) {
             $student->user->delete();
         }
@@ -256,7 +263,7 @@ class StudentController extends Controller
             ini_set('memory_limit', '1024M'); // 1GB memory
             ini_set('default_socket_timeout', 600); // 10 minutes socket timeout
             ini_set('max_input_time', 600); // 10 minutes input time
-            
+
             $import = new StudentImport();
             Excel::import($import, $request->file('file'));
         } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
@@ -326,27 +333,27 @@ class StudentController extends Controller
 
     public function exportPdf(Request $request)
     {
-        $query = Student::with(['batch', 'tutor']);
+        $query = Student::with(['batch', 'tutor', 'user']);
 
         if ($request->filled('batch_id')) {
             $query->where('batch_id', $request->batch_id);
         }
 
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            $query->whereHas('user', fn($q) => $q->where('status', $request->status));
         }
 
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
+                $q->whereHas('user', fn($qq) => $qq->where('first_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%"))
                   ->orWhere('student_code', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                  ->orWhereHas('user', fn($qq) => $qq->where('email', 'like', "%{$search}%"));
             });
         }
 
-        $students = $query->orderBy('first_name')->get();
+        $students = $query->orderBy(DB::raw('(SELECT first_name FROM users WHERE users.id = students.user_id)'))->get();
 
         $pdf = Pdf::loadView('students.list', [
             'students' => $students,
@@ -359,27 +366,27 @@ class StudentController extends Controller
 
     public function exportExcel(Request $request)
     {
-        $query = Student::with(['batch', 'tutor']);
+        $query = Student::with(['batch', 'tutor', 'user']);
 
         if ($request->filled('batch_id')) {
             $query->where('batch_id', $request->batch_id);
         }
 
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            $query->whereHas('user', fn($q) => $q->where('status', $request->status));
         }
 
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
+                $q->whereHas('user', fn($qq) => $qq->where('first_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%"))
                   ->orWhere('student_code', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                  ->orWhereHas('user', fn($qq) => $qq->where('email', 'like', "%{$search}%"));
             });
         }
 
-        $students = $query->orderBy('first_name')->get();
+        $students = $query->orderBy(DB::raw('(SELECT first_name FROM users WHERE users.id = students.user_id)'))->get();
 
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -410,7 +417,7 @@ class StudentController extends Controller
             $sheet->setCellValue("C{$row}", $student->last_name);
             $sheet->setCellValue("D{$row}", $student->email ?? 'N/A');
             $sheet->setCellValue("E{$row}", $student->gender ?? 'N/A');
-            $sheet->setCellValue("F{$row}", $student->phone ?? '');
+            $sheet->setCellValue("F{$row}", optional($student->user)->phone ?? '');
             $sheet->setCellValue("G{$row}", $student->batch?->batch_name ?? 'N/A');
             $sheet->setCellValue("H{$row}", $student->tutor?->name ?? 'N/A');
             $row++;

@@ -5,8 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CompanyRequest;
 use App\Models\Company;
-use App\Models\Role;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
     
@@ -36,7 +34,7 @@ class CompanyController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Store a newly created company in storage.
      */
     public function store(CompanyRequest $request)
     {
@@ -58,40 +56,11 @@ class CompanyController extends Controller
             $data['company_profile_image'] = $request->input('company_profile_image');
         }
 
-        // Password is not needed on the Company model
-        $companyData = $data;
-        unset($companyData['password']);
-
-        $company = Company::create($companyData);
-
-        $role = Role::where('name', 'company')->first();
-
-        if (! $role) {
-            return response()->json([
-                'message' => 'Required role "company" not found. Please run database seeders.',
-            ], 500);
-        }
-
-        $user = User::create([
-            'first_name' => $data['contact_person'],
-            'last_name'  => '',
-            'email'      => $data['email'],
-            'password'   => $data['password'],
-            'must_change_password' => true,
-            'role_id'    => $role->id,
-        ]);
-
-        // Link the newly created user back to the company record
-        $company->user_id = $user->id;
-        $company->save();
-
-        // Refresh the company to include the relationship
-        $company->load('user');
+        $company = Company::create($data);
 
         return response()->json([
             'company' => $company,
-            'user'    => $user,
-            'message' => 'Company and company representative account created successfully.',
+            'message' => 'Company created successfully.',
         ], 201);
     }
 
@@ -136,34 +105,10 @@ class CompanyController extends Controller
             $data['company_profile_image'] = $request->input('company_profile_image');
         }
 
-        if (empty($data['password'])) {
-            unset($data['password']);
-        }
-
         $company->update($data);
 
-        // Sync the linked User record when email, password, or contact_person changes
-        if ($company->user_id) {
-            $user = User::find($company->user_id);
-            if ($user) {
-                if (isset($data['email'])) {
-                    $user->email = $data['email'];
-                }
-                if (isset($data['password'])) {
-                    $user->password = $data['password'];
-                    $user->must_change_password = true;
-                }
-                if (isset($data['contact_person'])) {
-                    $user->first_name = $data['contact_person'];
-                }
-                $user->save();
-            }
-        }
-
-        $company->load('user');
-
         return response()->json([
-            'company' => $company,
+            'company' => $company->fresh()->load('supervisors'),
             'message' => 'Company updated successfully.',
         ]);
     }

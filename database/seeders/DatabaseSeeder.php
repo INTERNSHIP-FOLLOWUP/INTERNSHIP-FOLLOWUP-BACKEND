@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             TutorSeeder::class,
             CompanySeeder::class,
+            SupervisorSeeder::class,
             StudentUserSeeder::class,
             InternshipAssignmentSeeder::class,
         ]);

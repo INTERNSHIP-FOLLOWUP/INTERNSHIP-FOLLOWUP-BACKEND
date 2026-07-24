@@ -20,15 +20,15 @@ class TutorStudentService
             ->where('tutor_id', $tutorId)
             ->with([
                 'batch:id,batch_name,year',
-                'tutor:id,first_name,last_name,email',
-                'internshipAssignment:id,student_id,company_id,status,position',
+                'tutor:id,user_id',
+                'internshipAssignment:id,student_id,company_supervisors_id,status,position',
                 'internshipAssignment.company:id,company_name',
             ]);
 
         if ($search = Arr::get($filters, 'search')) {
             $query->where(function ($q) use ($search) {
-                $q->where(DB::raw("CONCAT(first_name, ' ', last_name)"), 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
+                $q->whereHas('user', fn($qq) => $qq->where(DB::raw("CONCAT(first_name, ' ', last_name)"), 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%"))
                     ->orWhere('student_code', 'like', "%{$search}%");
             });
         }
@@ -105,7 +105,7 @@ class TutorStudentService
 
         $assignment->update(['status' => $status]);
 
-        return $assignment->load(['student:id,first_name,last_name', 'company:id,name']);
+        return $assignment->load(['student:id,user_id', 'company:id,name']);
     }
 
     public function isAssigned(int $tutorId, int $studentId): bool

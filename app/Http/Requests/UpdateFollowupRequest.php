@@ -17,7 +17,7 @@ class UpdateFollowupRequest extends FormRequest
     {
         return [
             'student_id' => 'sometimes|integer|exists:students,id',
-            'company_id' => 'nullable|integer|exists:companies,id',
+            'company_supervisors_id' => 'nullable|integer|exists:company_supervisors,id',
             'meeting_type' => 'sometimes|in:Monthly,Quarterly,Annual',
             'meeting_date' => 'sometimes|date',
             'notes' => 'sometimes|string|max:5000',
@@ -32,7 +32,7 @@ class UpdateFollowupRequest extends FormRequest
         return [
             'student_id.integer' => 'The student field must be an integer.',
             'student_id.exists' => 'The selected student does not exist.',
-            'company_id.exists' => 'The selected company does not exist.',
+            'company_supervisors_id.exists' => 'The selected supervisor does not exist.',
             'meeting_type.in' => 'The meeting type must be one of: Monthly, Quarterly, Annual.',
             'meeting_date.date' => 'The meeting date must be a valid date.',
             'notes.max' => 'The notes must not exceed 5000 characters.',

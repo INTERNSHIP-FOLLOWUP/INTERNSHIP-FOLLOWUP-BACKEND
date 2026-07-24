@@ -18,7 +18,9 @@ class StoreUserRequest extends FormRequest
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8'],
-            'role' => ['required', 'string', 'in:admin,tutor,student,company'],
+            'role' => ['required', 'string', 'in:admin,tutor,student,supervisor'],
+            'gender' => ['nullable', 'string', 'in:Male,Female,Other'],
+            'status' => ['nullable', 'string', 'in:active,inactive,deactivated'],
             'avatar' => ['nullable', 'string', 'max:255'],
         ];
     }
@@ -36,7 +38,7 @@ class StoreUserRequest extends FormRequest
             'password.required' => 'The password field is required.',
             'password.min' => 'The password must be at least 8 characters.',
             'role.required' => 'The role field is required.',
-            'role.in' => 'The selected role is invalid. Allowed roles: admin, tutor, student, company.',
+            'role.in' => 'The selected role is invalid. Allowed roles: admin, tutor, student, supervisor.',
         ];
     }
 }

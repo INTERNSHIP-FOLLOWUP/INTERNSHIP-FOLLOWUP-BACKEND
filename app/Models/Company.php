@@ -14,33 +14,17 @@ class Company extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'user_id',
         'company_name',
         'address',
         'industry',
-        'contact_person',
-        'phone',
         'email',
-        'password',
         'website',
         'company_profile_image',
         'company_image',
         'telegram_link',
-        'role',
     ];
 
     protected $appends = ['company_image_url', 'company_profile_image_url'];
-
-    protected $hidden = [
-        'password',
-    ];
-
-    protected function casts(): array
-    {
-        return [
-            'password' => 'hashed',
-        ];
-    }
 
     public function getNameAttribute(): string
     {
@@ -72,11 +56,6 @@ class Company extends Model
         return Storage::url($this->company_profile_image);
     }
 
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
-
     public function internshipAssignments(): HasMany
     {
         return $this->hasMany(InternshipAssignment::class);
@@ -90,5 +69,10 @@ class Company extends Model
     public function feedback(): HasMany
     {
         return $this->hasMany(CompanyFeedback::class);
+    }
+
+    public function supervisors(): HasMany
+    {
+        return $this->hasMany(CompanySupervisor::class, 'company_id');
     }
 }

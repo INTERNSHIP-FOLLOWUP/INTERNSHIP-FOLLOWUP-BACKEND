@@ -5,11 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class CompanyMessage extends Model
+class TutorStudentMessage extends Model
 {
+    protected $table = 'tutor_student_messages';
+
     protected $fillable = [
-        'company_supervisors_id',
         'tutor_id',
+        'student_id',
         'sender_type',
         'message',
         'is_read',
@@ -22,14 +24,13 @@ class CompanyMessage extends Model
         ];
     }
 
-    public function supervisor(): BelongsTo
-    {
-        return $this->belongsTo(CompanySupervisor::class, 'company_supervisors_id');
-    }
-
     public function tutor(): BelongsTo
     {
-        // tutor_id references users.id, not tutors.id
         return $this->belongsTo(User::class, 'tutor_id');
+    }
+
+    public function student(): BelongsTo
+    {
+        return $this->belongsTo(Student::class, 'student_id');
     }
 }

@@ -29,7 +29,7 @@ class InternshipAssignmentRequest extends FormRequest
 
         return [
             'student_id' => [$requiredIfCreating, 'exists:students,id'],
-            'company_id' => [$requiredIfCreating, 'exists:companies,id'],
+            'company_supervisors_id' => [$requiredIfCreating, 'exists:company_supervisors,id'],
             'tutor_id' => [$requiredIfCreating, 'exists:users,id'],
             'position' => ['required', 'string', 'max:255'],
             'start_date' => ['required', 'date'],

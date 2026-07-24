@@ -30,7 +30,7 @@ class StudentImportTest extends TestCase
         Role::create(['name' => 'admin']);
         Role::create(['name' => 'tutor']);
         $this->studentRole = Role::create(['name' => 'student']);
-        Role::create(['name' => 'company']);
+        Role::create(['name' => 'supervisor']);
 
         $adminRole = Role::where('name', 'admin')->first();
         $tutorRole = Role::where('name', 'tutor')->first();
