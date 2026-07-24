@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\StudentResource;
 use App\Models\Student;
-use App\Models\Tutor;
 use App\Services\TutorStudentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,11 +15,11 @@ class TutorStudentController extends Controller
     public function __construct(private TutorStudentService $students) {}
 
     /**
-     * Resolve the tutors.id from the authenticated user.
+     * Resolve the user's ID — tutor_id columns reference users.id, not tutors.id.
      */
     private function resolveTutorId(\Illuminate\Contracts\Auth\Authenticatable $user): ?int
     {
-        return Tutor::where('user_id', $user->getAuthIdentifier())->value('id');
+        return $user->getAuthIdentifier();
     }
 
     public function index(Request $request): JsonResponse

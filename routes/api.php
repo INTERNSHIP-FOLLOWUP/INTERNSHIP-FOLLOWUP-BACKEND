@@ -107,6 +107,10 @@ Route::middleware(['auth:sanctum', 'role:admin,tutor,student'])->prefix('followu
 
 Route::middleware(['auth:sanctum', 'role:student'])->prefix('student')->name('student.')->group(function () {
     Route::get('/internship', [AssignmentController::class, 'myInternship'])->name('internship');
+
+    // Student messaging with tutor
+    Route::get('/messages', [\App\Http\Controllers\Api\TutorStudentMessageController::class, 'studentConversations'])->name('messages.index');
+    Route::post('/messages', [\App\Http\Controllers\Api\TutorStudentMessageController::class, 'studentSend'])->name('messages.send');
 });
 
 // Tutor Messaging Routes (accessible by tutor and company)
@@ -164,6 +168,11 @@ Route::middleware(['auth:sanctum', 'role:tutor'])->prefix('tutor')->name('tutor.
     // Company Feedback
     Route::get('/feedback/stats', [\App\Http\Controllers\Api\CompanyFeedbackController::class, 'stats'])->name('feedback.stats');
     Route::get('/feedback', [\App\Http\Controllers\Api\CompanyFeedbackController::class, 'adminIndex'])->name('feedback.index');
+
+    // Tutor-Student Messaging
+    Route::get('/student-messages', [\App\Http\Controllers\Api\TutorStudentMessageController::class, 'conversations'])->name('student-messages.conversations');
+    Route::get('/student-messages/{student}', [\App\Http\Controllers\Api\TutorStudentMessageController::class, 'messages'])->name('student-messages.show');
+    Route::post('/student-messages/{student}', [\App\Http\Controllers\Api\TutorStudentMessageController::class, 'send'])->name('student-messages.send');
 
     // Issues
     Route::get('/issues/{id}', [\App\Http\Controllers\Api\TutorIssueController::class, 'show'])->name('issues.show');

@@ -28,3 +28,9 @@ Broadcast::channel('tutor.{userId}', function ($user, $userId) {
     $tutor = Tutor::where('user_id', $user->id)->first();
     return (int) $user->id === (int) $userId && $supervisor === null && $tutor !== null;
 }, ['guards' => ['sanctum']]);
+
+Broadcast::channel('student.{userId}', function ($user, $userId) {
+    // Allow if the user is a student and matches
+    $student = \App\Models\Student::where('user_id', $user->id)->first();
+    return (int) $user->id === (int) $userId && $student !== null;
+}, ['guards' => ['sanctum']]);

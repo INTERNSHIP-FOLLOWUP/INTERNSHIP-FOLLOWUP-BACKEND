@@ -43,7 +43,8 @@ class IssueController extends Controller
             }
             $query->where('student_id', $student->id);
         } elseif ($user->role->name === 'tutor') {
-            $query->where('tutor_id', $user->tutorProfile?->id);
+            // tutor_id references users.id
+            $query->where('tutor_id', $user->id);
         }
 
         // Filters
@@ -92,10 +93,8 @@ class IssueController extends Controller
                 $query->where('student_id', $student->id);
             }
         } elseif ($user->role->name === 'tutor') {
-            $tutorId = $user->tutorProfile?->id;
-            if ($tutorId) {
-                $query->where('tutor_id', $tutorId);
-            }
+            // tutor_id references users.id
+            $query->where('tutor_id', $user->id);
         }
 
         return response()->json([
@@ -118,7 +117,8 @@ class IssueController extends Controller
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
         } elseif ($user->role->name === 'tutor') {
-            if ($issue->tutor_id !== $user->tutorProfile?->id) {
+            // tutor_id references users.id
+            if ($issue->tutor_id !== $user->id) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
         }
@@ -159,11 +159,8 @@ class IssueController extends Controller
         $reporterId = $user->id;
 
         if ($user->role->name === 'tutor') {
-            // Resolve tutors.id from the tutors table (not users.id)
-            $tutorId = $user->tutorProfile?->id;
-            if (!$tutorId) {
-                return response()->json(['message' => 'Tutor profile not found.'], 404);
-            }
+            // tutor_id references users.id
+            $tutorId = $user->id;
 
             // Verify the student belongs to this tutor
             $studentAssigned = Student::where('id', $validated['student_id'])
@@ -239,7 +236,8 @@ class IssueController extends Controller
                 'status' => 'nullable|in:Open,In Progress,Resolved,Closed',
             ]);
         } elseif ($user->role->name === 'tutor') {
-            if ($issue->tutor_id !== $user->tutorProfile?->id) {
+            // tutor_id references users.id
+            if ($issue->tutor_id !== $user->id) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
             $validated = $request->validate([
@@ -316,7 +314,8 @@ class IssueController extends Controller
         $decodedId = $this->decodeIssueId($id);
         $issue = Issue::findOrFail($decodedId);
 
-        if ($user->role->name === 'tutor' && $issue->tutor_id !== $user->tutorProfile?->id) {
+        if ($user->role->name === 'tutor' && $issue->tutor_id !== $user->id) {
+            // tutor_id references users.id
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -346,7 +345,8 @@ class IssueController extends Controller
         $decodedId = $this->decodeIssueId($id);
         $issue = Issue::findOrFail($decodedId);
 
-        if ($user->role->name === 'tutor' && $issue->tutor_id !== $user->tutorProfile?->id) {
+        if ($user->role->name === 'tutor' && $issue->tutor_id !== $user->id) {
+            // tutor_id references users.id
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 

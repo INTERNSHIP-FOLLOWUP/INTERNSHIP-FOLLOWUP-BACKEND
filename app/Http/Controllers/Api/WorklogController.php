@@ -35,7 +35,8 @@ class WorklogController extends Controller
                 $query->where('student_id', $student->id);
             } elseif ($user->role->name === 'tutor') {
                 // Tutors see worklogs of students assigned to them
-                $studentIds = Student::where('tutor_id', $user->tutorProfile?->id)->pluck('id');
+                // tutor_id references users.id
+                $studentIds = Student::where('tutor_id', $user->id)->pluck('id');
                 $query->whereIn('student_id', $studentIds);
             }
         }
@@ -250,8 +251,9 @@ class WorklogController extends Controller
             }
 
             // Check if tutor is assigned to this student
+            // tutor_id references users.id
             $isAssigned = Student::where('id', $worklog->student_id)
-                ->where('tutor_id', $user->tutorProfile?->id)
+                ->where('tutor_id', $user->id)
                 ->exists();
 
             if (!$isAssigned) {
@@ -353,8 +355,9 @@ class WorklogController extends Controller
                 abort(403, 'Forbidden.');
             }
         } elseif ($user->role->name === 'tutor') {
+            // tutor_id references users.id
             $isAssigned = Student::where('id', $worklog->student_id)
-                ->where('tutor_id', $user->tutorProfile?->id)
+                ->where('tutor_id', $user->id)
                 ->exists();
 
             if (!$isAssigned) {
