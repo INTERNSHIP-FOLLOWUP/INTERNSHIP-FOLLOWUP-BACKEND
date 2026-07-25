@@ -14,8 +14,9 @@ class TutorWorklogController extends Controller
 {
     private function resolveTutorId(\Illuminate\Contracts\Auth\Authenticatable $user): ?int
     {
+        // students.tutor_id references tutors.id (NOT users.id)
         $tutor = \App\Models\Tutor::where('user_id', $user->getAuthIdentifier())->first();
-        return $tutor?->id ?? (int) $user->getAuthIdentifier();
+        return $tutor?->id;  // null if no Tutor profile — NEVER fall back to users.id
     }
 
     /**

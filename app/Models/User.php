@@ -70,7 +70,7 @@ class User extends Authenticatable
             return $this->avatar;
         }
 
-        return Storage::url($this->avatar);
+        return asset('storage/' . ltrim($this->avatar, '/'));
     }
 
     public function getStudentCodeAttribute(): ?string

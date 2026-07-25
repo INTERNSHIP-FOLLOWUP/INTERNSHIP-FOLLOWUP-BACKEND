@@ -17,12 +17,13 @@ class TutorProfileController extends Controller
     private function profileResponse(User $user): array
     {
         return [
-            'id'     => $user->id,
-            'name'   => $user->name,
-            'email'  => $user->email,
-            'phone'  => $user->phone,
-            'avatar' => $user->avatar,
-            'role'   => $user->role?->name ?? '',
+            'id'         => $user->id,
+            'name'       => $user->name,
+            'email'      => $user->email,
+            'phone'      => $user->phone,
+            'avatar'     => $user->avatar,
+            'avatar_url' => $user->avatar_url,
+            'role'       => $user->role?->name ?? '',
         ];
     }
 
@@ -100,8 +101,9 @@ class TutorProfileController extends Controller
         $user->save();
 
         return response()->json([
-            'message' => 'Avatar uploaded successfully',
-            'avatar'  => $user->avatar,
+            'message'    => 'Avatar uploaded successfully',
+            'avatar'     => $user->avatar,
+            'avatar_url' => $user->avatar_url,
         ]);
     }
 

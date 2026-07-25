@@ -19,10 +19,12 @@ class TutorStudentService
         $query = Student::query()
             ->where('tutor_id', $tutorId)
             ->with([
+                'user',
                 'batch:id,batch_name,year',
                 'tutor:id,user_id',
-                'internshipAssignment:id,student_id,company_supervisors_id,status,position',
-                'internshipAssignment.company:id,company_name',
+                'tutor.user:id,first_name,last_name,email',
+                'internshipAssignment',
+                'internshipAssignment.company',
             ]);
 
         if ($search = Arr::get($filters, 'search')) {
@@ -81,7 +83,7 @@ class TutorStudentService
         $student = Student::query()
             ->where('id', $studentId)
             ->where('tutor_id', $tutorId)
-            ->with(['batch:id,batch_name,year', 'tutor:id,first_name,last_name,email', 'worklogs', 'issues', 'evaluations'])
+            ->with(['batch:id,batch_name,year', 'tutor:id,user_id', 'tutor.user:id,first_name,last_name,email', 'worklogs', 'issues', 'evaluations'])
             ->first();
 
         if (!$student) {

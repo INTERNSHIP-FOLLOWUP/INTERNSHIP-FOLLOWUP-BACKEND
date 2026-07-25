@@ -18,7 +18,7 @@ class FollowupController extends Controller
     private function resolveTutorId(Authenticatable $user): ?int
     {
         $tutor = \App\Models\Tutor::where('user_id', $user->getAuthIdentifier())->first();
-        return $tutor?->id ?? (int) $user->getAuthIdentifier();
+        return $tutor?->id;
     }
 
     public function index(Request $request): JsonResponse
@@ -30,7 +30,7 @@ class FollowupController extends Controller
         }
 
         $query = Followup::query()
-            ->with(['student:id,user_id,batch_id,tutor_id', 'tutor:id,first_name,last_name,email', 'supervisor.company:id,company_name']);
+            ->with(['student:id,user_id,batch_id,tutor_id', 'tutor:id,user_id', 'tutor.user:id,first_name,last_name,email', 'supervisor.company:id,company_name']);
 
         if ($user->role?->name === 'tutor') {
             $tutorId = $this->resolveTutorId($user);
@@ -96,7 +96,7 @@ class FollowupController extends Controller
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
-        if ($user->role?->name === 'tutor' && $followup->tutor_id !== $user->id) {
+        if ($user->role?->name === 'tutor' && $followup->tutor_id !== $this->resolveTutorId($user)) {
             return response()->json(['message' => 'Follow-up not found.'], 404);
         }
 
@@ -122,7 +122,7 @@ class FollowupController extends Controller
         }
 
         $validated = $request->validated();
-        $tutorId = $user->role?->name === 'tutor' ? $this->resolveTutorId($user) : ($validated['tutor_id'] ?? $user->id);
+        $tutorId = $user->role?->name === 'tutor' ? $this->resolveTutorId($user) : ($validated['tutor_id'] ?? null);
 
         if (!$tutorId) {
             return response()->json(['message' => 'Tutor profile not found.'], 403);
@@ -165,7 +165,7 @@ class FollowupController extends Controller
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
-        if ($user->role?->name === 'tutor' && $followup->tutor_id !== $user->id) {
+        if ($user->role?->name === 'tutor' && $followup->tutor_id !== $this->resolveTutorId($user)) {
             return response()->json(['message' => 'Follow-up not found.'], 404);
         }
 

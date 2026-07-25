@@ -13,8 +13,9 @@ class TutorStudentMessageController extends Controller
 {
     private function resolveTutorId(\Illuminate\Contracts\Auth\Authenticatable $user): ?int
     {
+        // students.tutor_id references tutors.id (NOT users.id)
         $tutor = \App\Models\Tutor::where('user_id', $user->getAuthIdentifier())->first();
-        return $tutor?->id ?? (int) $user->getAuthIdentifier();
+        return $tutor?->id;  // null if no Tutor profile — NEVER fall back to users.id
     }
 
     /**
@@ -29,11 +30,11 @@ class TutorStudentMessageController extends Controller
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
-        $tutorUserId = $user->id;
         $tutorId = $this->resolveTutorId($user);
+        $tutorUserId = $user->id;
 
         // Only students assigned to this tutor
-        $assignedStudentIds = Student::where('tutor_id', $tutorUserId)
+        $assignedStudentIds = Student::where('tutor_id', $tutorId)
             ->pluck('id');
 
         $conversations = Student::whereIn('id', $assignedStudentIds)->get()->map(function ($student) use ($tutorUserId) {
@@ -84,11 +85,12 @@ class TutorStudentMessageController extends Controller
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
+        $tutorId = $this->resolveTutorId($user);
         $tutorUserId = $user->id;
 
         // Verify student is assigned to this tutor
         $isAssigned = Student::where('id', $studentId)
-            ->where('tutor_id', $tutorUserId)
+            ->where('tutor_id', $tutorId)
             ->exists();
 
         if (!$isAssigned) {
@@ -135,11 +137,12 @@ class TutorStudentMessageController extends Controller
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
+        $tutorId = $this->resolveTutorId($user);
         $tutorUserId = $user->id;
 
         // Verify student is assigned to this tutor
         $isAssigned = Student::where('id', $studentId)
-            ->where('tutor_id', $tutorUserId)
+            ->where('tutor_id', $tutorId)
             ->exists();
 
         if (!$isAssigned) {
@@ -151,7 +154,7 @@ class TutorStudentMessageController extends Controller
         ]);
 
         $message = TutorStudentMessage::create([
-            'tutor_id' => $user->id,
+            'tutor_id' => $tutorUserId,
             'student_id' => $studentId,
             'sender_type' => 'tutor',
             'message' => $validated['message'],
@@ -191,7 +194,7 @@ class TutorStudentMessageController extends Controller
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
-        $student = Student::where('email', $user->email)->first();
+        $student = $user->studentProfile ?? Student::where('user_id', $user->id)->first();
         if (!$student) {
             return response()->json(['message' => 'Student profile not found.'], 404);
         }
@@ -251,7 +254,7 @@ class TutorStudentMessageController extends Controller
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
-        $student = Student::where('email', $user->email)->first();
+        $student = $user->studentProfile ?? Student::where('user_id', $user->id)->first();
         if (!$student) {
             return response()->json(['message' => 'Student profile not found.'], 404);
         }

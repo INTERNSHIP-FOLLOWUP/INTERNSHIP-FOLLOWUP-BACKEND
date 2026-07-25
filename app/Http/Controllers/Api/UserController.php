@@ -148,6 +148,11 @@ class UserController extends Controller
         $validated['role_id'] = $role?->id;
         unset($validated['role']);
 
+        if ($request->hasFile('avatar')) {
+            $path = $request->file('avatar')->store('avatars', 'public');
+            $validated['avatar'] = $path;
+        }
+
         $user = User::create($validated);
         $user->must_change_password = $user->role?->name === 'supervisor';
         $user->save();
@@ -169,6 +174,14 @@ class UserController extends Controller
     public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
         $validated = $request->validated();
+
+        if ($request->hasFile('avatar')) {
+            if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+                Storage::disk('public')->delete($user->avatar);
+            }
+            $path = $request->file('avatar')->store('avatars', 'public');
+            $validated['avatar'] = $path;
+        }
 
         if (isset($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);

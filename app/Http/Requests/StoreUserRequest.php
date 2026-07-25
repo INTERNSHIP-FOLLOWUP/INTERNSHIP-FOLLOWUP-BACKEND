@@ -21,7 +21,7 @@ class StoreUserRequest extends FormRequest
             'role' => ['required', 'string', 'in:admin,tutor,student,supervisor'],
             'gender' => ['nullable', 'string', 'in:Male,Female,Other'],
             'status' => ['nullable', 'string', 'in:active,inactive,deactivated'],
-            'avatar' => ['nullable', 'string', 'max:255'],
+            'avatar' => ['nullable'],
         ];
     }
 

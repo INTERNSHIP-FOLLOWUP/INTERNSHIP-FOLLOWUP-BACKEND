@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\WorklogRequest;
 use App\Models\Attachment;
 use App\Models\Student;
+use App\Models\Tutor;
 use App\Models\Worklog;
 use App\Services\FileUploadService;
 use Illuminate\Http\Request;
@@ -13,6 +14,12 @@ use Illuminate\Support\Facades\Validator;
 
 class WorklogController extends Controller
 {
+    private function resolveTutorId(\Illuminate\Contracts\Auth\Authenticatable $user): ?int
+    {
+        $tutor = Tutor::where('user_id', $user->getAuthIdentifier())->first();
+        return $tutor?->id;
+    }
+
     /**
      * Display a listing of worklogs with role-based filtering.
      *
@@ -35,8 +42,7 @@ class WorklogController extends Controller
                 $query->where('student_id', $student->id);
             } elseif ($user->role->name === 'tutor') {
                 // Tutors see worklogs of students assigned to them
-                $tutorProfile = $user->tutorProfile ?? \App\Models\Tutor::where('user_id', $user->id)->first();
-                $tutorId = $tutorProfile?->id ?? $user->id;
+                $tutorId = $this->resolveTutorId($user);
                 $studentIds = Student::where('tutor_id', $tutorId)->pluck('id');
                 $query->whereIn('student_id', $studentIds);
             }
@@ -252,9 +258,9 @@ class WorklogController extends Controller
             }
 
             // Check if tutor is assigned to this student
-            // tutor_id references users.id
+            $tutorId = $this->resolveTutorId($user);
             $isAssigned = Student::where('id', $worklog->student_id)
-                ->where('tutor_id', $user->id)
+                ->where('tutor_id', $tutorId)
                 ->exists();
 
             if (!$isAssigned) {
@@ -356,9 +362,9 @@ class WorklogController extends Controller
                 abort(403, 'Forbidden.');
             }
         } elseif ($user->role->name === 'tutor') {
-            // tutor_id references users.id
+            $tutorId = $this->resolveTutorId($user);
             $isAssigned = Student::where('id', $worklog->student_id)
-                ->where('tutor_id', $user->id)
+                ->where('tutor_id', $tutorId)
                 ->exists();
 
             if (!$isAssigned) {

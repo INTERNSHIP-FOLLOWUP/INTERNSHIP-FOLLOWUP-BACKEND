@@ -24,7 +24,7 @@ class UpdateUserRequest extends FormRequest
             'password' => ['sometimes', 'string', 'min:8'],
             'phone' => ['nullable', 'string', 'max:50'],
             'role' => ['sometimes', 'string', 'in:admin,tutor,student,supervisor'],
-            'avatar' => ['nullable', 'string', 'max:255'],
+            'avatar' => ['nullable'],
             'student_code' => ['sometimes', 'nullable', 'string', 'max:255'],
             'gender' => ['sometimes', 'nullable', 'string'],
             'phone' => ['sometimes', 'nullable', 'string', 'max:50'],
