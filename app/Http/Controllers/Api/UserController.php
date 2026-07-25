@@ -60,39 +60,28 @@ class UserController extends Controller
                 if ($request->filled('tutor_id')) {
                     $tutorId = (int) $request->tutor_id;
 
-                    // students.tutor_id stores the Tutor model's primary key.
+                    // students.tutor_id stores the User ID of the tutor.
                     $tutorRecord = \App\Models\Tutor::find($tutorId);
-                    if ($tutorRecord) {
-                        $resolvedTutorId = $tutorRecord->id;
-                    } else {
-                        // May be a user_id sent from dropdown (t.user_id || t.id)
-                        $tutorByUserId = \App\Models\Tutor::where('user_id', $tutorId)->first();
-                        $resolvedTutorId = $tutorByUserId ? $tutorByUserId->id : null;
-                    }
+                    $targetUserId = $tutorRecord ? $tutorRecord->user_id : $tutorId;
 
-                    if ($resolvedTutorId) {
-                        $query->whereHas('studentProfile', function ($q) use ($resolvedTutorId) {
-                            $q->where('tutor_id', $resolvedTutorId);
-                        });
-                    } else {
-                        $query->whereRaw('1 = 0');
-                    }
+                    $query->whereHas('studentProfile', function ($q) use ($targetUserId) {
+                        $q->where('tutor_id', $targetUserId);
+                    });
                 }
                 if ($request->filled('gender')) {
                     $gender = strtolower($request->gender);
-                    $query->whereHas('studentProfile', function ($q) use ($gender) {
-                        $q->whereRaw('LOWER(gender) = ?', [$gender]);
-                    });
+                    $query->whereRaw('LOWER(gender) = ?', [$gender]);
                 }
                 if ($request->filled('student_status')) {
                     $status = strtolower($request->student_status);
-                    $query->whereHas('studentProfile', function ($q) use ($status) {
-                        if ($status === 'deactivated' || $status === 'inactive') {
-                            $q->whereIn('status', ['deactivated', 'inactive']);
-                        } else {
-                            $q->where('status', $status);
-                        }
-                    });
+                    if ($status === 'deactivated' || $status === 'inactive') {
+                        $query->where(function ($q) {
+                            $q->whereIn('status', ['deactivated', 'inactive'])
+                              ->orWhereNotNull('deleted_at');
+                        });
+                    } else {
+                        $query->where('status', $status);
+                    }
                 }
             }
             if ($request->role === 'supervisor') {
@@ -122,11 +111,12 @@ class UserController extends Controller
 
         $users = $query->paginate($request->per_page ?? 15);
 
+        $roleIds = Role::pluck('id', 'name');
         $roleCounts = [
-            'admin' => User::whereHas('role', fn($q) => $q->where('name', 'admin'))->count(),
+            'admin' => User::where('role_id', $roleIds['admin'] ?? null)->count(),
             'tutor' => Tutor::count(),
-            'student' => User::whereHas('role', fn($q) => $q->where('name', 'student'))->count(),
-            'supervisor' => User::whereHas('role', fn($q) => $q->where('name', 'supervisor'))->count(),
+            'student' => User::where('role_id', $roleIds['student'] ?? null)->count(),
+            'supervisor' => User::where('role_id', $roleIds['supervisor'] ?? null)->count(),
         ];
 
         return response()->json([
@@ -615,7 +605,7 @@ class UserController extends Controller
             ->get();
 
         $evaluations = $student->evaluations()
-            ->with('company:id,company_name')
+            ->with(['supervisor.company'])
             ->select('id', 'company_supervisors_id', 'technical_skill', 'communication', 'professionalism', 'attendance', 'overall_score', 'feedback', 'created_at')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -626,7 +616,7 @@ class UserController extends Controller
             ->get();
 
         $assignment = $student->internshipAssignment()
-            ->with('company:id,company_name')
+            ->with(['supervisor.company'])
             ->first();
 
         $worklogStats = [
@@ -637,6 +627,7 @@ class UserController extends Controller
         ];
 
         $avgScore = $evaluations->avg('overall_score');
+        $companyRecord = $assignment ? ($assignment->company ?? $assignment->supervisor?->company) : null;
 
         return response()->json([
             'student' => [
@@ -660,7 +651,7 @@ class UserController extends Controller
                 'start_date' => $assignment->start_date,
                 'end_date' => $assignment->end_date,
                 'status' => $assignment->status,
-                'company' => $assignment->company ? ['id' => $assignment->company->id, 'name' => $assignment->company->name] : null,
+                'company' => $companyRecord ? ['id' => $companyRecord->id, 'company_name' => $companyRecord->company_name, 'name' => $companyRecord->name ?? $companyRecord->company_name] : null,
             ] : null,
         ]);
     }
