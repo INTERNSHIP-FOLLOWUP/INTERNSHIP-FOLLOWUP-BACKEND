@@ -24,9 +24,8 @@ class TutorController extends Controller
         }
 
         $perPage = min((int) $request->per_page, 100) ?: 15;
-        $tutors = $query->with('user')->orderBy(
-            DB::raw('(SELECT CONCAT(first_name, \' \', last_name) FROM users WHERE users.id = tutors.user_id)')
-        )->paginate($perPage);
+        $userSubquery = \App\Models\User::select('first_name')->whereColumn('users.id', 'tutors.user_id');
+        $tutors = $query->with('user')->orderBy($userSubquery)->paginate($perPage);
 
         return response()->json([
             'data' => $tutors->items(),

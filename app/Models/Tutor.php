@@ -17,6 +17,8 @@ class Tutor extends Model
         'tutor_code',
     ];
 
+    protected $hidden = ['user'];
+
     protected $appends = ['name', 'first_name', 'last_name', 'email', 'phone', 'photo_url', 'gender', 'status'];
 
     protected $casts = [
@@ -70,27 +72,26 @@ class Tutor extends Model
 
     public function students(): HasMany
     {
-        // tutor_id references users.id, so use user_id as local key
-        return $this->hasMany(Student::class, 'tutor_id', 'user_id');
+        return $this->hasMany(Student::class, 'tutor_id');
     }
 
     public function assignments(): HasMany
     {
-        return $this->hasMany(InternshipAssignment::class, 'tutor_id', 'user_id');
+        return $this->hasMany(InternshipAssignment::class, 'tutor_id');
     }
 
     public function issues(): HasMany
     {
-        return $this->hasMany(Issue::class, 'tutor_id', 'user_id');
+        return $this->hasMany(Issue::class, 'tutor_id');
     }
 
     public function followups(): HasMany
     {
-        return $this->hasMany(Followup::class, 'tutor_id', 'user_id');
+        return $this->hasMany(Followup::class, 'tutor_id');
     }
 
     public function messages(): HasMany
     {
-        return $this->hasMany(CompanyMessage::class, 'tutor_id', 'user_id');
+        return $this->hasMany(CompanyMessage::class, 'tutor_id');
     }
 }

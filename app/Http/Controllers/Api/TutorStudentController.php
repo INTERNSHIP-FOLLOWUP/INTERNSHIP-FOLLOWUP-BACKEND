@@ -14,12 +14,10 @@ class TutorStudentController extends Controller
 {
     public function __construct(private TutorStudentService $students) {}
 
-    /**
-     * Resolve the user's ID — tutor_id columns reference users.id, not tutors.id.
-     */
     private function resolveTutorId(\Illuminate\Contracts\Auth\Authenticatable $user): ?int
     {
-        return $user->getAuthIdentifier();
+        $tutor = \App\Models\Tutor::where('user_id', $user->getAuthIdentifier())->first();
+        return $tutor?->id ?? (int) $user->getAuthIdentifier();
     }
 
     public function index(Request $request): JsonResponse

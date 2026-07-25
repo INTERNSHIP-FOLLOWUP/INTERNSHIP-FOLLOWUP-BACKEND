@@ -11,13 +11,10 @@ use Illuminate\Http\Request;
 
 class TutorStudentMessageController extends Controller
 {
-    /**
-     * Resolve the tutor's users.id from the authenticated user.
-     * students.tutor_id references users.id, so we use $user->id directly.
-     */
     private function resolveTutorId(\Illuminate\Contracts\Auth\Authenticatable $user): ?int
     {
-        return $user->getAuthIdentifier();
+        $tutor = \App\Models\Tutor::where('user_id', $user->getAuthIdentifier())->first();
+        return $tutor?->id ?? (int) $user->getAuthIdentifier();
     }
 
     /**
