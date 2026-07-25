@@ -33,18 +33,22 @@ class IssueController extends Controller
 
     public function index(Request $request)
     {
-        $user = Auth::user();
+        $user = $request->user() ?? Auth::user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
         $query = Issue::query()
             ->with(['student', 'tutor', 'reporter', 'assignedUser', 'attachments']);
-        if ($user->role->name === 'student') {
+        if ($user->role?->name === 'student') {
             $student = $user->studentProfile;
             if (!$student) {
                 return response()->json(['message' => 'Student profile not found'], 404);
             }
             $query->where('student_id', $student->id);
         } elseif ($user->role->name === 'tutor') {
-            // tutor_id references users.id
-            $query->where('tutor_id', $user->id);
+            $tutorProfile = $user->tutorProfile ?? \App\Models\Tutor::where('user_id', $user->id)->first();
+            $tutorId = $tutorProfile?->id ?? $user->id;
+            $query->where('tutor_id', $tutorId);
         }
 
         // Filters
@@ -93,8 +97,9 @@ class IssueController extends Controller
                 $query->where('student_id', $student->id);
             }
         } elseif ($user->role->name === 'tutor') {
-            // tutor_id references users.id
-            $query->where('tutor_id', $user->id);
+            $tutorProfile = $user->tutorProfile ?? \App\Models\Tutor::where('user_id', $user->id)->first();
+            $tutorId = $tutorProfile?->id ?? $user->id;
+            $query->where('tutor_id', $tutorId);
         }
 
         return response()->json([
@@ -117,8 +122,9 @@ class IssueController extends Controller
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
         } elseif ($user->role->name === 'tutor') {
-            // tutor_id references users.id
-            if ($issue->tutor_id !== $user->id) {
+            $tutorProfile = $user->tutorProfile ?? \App\Models\Tutor::where('user_id', $user->id)->first();
+            $tutorId = $tutorProfile?->id ?? $user->id;
+            if ($issue->tutor_id !== $tutorId) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
         }
@@ -159,8 +165,8 @@ class IssueController extends Controller
         $reporterId = $user->id;
 
         if ($user->role->name === 'tutor') {
-            // tutor_id references users.id
-            $tutorId = $user->id;
+            $tutorProfile = $user->tutorProfile ?? \App\Models\Tutor::where('user_id', $user->id)->first();
+            $tutorId = $tutorProfile?->id ?? $user->id;
 
             // Verify the student belongs to this tutor
             $studentAssigned = Student::where('id', $validated['student_id'])

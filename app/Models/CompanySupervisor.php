@@ -15,6 +15,8 @@ class CompanySupervisor extends Model
         'company_id',
     ];
 
+    protected $hidden = ['user'];
+
     protected $appends = ['name', 'status'];
 
     public function getNameAttribute(): string

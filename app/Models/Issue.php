@@ -46,8 +46,7 @@ class Issue extends Model
 
     public function tutor(): BelongsTo
     {
-        // tutor_id references users.id, not tutors.id
-        return $this->belongsTo(User::class, 'tutor_id');
+        return $this->belongsTo(Tutor::class, 'tutor_id');
     }
 
     public function reporter(): BelongsTo

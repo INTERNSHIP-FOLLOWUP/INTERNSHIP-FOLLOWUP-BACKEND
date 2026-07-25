@@ -64,6 +64,11 @@ class CompanyFeedback extends Model
         return $this->belongsTo(CompanySupervisor::class, 'company_supervisors_id');
     }
 
+    public function companySupervisor(): BelongsTo
+    {
+        return $this->belongsTo(CompanySupervisor::class, 'company_supervisors_id');
+    }
+
     public function student(): BelongsTo
     {
         return $this->belongsTo(Student::class);

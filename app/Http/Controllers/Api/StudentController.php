@@ -57,22 +57,22 @@ class StudentController extends Controller
 
         if ($request->filled('status')) {
             $status = strtolower($request->status);
-            if ($status === 'deactivated' || $status === 'inactive') {
-                $query->where(function ($q) {
+            $query->whereHas('user', function ($q) use ($status) {
+                if ($status === 'deactivated' || $status === 'inactive') {
                     $q->whereIn('status', ['deactivated', 'inactive'])
                       ->orWhereNotNull('deleted_at');
-                });
-            } elseif ($status === 'active') {
-                $query->where('status', 'active')
+                } elseif ($status === 'active') {
+                    $q->where('status', 'active')
                       ->whereNull('deleted_at');
-            } else {
-                $query->where('status', $status);
-            }
+                } else {
+                    $q->where('status', $status);
+                }
+            });
         }
 
         if ($request->filled('gender')) {
             $gender = strtolower($request->gender);
-            $query->where(function ($q) use ($gender) {
+            $query->whereHas('user', function ($q) use ($gender) {
                 $q->whereRaw('LOWER(gender) = ?', [$gender]);
             });
         }
@@ -81,19 +81,17 @@ class StudentController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->whereHas('user', fn($qq) => $qq->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%"))
-                  ->orWhere('student_code', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere(DB::raw("CONCAT(first_name, ' ', last_name)"), 'like', "%{$search}%");
+                  ->orWhere('last_name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%"))
+                  ->orWhere('student_code', 'like', "%{$search}%");
             });
         }
 
-        $userSortSubquery = DB::raw('(SELECT CONCAT(first_name, \' \', last_name) FROM users WHERE users.id = students.user_id)');
-
         if ($request->filled('sort')) {
+            $firstNameSub = User::select('first_name')->whereColumn('users.id', 'students.user_id');
             match ($request->sort) {
-                'name_asc' => $query->orderBy($userSortSubquery),
-                'name_desc' => $query->orderBy($userSortSubquery, 'desc'),
+                'name_asc' => $query->orderBy($firstNameSub),
+                'name_desc' => $query->orderBy($firstNameSub, 'desc'),
                 'oldest' => $query->orderBy('created_at'),
                 default => $query->orderBy('created_at', 'desc'),
             };
@@ -129,6 +127,7 @@ class StudentController extends Controller
             'first_name' => $nameParts[0],
             'last_name'  => $nameParts[1] ?? '',
             'email'      => $data['email'],
+            'phone'      => $data['phone'] ?? null,
             'gender'     => $data['gender'] ?? null,
             'status'     => $data['status'] ?? 'active',
             'password'   => Hash::make($data['password']),
@@ -190,9 +189,21 @@ class StudentController extends Controller
             $studentModel->user->update(['avatar' => $path]);
         }
 
-        // Sync gender/status to user if provided
+        // Sync user fields (first_name, last_name, email, phone, gender, status) to user if provided
         if ($studentModel->user) {
             $userUpdate = [];
+            if (isset($data['first_name'])) {
+                $userUpdate['first_name'] = $data['first_name'];
+            }
+            if (isset($data['last_name'])) {
+                $userUpdate['last_name'] = $data['last_name'];
+            }
+            if (isset($data['email'])) {
+                $userUpdate['email'] = $data['email'];
+            }
+            if (isset($data['phone'])) {
+                $userUpdate['phone'] = $data['phone'];
+            }
             if (isset($data['gender'])) {
                 $userUpdate['gender'] = $data['gender'];
             }

@@ -48,7 +48,6 @@ class StudentRequest extends FormRequest
                 $isUpdate ? 'sometimes' : 'required',
                 'email',
                 'max:255',
-                Rule::unique('students', 'email')->ignore($studentId),
                 Rule::unique('users', 'email')->ignore($userId),
             ],
             'phone' => ['nullable', 'string', 'max:50'],

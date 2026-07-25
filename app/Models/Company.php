@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 use App\Models\CompanyFeedback;
@@ -56,19 +57,19 @@ class Company extends Model
         return Storage::url($this->company_profile_image);
     }
 
-    public function internshipAssignments(): HasMany
+    public function internshipAssignments(): HasManyThrough
     {
-        return $this->hasMany(InternshipAssignment::class);
+        return $this->hasManyThrough(InternshipAssignment::class, CompanySupervisor::class, 'company_id', 'company_supervisors_id');
     }
 
-    public function evaluations(): HasMany
+    public function evaluations(): HasManyThrough
     {
-        return $this->hasMany(Evaluation::class);
+        return $this->hasManyThrough(Evaluation::class, CompanySupervisor::class, 'company_id', 'company_supervisors_id');
     }
 
-    public function feedback(): HasMany
+    public function feedback(): HasManyThrough
     {
-        return $this->hasMany(CompanyFeedback::class);
+        return $this->hasManyThrough(CompanyFeedback::class, CompanySupervisor::class, 'company_id', 'company_supervisors_id');
     }
 
     public function supervisors(): HasMany

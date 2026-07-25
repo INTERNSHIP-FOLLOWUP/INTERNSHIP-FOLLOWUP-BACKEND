@@ -35,8 +35,9 @@ class WorklogController extends Controller
                 $query->where('student_id', $student->id);
             } elseif ($user->role->name === 'tutor') {
                 // Tutors see worklogs of students assigned to them
-                // tutor_id references users.id
-                $studentIds = Student::where('tutor_id', $user->id)->pluck('id');
+                $tutorProfile = $user->tutorProfile ?? \App\Models\Tutor::where('user_id', $user->id)->first();
+                $tutorId = $tutorProfile?->id ?? $user->id;
+                $studentIds = Student::where('tutor_id', $tutorId)->pluck('id');
                 $query->whereIn('student_id', $studentIds);
             }
         }
