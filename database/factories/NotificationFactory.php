@@ -14,6 +14,10 @@ class NotificationFactory extends Factory
     {
         $types = ['general', 'assignment', 'validation', 'worklog', 'evaluation', 'followup', 'issue', 'reminder', 'system'];
         $priorities = ['low', 'normal', 'high', 'urgent'];
+        $entityTypes = ['worklog', 'followup', 'issue', 'assignment', 'evaluation'];
+
+        $entityType = fake()->randomElement($entityTypes);
+        $entityId = fake()->randomNumber(5, true);
 
         return [
             'sender_id' => User::inRandomOrder()->first()?->id,
@@ -22,9 +26,9 @@ class NotificationFactory extends Factory
             'message' => fake()->paragraph(2),
             'type' => fake()->randomElement($types),
             'priority' => fake()->randomElement($priorities),
-            'entity_type' => fake()->randomElement(['worklog', 'followup', 'issue', 'assignment', 'evaluation', null]),
-            'entity_id' => fake()->randomNumber(5, true),
-            'action_url' => fake()->optional()->url(),
+            'entity_type' => $entityType,
+            'entity_id' => $entityId,
+            'action_url' => '/' . $entityType . 's/' . $entityId,
             'is_read' => fake()->boolean(30),
             'read_at' => fake()->optional()->dateTime(),
         ];

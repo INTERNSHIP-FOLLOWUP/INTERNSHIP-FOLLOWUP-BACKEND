@@ -55,6 +55,12 @@ class NotificationResource extends JsonResource
             }
         }
 
+        // Generate action_url from entity_type and entity_id if not explicitly set
+        $actionUrl = $this->action_url;
+        if (empty($actionUrl) && $this->entity_type && $this->entity_id) {
+            $actionUrl = '/' . $this->entity_type . 's/' . $this->entity_id;
+        }
+
         return [
             'id' => $this->id,
             'title' => $this->title,
@@ -62,7 +68,7 @@ class NotificationResource extends JsonResource
             'type' => $this->type,
             'priority' => $this->priority,
             'is_read' => $this->is_read,
-            'action_url' => $this->action_url,
+            'action_url' => $actionUrl,
             'entity_type' => $this->entity_type,
             'entity_id' => $this->entity_id,
             'sender' => $senderData,

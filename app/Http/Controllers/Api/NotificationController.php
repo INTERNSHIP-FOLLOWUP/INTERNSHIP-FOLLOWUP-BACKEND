@@ -35,6 +35,8 @@ class NotificationController extends Controller
 
     public function show(Notification $notification): JsonResponse
     {
+        $this->authorize('view', $notification);
+
         return response()->json([
             'success' => true,
             'data' => new NotificationResource($notification),
@@ -53,6 +55,8 @@ class NotificationController extends Controller
 
     public function markAsRead(Notification $notification): JsonResponse
     {
+        $this->authorize('update', $notification);
+
         $notification = $this->notificationService->markAsRead($notification);
 
         return response()->json([
@@ -74,6 +78,8 @@ class NotificationController extends Controller
 
     public function destroy(Notification $notification): JsonResponse
     {
+        $this->authorize('delete', $notification);
+
         $this->notificationService->deleteNotification($notification);
 
         return response()->json([
