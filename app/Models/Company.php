@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 use App\Models\CompanyFeedback;
@@ -24,7 +25,7 @@ class Company extends Model
         'telegram_link',
     ];
 
-    protected $appends = ['company_image_url', 'company_profile_image_url'];
+    protected $appends = ['company_image_url', 'company_profile_image_url', 'name'];
 
     public function getNameAttribute(): string
     {
@@ -56,9 +57,14 @@ class Company extends Model
         return Storage::url($this->company_profile_image);
     }
 
-    public function internshipAssignments(): HasMany
+    public function internshipAssignments(): HasManyThrough
     {
-        return $this->hasMany(InternshipAssignment::class);
+        return $this->hasManyThrough(
+            InternshipAssignment::class,
+            CompanySupervisor::class,
+            'company_id',
+            'company_supervisors_id'
+        );
     }
 
     public function evaluations(): HasMany
