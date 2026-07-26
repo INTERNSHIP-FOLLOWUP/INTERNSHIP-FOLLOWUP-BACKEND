@@ -7,6 +7,8 @@ use App\Models\Batch;
 use App\Models\Student;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -37,7 +39,7 @@ class BatchController extends Controller
     // Seed batches (2025-2027)
     public function seed()
     {
-        \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'BatchSeeder', '--force' => true]);
+        Artisan::call('db:seed', ['--class' => 'BatchSeeder', '--force' => true]);
         
         $batches = Batch::withCount('students')->get();
 
@@ -72,7 +74,10 @@ class BatchController extends Controller
             ], 422);
         }
 
-        $batch = Batch::create($request->all());
+        $batch = Batch::create([
+            'batch_name' => $request->batch_name,
+            'year' => $request->year,
+        ]);
 
         return response()->json([
             'data' => $batch,
@@ -85,6 +90,9 @@ class BatchController extends Controller
   
     public function show(Batch $batch)
     {
+        $batch->loadCount('students');
+        $batch->load(['students.user']);
+
         return response()->json([
             'data' => $batch,
             'message' => 'Batch retrieved successfully.'
@@ -116,7 +124,10 @@ class BatchController extends Controller
             ], 422);
         }
 
-        $batch->update($request->all());
+        $batch->update([
+            'batch_name' => $request->batch_name,
+            'year' => $request->year,
+        ]);
 
         return response()->json([
             'data' => $batch,
@@ -127,6 +138,13 @@ class BatchController extends Controller
     // Remove the specified batch from storage.
     public function destroy(Batch $batch)
     {
+        // Prevent deletion if batch has assigned students
+        if ($batch->students()->count() > 0) {
+            return response()->json([
+                'message' => 'Cannot delete batch that has assigned students.'
+            ], 422);
+        }
+
         $batch->delete();
 
         return response()->json([
@@ -145,8 +163,9 @@ class BatchController extends Controller
         $totalStudents = $batch->students()->count();
         
         $statusBreakdown = $batch->students()
-            ->select('status', \Illuminate\Support\Facades\DB::raw('count(*) as count'))
-            ->groupBy('status')
+            ->join('users', 'students.user_id', '=', 'users.id')
+            ->select('users.status', DB::raw('count(*) as count'))
+            ->groupBy('users.status')
             ->get()
             ->pluck('count', 'status');
 
