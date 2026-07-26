@@ -48,6 +48,7 @@ Route::middleware('auth:sanctum')->prefix('profile')->name('profile.')->group(fu
     Route::match(['put', 'post'], '/update', [ProfileController::class, 'update'])->name('update');
     Route::put('/password', [ProfileController::class, 'changePassword'])->name('password');
     Route::put('/theme', [ProfileController::class, 'updateTheme'])->name('theme');
+    Route::get('/avatar/download', [ProfileController::class, 'downloadAvatar'])->name('avatar.download');
 });
 
 Route::middleware('auth:sanctum')->prefix('worklogs')->name('worklogs.')->group(function () {
