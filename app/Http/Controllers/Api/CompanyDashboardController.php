@@ -57,8 +57,6 @@ class CompanyDashboardController extends Controller
             ],
             'address'                => ['nullable', 'string', 'max:255'],
             'industry'               => ['nullable', 'string', 'max:255'],
-            'contact_person'         => ['required', 'string', 'max:255'],
-            'phone'                  => ['nullable', 'string', 'max:50'],
             'website'                => ['nullable', 'url', 'max:255'],
             'telegram_link'          => ['nullable', 'string', 'max:255'],
         ];
@@ -103,12 +101,10 @@ class CompanyDashboardController extends Controller
         }
 
         $company->update($validated);
-        $user->refresh();
 
         return response()->json([
-            'company' => $company,
-            'user'    => $user,
             'message' => 'Company profile updated successfully.',
+            'company' => $company->fresh(),
         ]);
     }
 

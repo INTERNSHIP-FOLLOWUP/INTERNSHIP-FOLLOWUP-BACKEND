@@ -34,7 +34,7 @@ class TutorSeeder extends Seeder
                 'phone'      => '012 222 222',
             ],
             [
-                'first_name' => 'Meng Heng',
+                'first_name' => 'Meng Heang',
                 'last_name'  => 'PHO',
                 'email'      => 'meng.heang@tutor.com',
                 'gender'     => 'Male',

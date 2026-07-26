@@ -78,6 +78,8 @@ class StudentImportTest extends TestCase
             'first_name' => 'Sok',
             'last_name' => 'Dara',
             'phone' => '012345678',
+            'gender' => 'Male',
+            'status' => 'active',
             'theme' => 'light',
             'role_id' => $this->studentRole->id,
         ]);
@@ -89,8 +91,6 @@ class StudentImportTest extends TestCase
             'user_id' => $user->id,
             'student_code' => 'STU001',
             'batch_id' => $this->batch->id,
-            'gender' => 'Male',
-            'status' => 'active',
         ]);
     }
 
@@ -120,11 +120,11 @@ class StudentImportTest extends TestCase
         $this->assertEquals(1, $import1->getImportedCount());
         $this->assertEquals(1, $import2->getImportedCount());
 
-        $student1 = Student::where('email', 'sok.dara@example.com')->first();
-        $student2 = Student::where('email', 'channy.ven@example.com')->first();
+        $student1 = User::where('email', 'sok.dara@example.com')->first()?->studentProfile;
+        $student2 = User::where('email', 'channy.ven@example.com')->first()?->studentProfile;
 
-        $this->assertEquals('STU001', $student1->student_code);
-        $this->assertEquals('STU002', $student2->student_code);
+        $this->assertEquals('STU001', $student1?->student_code);
+        $this->assertEquals('STU002', $student2?->student_code);
     }
 
     /** @test */
@@ -260,6 +260,8 @@ class StudentImportTest extends TestCase
             'email' => 'borey.peni@pn-internship.edu.kh',
             'first_name' => 'Borey',
             'last_name' => 'Peni',
+            'gender' => 'Male',
+            'status' => 'active',
         ]);
 
         $user = User::where('email', 'borey.peni@pn-internship.edu.kh')->first();
@@ -267,8 +269,6 @@ class StudentImportTest extends TestCase
         $this->assertDatabaseHas('students', [
             'user_id' => $user->id,
             'batch_id' => $this->batch->id,
-            'gender' => 'Male',
-            'status' => 'active',
         ]);
 
         $this->assertEquals($this->batch->id, $user->studentProfile->batch_id);

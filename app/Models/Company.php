@@ -67,14 +67,14 @@ class Company extends Model
         );
     }
 
-    public function evaluations(): HasMany
+    public function evaluations(): HasManyThrough
     {
-        return $this->hasMany(Evaluation::class);
+        return $this->hasManyThrough(Evaluation::class, CompanySupervisor::class, 'company_id', 'company_supervisors_id');
     }
 
-    public function feedback(): HasMany
+    public function feedback(): HasManyThrough
     {
-        return $this->hasMany(CompanyFeedback::class);
+        return $this->hasManyThrough(CompanyFeedback::class, CompanySupervisor::class, 'company_id', 'company_supervisors_id');
     }
 
     public function supervisors(): HasMany

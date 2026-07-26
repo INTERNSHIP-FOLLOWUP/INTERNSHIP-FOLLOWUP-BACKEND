@@ -12,6 +12,8 @@ class StudentResource extends JsonResource
         $data = [
             'id' => $this->id,
             'user_id' => $this->user_id,
+            'tutor_id' => $this->tutor_id,
+            'batch_id' => $this->batch_id,
             'student_code' => $this->student_code,
             'first_name' => $this->first_name,
             'last_name' => $this->last_name,
@@ -22,6 +24,18 @@ class StudentResource extends JsonResource
             'photo' => $this->photo_url,
             'photo_url' => $this->photo_url,
             'status' => $this->status,
+            'user' => [
+                'id' => $this->user?->id ?? $this->user_id,
+                'first_name' => $this->first_name,
+                'last_name' => $this->last_name,
+                'name' => $this->name,
+                'email' => $this->email,
+                'phone' => $this->phone,
+                'gender' => $this->gender,
+                'status' => $this->status,
+                'avatar' => $this->user?->avatar,
+            ],
+            'deleted_at' => $this->deleted_at?->toISOString(),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
             'batch' => $this->whenLoaded('batch', fn() => [
@@ -31,8 +45,8 @@ class StudentResource extends JsonResource
                 'year' => $this->batch->year,
             ]),
             'tutor' => $this->whenLoaded('tutor', fn() => [
-                'id' => $this->tutor->id,
-                'name' => $this->tutor->name,
+                'id'    => $this->tutor->id,
+                'name'  => trim(($this->tutor->first_name ?? '') . ' ' . ($this->tutor->last_name ?? '')),
                 'email' => $this->tutor->email,
             ]),
         ];

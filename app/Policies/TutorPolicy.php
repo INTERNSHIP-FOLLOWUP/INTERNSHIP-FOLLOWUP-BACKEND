@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Models\Tutor;
 use App\Models\Worklog;
 use App\Models\User;
 use App\Models\Student;
@@ -17,6 +18,12 @@ class TutorPolicy
         return $user->role->name === 'tutor';
     }
 
+    protected function resolveTutorId(User $user): ?int
+    {
+        $tutor = Tutor::where('user_id', $user->id)->first();
+        return $tutor?->id;
+    }
+
     // Worklog policy scoped to tutor-student relationship
     public function viewAny(User $user): bool
     {
@@ -29,9 +36,14 @@ class TutorPolicy
             return false;
         }
 
+        $tutorId = $this->resolveTutorId($user);
+        if (!$tutorId) {
+            return false;
+        }
+
         return Student::query()
             ->where('id', $worklog->student_id)
-            ->where('tutor_id', $user->id)
+            ->where('tutor_id', $tutorId)
             ->exists();
     }
 
@@ -53,7 +65,12 @@ class TutorPolicy
             return false;
         }
 
-        return $student->tutor_id === $user->id;
+        $tutorId = $this->resolveTutorId($user);
+        if (!$tutorId) {
+            return false;
+        }
+
+        return $student->tutor_id === $tutorId;
     }
 
     public function updateStudentStatus(User $user, Student $student): bool
@@ -73,9 +90,14 @@ class TutorPolicy
             return false;
         }
 
-        return $issue->tutor_id === $user->id
+        $tutorId = $this->resolveTutorId($user);
+        if (!$tutorId) {
+            return false;
+        }
+
+        return $issue->tutor_id === $tutorId
             && Student::where('id', $issue->student_id)
-                ->where('tutor_id', $user->id)
+                ->where('tutor_id', $tutorId)
                 ->exists();
     }
 
@@ -101,9 +123,14 @@ class TutorPolicy
             return false;
         }
 
-        return $followup->tutor_id === $user->id
+        $tutorId = $this->resolveTutorId($user);
+        if (!$tutorId) {
+            return false;
+        }
+
+        return $followup->tutor_id === $tutorId
             && Student::where('id', $followup->student_id)
-                ->where('tutor_id', $user->id)
+                ->where('tutor_id', $tutorId)
                 ->exists();
     }
 
@@ -129,6 +156,11 @@ class TutorPolicy
             return false;
         }
 
-        return $assignment->tutor_id === $user->id;
+        $tutorId = $this->resolveTutorId($user);
+        if (!$tutorId) {
+            return false;
+        }
+
+        return $assignment->tutor_id === $tutorId;
     }
 }

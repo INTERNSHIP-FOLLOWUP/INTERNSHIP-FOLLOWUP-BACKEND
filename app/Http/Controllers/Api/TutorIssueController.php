@@ -31,12 +31,11 @@ class TutorIssueController extends Controller
         return $id;
     }
 
-    /**
-     * Resolve the user's ID — tutor_id columns reference users.id, not tutors.id.
-     */
     private function resolveTutorId(\Illuminate\Contracts\Auth\Authenticatable $user): ?int
     {
-        return $user->getAuthIdentifier();
+        // students.tutor_id / issues.tutor_id reference tutors.id (NOT users.id)
+        $tutor = \App\Models\Tutor::where('user_id', $user->getAuthIdentifier())->first();
+        return $tutor?->id;  // null if no Tutor profile — NEVER fall back to users.id
     }
 
     /**

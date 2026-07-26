@@ -8,6 +8,16 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasColumn('company_supervisors', 'email')) {
+            try {
+                Schema::table('company_supervisors', function (Blueprint $table) {
+                    $table->dropUnique('company_supervisors_email_unique');
+                });
+            } catch (\Throwable $e) {
+                // ignore if index does not exist
+            }
+        }
+
         Schema::table('company_supervisors', function (Blueprint $table) {
             if (Schema::hasColumn('company_supervisors', 'first_name')) {
                 $table->dropColumn('first_name');

@@ -18,14 +18,15 @@ class AuthController extends Controller
     private function userResponse(User $user): array
     {
         return [
-            'id'     => $user->id,
+            'id'         => $user->id,
             'first_name' => $user->first_name,
-            'last_name' => $user->last_name,
-            'name'   => $user->name,
-            'email'  => $user->email,
-            'avatar' => $user->avatar,
-            'role'   => $user->role?->name ?? '',
-            'theme'  => $user->theme ?? 'light',
+            'last_name'  => $user->last_name,
+            'name'       => $user->name,
+            'email'      => $user->email,
+            'avatar'     => $user->avatar,
+            'avatar_url' => $user->avatar_url,
+            'role'       => $user->role?->name ?? '',
+            'theme'      => $user->theme ?? 'light',
             'must_change_password' => (bool) $user->must_change_password,
         ];
     }
@@ -256,8 +257,10 @@ class AuthController extends Controller
         $user->save();
 
         return response()->json([
-            'message' => 'Avatar uploaded successfully',
-            'avatar'  => $user->avatar,
+            'message'    => 'Avatar uploaded successfully',
+            'avatar'     => $user->avatar,
+            'avatar_url' => $user->avatar_url,
+            'user'       => $this->userResponse($user),
         ]);
     }
 

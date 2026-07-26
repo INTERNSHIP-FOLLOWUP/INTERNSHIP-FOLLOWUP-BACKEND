@@ -13,12 +13,21 @@ class StoreFollowupRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('company_supervisor_id') && !$this->has('company_supervisors_id')) {
+            $this->merge(['company_supervisors_id' => $this->input('company_supervisor_id')]);
+        } elseif ($this->has('company_id') && !$this->has('company_supervisors_id')) {
+            $this->merge(['company_supervisors_id' => $this->input('company_id')]);
+        }
+    }
+
     public function rules(): array
     {
         return [
             'student_id' => 'required|integer|exists:students,id',
             'company_supervisors_id' => 'nullable|integer|exists:company_supervisors,id',
-            'meeting_type' => 'required|in:Monthly,Quarterly,Annual',
+            'meeting_type' => 'required|string|max:255',
             'meeting_date' => 'required|date',
             'notes' => 'required|string|max:5000',
             'action_items' => 'nullable|string|max:5000',

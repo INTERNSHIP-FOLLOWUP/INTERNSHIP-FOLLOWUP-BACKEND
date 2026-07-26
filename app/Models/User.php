@@ -36,6 +36,9 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'studentProfile',
+        'tutorProfile',
+        'supervisorProfile',
     ];
 
     protected $appends = [
@@ -67,12 +70,15 @@ class User extends Authenticatable
             return $this->avatar;
         }
 
-        return Storage::url($this->avatar);
+        return asset('storage/' . ltrim($this->avatar, '/'));
     }
 
     public function getStudentCodeAttribute(): ?string
     {
-        return $this->studentProfile?->student_code;
+        if ($this->relationLoaded('studentProfile')) {
+            return $this->studentProfile?->student_code;
+        }
+        return null;
     }
 
     public function role(): BelongsTo
@@ -103,7 +109,7 @@ class User extends Authenticatable
     public function scopeWithTutorStudentCount(Builder $query): void
     {
         $query->select('*')->addSelect(DB::raw(
-            '(SELECT COUNT(*) FROM students WHERE tutor_id IN (SELECT id FROM tutors WHERE user_id = users.id)) as students_count'
+            '(SELECT COUNT(*) FROM students WHERE tutor_id = users.id OR tutor_id IN (SELECT id FROM tutors WHERE user_id = users.id)) as students_count'
         ));
     }
 }

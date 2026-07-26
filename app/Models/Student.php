@@ -60,6 +60,8 @@ class Student extends Model
         return $this->user?->status;
     }
 
+    protected $hidden = ['user'];
+
     protected $appends = ['name', 'first_name', 'last_name', 'email', 'phone', 'photo_url', 'gender', 'status'];
 
     protected $casts = [
@@ -75,8 +77,12 @@ class Student extends Model
 
     public function tutor(): BelongsTo
     {
-        // tutor_id references users.id, so join on tutors.user_id not tutors.id
-        return $this->belongsTo(Tutor::class, 'tutor_id', 'user_id');
+        return $this->belongsTo(Tutor::class, 'tutor_id');
+    }
+
+    public function tutorUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'tutor_id', 'id');
     }
 
     public function user(): BelongsTo

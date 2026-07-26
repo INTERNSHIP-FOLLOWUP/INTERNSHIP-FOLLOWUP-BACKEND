@@ -80,6 +80,7 @@ class CompanySupervisorController extends Controller
             'first_name' => $validated['first_name'],
             'last_name' => $validated['last_name'],
             'email' => $validated['email'],
+            'status' => 'active',
             'password' => Hash::make($validated['password']),
             'must_change_password' => true,
             'role_id' => $role->id,
@@ -94,7 +95,6 @@ class CompanySupervisorController extends Controller
         $supervisor = CompanySupervisor::create([
             'user_id' => $user->id,
             'company_id' => $company->id,
-            'status' => 'active',
         ]);
 
         return response()->json([
@@ -106,7 +106,7 @@ class CompanySupervisorController extends Controller
                 'first_name' => $user->first_name,
                 'last_name' => $user->last_name,
                 'phone' => $user->phone,
-                'status' => $supervisor->status,
+                'status' => $user->status,
                 'created_at' => $supervisor->created_at?->toISOString(),
             ],
             'message' => 'Supervisor created successfully.',
@@ -122,7 +122,7 @@ class CompanySupervisorController extends Controller
             return response()->json(['message' => 'Supervisor does not belong to this company.'], 404);
         }
 
-        $supervisor->load('user:id,first_name,last_name,email,phone,avatar,last_active_at');
+        $supervisor->load('user:id,first_name,last_name,email,phone,avatar,last_active_at,status');
 
         return response()->json([
             'data' => [
@@ -166,7 +166,6 @@ class CompanySupervisorController extends Controller
         }
 
         $validated = $validator->validated();
-        $supervisor->update(collect($validated)->only(['status'])->toArray());
 
         // Sync the linked User record
         if ($supervisor->user) {
@@ -182,6 +181,9 @@ class CompanySupervisorController extends Controller
             }
             if (isset($validated['phone'])) {
                 $userData['phone'] = $validated['phone'];
+            }
+            if (isset($validated['status'])) {
+                $userData['status'] = $validated['status'];
             }
             if (!empty($userData)) {
                 $supervisor->user->update($userData);

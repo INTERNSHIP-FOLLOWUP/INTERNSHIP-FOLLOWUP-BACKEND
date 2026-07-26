@@ -38,6 +38,23 @@ class WorklogApiTest extends TestCase
         $tutorRole = Role::where('name', 'tutor')->first();
         $batch = Batch::create(['batch_name' => 'Test Batch', 'year' => '2026']);
 
+        // Create tutor user and profile
+        $this->tutorUser = User::create([
+            'first_name' => 'Test',
+            'last_name' => 'Tutor',
+            'email' => 'tutor@test.com',
+            'password' => bcrypt('password'),
+            'role_id' => $tutorRole->id,
+        ]);
+
+        $this->tutor = \App\Models\Tutor::create([
+            'user_id' => $this->tutorUser->id,
+            'first_name' => 'Test',
+            'last_name' => 'Tutor',
+            'email' => 'tutor@test.com',
+            'status' => 'active',
+        ]);
+
         // Create student user
         $this->studentUser = User::create([
             'first_name' => 'Test',
@@ -52,20 +69,12 @@ class WorklogApiTest extends TestCase
             'user_id' => $this->studentUser->id,
             'student_code' => 'STU001',
             'batch_id' => $batch->id,
+            'tutor_id' => $this->tutor->id,
             'first_name' => 'Test',
             'last_name' => 'Student',
             'gender' => 'Male',
             'email' => 'student@test.com',
             'status' => 'Active',
-        ]);
-
-        // Create tutor user
-        $this->tutorUser = User::create([
-            'first_name' => 'Test',
-            'last_name' => 'Tutor',
-            'email' => 'tutor@test.com',
-            'password' => bcrypt('password'),
-            'role_id' => $tutorRole->id,
         ]);
 
         $this->studentToken = $this->studentUser->createToken('test-token')->plainTextToken;
@@ -148,7 +157,8 @@ class WorklogApiTest extends TestCase
         // Create another student
         $otherStudent = Student::create([
             'student_code' => 'STU002',
-            'name' => 'Other Student',
+            'first_name' => 'Other',
+            'last_name' => 'Student',
             'gender' => 'Female',
             'email' => 'other@test.com',
             'status' => 'Active',
@@ -172,7 +182,7 @@ class WorklogApiTest extends TestCase
     public function tutor_can_see_assigned_students_worklogs()
     {
         // Assign student to tutor
-        $this->student->update(['tutor_id' => $this->tutorUser->id]);
+        $this->student->update(['tutor_id' => $this->tutor->id]);
 
         Worklog::create([
             'student_id' => $this->student->id,
@@ -419,8 +429,18 @@ class WorklogApiTest extends TestCase
     /** @test */
     public function tutor_cannot_approve_unassigned_student_worklog()
     {
+        $unassignedStudent = Student::create([
+            'student_code' => 'STU999',
+            'first_name' => 'Unassigned',
+            'last_name' => 'Student',
+            'gender' => 'Male',
+            'email' => 'unassigned@test.com',
+            'status' => 'Active',
+            'tutor_id' => null,
+        ]);
+
         $worklog = Worklog::create([
-            'student_id' => $this->student->id,
+            'student_id' => $unassignedStudent->id,
             'week_number' => 1,
             'description' => 'Submitted worklog',
             'submission_date' => now()->toDateString(),

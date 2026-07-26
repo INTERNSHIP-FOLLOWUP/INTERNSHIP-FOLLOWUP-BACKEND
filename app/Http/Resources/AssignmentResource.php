@@ -13,6 +13,8 @@ class AssignmentResource extends JsonResource
             'id' => $this->id,
             'student_id' => $this->student_id,
             'company_supervisors_id' => $this->company_supervisors_id,
+            'company_supervisor_id' => $this->company_supervisors_id,
+            'company_id' => $this->supervisor?->company_id,
             'tutor_id' => $this->tutor_id,
             'position' => $this->position,
             'start_date' => $this->start_date?->format('Y-m-d'),

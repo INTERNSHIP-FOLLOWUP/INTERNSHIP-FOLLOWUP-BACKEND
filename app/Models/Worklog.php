@@ -40,6 +40,11 @@ class Worklog extends Model
         return $this->belongsTo(Student::class);
     }
 
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewer_id');
+    }
+
     public function attachments(): HasMany
     {
         return $this->hasMany(Attachment::class);

@@ -22,6 +22,13 @@ class InternshipAssignmentRequest extends FormRequest
         return $assignment instanceof InternshipAssignment ? $assignment->getKey() : $assignment;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('company_supervisor_id') && !$this->has('company_supervisors_id')) {
+            $this->merge(['company_supervisors_id' => $this->input('company_supervisor_id')]);
+        }
+    }
+
     public function rules(): array
     {
         $assignmentId = $this->assignmentId();

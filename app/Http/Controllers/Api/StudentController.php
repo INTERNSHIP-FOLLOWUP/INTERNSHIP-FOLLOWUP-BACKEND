@@ -27,36 +27,71 @@ class StudentController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Student::with(['batch', 'tutor', 'user']);
+        $query = Student::withTrashed()->with(['batch', 'tutor', 'user']);
 
         if ($request->filled('batch_id')) {
             $query->where('batch_id', $request->batch_id);
         }
 
         if ($request->filled('tutor_id')) {
-            $query->where('tutor_id', $request->tutor_id);
+            $tutorId = (int) $request->tutor_id;
+
+            // students.tutor_id stores the Tutor model's primary key.
+            // However, the dropdown may send the tutor's user_id (from t.user_id || t.id).
+            // Resolve: if it's a user_id, look up the Tutor record's id.
+            $tutorRecord = \App\Models\Tutor::find($tutorId);
+            if ($tutorRecord) {
+                // Direct Tutor ID match
+                $query->where('tutor_id', $tutorRecord->id);
+            } else {
+                // Might be a user_id — find the Tutor profile
+                $tutorByUserId = \App\Models\Tutor::where('user_id', $tutorId)->first();
+                if ($tutorByUserId) {
+                    $query->where('tutor_id', $tutorByUserId->id);
+                } else {
+                    // No match found — return no results
+                    $query->whereRaw('1 = 0');
+                }
+            }
         }
 
         if ($request->filled('status')) {
-            $query->whereHas('user', fn($q) => $q->where('status', $request->status));
+            $status = strtolower($request->status);
+            $query->whereHas('user', function ($q) use ($status) {
+                if ($status === 'deactivated' || $status === 'inactive') {
+                    $q->whereIn('status', ['deactivated', 'inactive'])
+                      ->orWhereNotNull('deleted_at');
+                } elseif ($status === 'active') {
+                    $q->where('status', 'active')
+                      ->whereNull('deleted_at');
+                } else {
+                    $q->where('status', $status);
+                }
+            });
+        }
+
+        if ($request->filled('gender')) {
+            $gender = strtolower($request->gender);
+            $query->whereHas('user', function ($q) use ($gender) {
+                $q->whereRaw('LOWER(gender) = ?', [$gender]);
+            });
         }
 
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->whereHas('user', fn($qq) => $qq->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%"))
-                  ->orWhere('student_code', 'like', "%{$search}%")
-                  ->orWhereHas('user', fn($qq) => $qq->where('email', 'like', "%{$search}%"));
+                  ->orWhere('last_name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%"))
+                  ->orWhere('student_code', 'like', "%{$search}%");
             });
         }
 
-        $userSortSubquery = DB::raw('(SELECT CONCAT(first_name, \' \', last_name) FROM users WHERE users.id = students.user_id)');
-
         if ($request->filled('sort')) {
+            $firstNameSub = User::select('first_name')->whereColumn('users.id', 'students.user_id');
             match ($request->sort) {
-                'name_asc' => $query->orderBy($userSortSubquery),
-                'name_desc' => $query->orderBy($userSortSubquery, 'desc'),
+                'name_asc' => $query->orderBy($firstNameSub),
+                'name_desc' => $query->orderBy($firstNameSub, 'desc'),
                 'oldest' => $query->orderBy('created_at'),
                 default => $query->orderBy('created_at', 'desc'),
             };
@@ -92,6 +127,7 @@ class StudentController extends Controller
             'first_name' => $nameParts[0],
             'last_name'  => $nameParts[1] ?? '',
             'email'      => $data['email'],
+            'phone'      => $data['phone'] ?? null,
             'gender'     => $data['gender'] ?? null,
             'status'     => $data['status'] ?? 'active',
             'password'   => Hash::make($data['password']),
@@ -153,9 +189,21 @@ class StudentController extends Controller
             $studentModel->user->update(['avatar' => $path]);
         }
 
-        // Sync gender/status to user if provided
+        // Sync user fields (first_name, last_name, email, phone, gender, status) to user if provided
         if ($studentModel->user) {
             $userUpdate = [];
+            if (isset($data['first_name'])) {
+                $userUpdate['first_name'] = $data['first_name'];
+            }
+            if (isset($data['last_name'])) {
+                $userUpdate['last_name'] = $data['last_name'];
+            }
+            if (isset($data['email'])) {
+                $userUpdate['email'] = $data['email'];
+            }
+            if (isset($data['phone'])) {
+                $userUpdate['phone'] = $data['phone'];
+            }
             if (isset($data['gender'])) {
                 $userUpdate['gender'] = $data['gender'];
             }
@@ -170,6 +218,30 @@ class StudentController extends Controller
         unset($data['password'], $data['password_confirmation'], $data['name'], $data['first_name'], $data['last_name'], $data['email'], $data['phone'], $data['photo'], $data['gender'], $data['status']);
 
         $studentModel->update($data);
+
+        if (isset($data['status'])) {
+            $user = User::withTrashed()->find($studentModel->user_id);
+            if ($user) {
+                if (($data['status'] === 'inactive' || $data['status'] === 'deactivated') && !$user->trashed()) {
+                    $user->delete();
+                } elseif ($data['status'] === 'active' && $user->trashed()) {
+                    $user->restore();
+                }
+            }
+        }
+
+        if ($studentModel->user) {
+            $userUpdate = [];
+            if (isset($data['email'])) $userUpdate['email'] = $data['email'];
+            if (isset($data['first_name'])) $userUpdate['first_name'] = $data['first_name'];
+            if (isset($data['last_name'])) $userUpdate['last_name'] = $data['last_name'];
+            if (isset($data['first_name']) || isset($data['last_name'])) {
+                $userUpdate['name'] = trim(($data['first_name'] ?? $studentModel->first_name) . ' ' . ($data['last_name'] ?? $studentModel->last_name));
+            }
+            if (!empty($userUpdate)) {
+                $studentModel->user->update($userUpdate);
+            }
+        }
 
         return response()->json([
             'data' => new StudentResource($studentModel->fresh()->load(['batch', 'tutor', 'user'])),
@@ -202,7 +274,7 @@ class StudentController extends Controller
             ini_set('memory_limit', '1024M'); // 1GB memory
             ini_set('default_socket_timeout', 600); // 10 minutes socket timeout
             ini_set('max_input_time', 600); // 10 minutes input time
-            
+
             $import = new StudentImport();
             Excel::import($import, $request->file('file'));
         } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {

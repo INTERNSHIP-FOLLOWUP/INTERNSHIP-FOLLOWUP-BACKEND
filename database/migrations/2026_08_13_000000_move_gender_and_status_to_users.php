@@ -39,11 +39,19 @@ return new class extends Migration
         });
 
         // Drop status from company_supervisors
-        Schema::table('company_supervisors', function (Blueprint $table) {
-            if (Schema::hasColumn('company_supervisors', 'status')) {
-                $table->dropColumn('status');
+        if (Schema::hasColumn('company_supervisors', 'status')) {
+            try {
+                Schema::table('company_supervisors', function (Blueprint $table) {
+                    $table->dropIndex('company_supervisors_company_id_status_index');
+                });
+            } catch (\Throwable $e) {
+                // index might not exist
             }
-        });
+
+            Schema::table('company_supervisors', function (Blueprint $table) {
+                $table->dropColumn('status');
+            });
+        }
     }
 
     public function down(): void

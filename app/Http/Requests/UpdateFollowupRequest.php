@@ -13,12 +13,21 @@ class UpdateFollowupRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('company_supervisor_id') && !$this->has('company_supervisors_id')) {
+            $this->merge(['company_supervisors_id' => $this->input('company_supervisor_id')]);
+        } elseif ($this->has('company_id') && !$this->has('company_supervisors_id')) {
+            $this->merge(['company_supervisors_id' => $this->input('company_supervisor_id')]);
+        }
+    }
+
     public function rules(): array
     {
         return [
             'student_id' => 'sometimes|integer|exists:students,id',
             'company_supervisors_id' => 'nullable|integer|exists:company_supervisors,id',
-            'meeting_type' => 'sometimes|in:Monthly,Quarterly,Annual',
+            'meeting_type' => 'sometimes|string|max:255',
             'meeting_date' => 'sometimes|date',
             'notes' => 'sometimes|string|max:5000',
             'action_items' => 'nullable|string|max:5000',

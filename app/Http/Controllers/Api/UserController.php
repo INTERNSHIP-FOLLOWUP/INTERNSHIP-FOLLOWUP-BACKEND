@@ -50,7 +50,39 @@ class UserController extends Controller
                 $query->withTutorStudentCount();
             }
             if ($request->role === 'student') {
-                $query->with('studentProfile');
+                $query->with(['studentProfile.batch', 'studentProfile.tutor']);
+
+                if ($request->filled('batch_id')) {
+                    $query->whereHas('studentProfile', function ($q) use ($request) {
+                        $q->where('batch_id', $request->batch_id);
+                    });
+                }
+                if ($request->filled('tutor_id')) {
+                    $tutorId = (int) $request->tutor_id;
+
+                    // students.tutor_id stores the User ID of the tutor.
+                    $tutorRecord = \App\Models\Tutor::find($tutorId);
+                    $targetUserId = $tutorRecord ? $tutorRecord->user_id : $tutorId;
+
+                    $query->whereHas('studentProfile', function ($q) use ($targetUserId) {
+                        $q->where('tutor_id', $targetUserId);
+                    });
+                }
+                if ($request->filled('gender')) {
+                    $gender = strtolower($request->gender);
+                    $query->whereRaw('LOWER(gender) = ?', [$gender]);
+                }
+                if ($request->filled('student_status')) {
+                    $status = strtolower($request->student_status);
+                    if ($status === 'deactivated' || $status === 'inactive') {
+                        $query->where(function ($q) {
+                            $q->whereIn('status', ['deactivated', 'inactive'])
+                              ->orWhereNotNull('deleted_at');
+                        });
+                    } else {
+                        $query->where('status', $status);
+                    }
+                }
             }
             if ($request->role === 'supervisor') {
                 $query->with('supervisorProfile.company:id,company_name');
@@ -79,11 +111,12 @@ class UserController extends Controller
 
         $users = $query->paginate($request->per_page ?? 15);
 
+        $roleIds = Role::pluck('id', 'name');
         $roleCounts = [
-            'admin' => User::whereHas('role', fn($q) => $q->where('name', 'admin'))->count(),
+            'admin' => User::where('role_id', $roleIds['admin'] ?? null)->count(),
             'tutor' => Tutor::count(),
-            'student' => User::whereHas('role', fn($q) => $q->where('name', 'student'))->count(),
-            'supervisor' => User::whereHas('role', fn($q) => $q->where('name', 'supervisor'))->count(),
+            'student' => User::where('role_id', $roleIds['student'] ?? null)->count(),
+            'supervisor' => User::where('role_id', $roleIds['supervisor'] ?? null)->count(),
         ];
 
         return response()->json([
@@ -115,6 +148,11 @@ class UserController extends Controller
         $validated['role_id'] = $role?->id;
         unset($validated['role']);
 
+        if ($request->hasFile('avatar')) {
+            $path = $request->file('avatar')->store('avatars', 'public');
+            $validated['avatar'] = $path;
+        }
+
         $user = User::create($validated);
         $user->must_change_password = $user->role?->name === 'supervisor';
         $user->save();
@@ -137,6 +175,14 @@ class UserController extends Controller
     {
         $validated = $request->validated();
 
+        if ($request->hasFile('avatar')) {
+            if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+                Storage::disk('public')->delete($user->avatar);
+            }
+            $path = $request->file('avatar')->store('avatars', 'public');
+            $validated['avatar'] = $path;
+        }
+
         if (isset($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
             $validated['must_change_password'] = $user->role?->name === 'supervisor';
@@ -148,10 +194,34 @@ class UserController extends Controller
             unset($validated['role']);
         }
 
+        if (isset($validated['first_name']) || isset($validated['last_name'])) {
+            $firstName = $validated['first_name'] ?? $user->first_name;
+            $lastName = $validated['last_name'] ?? $user->last_name;
+            $validated['name'] = trim("{$firstName} {$lastName}");
+        }
+
         $user->update($validated);
 
+        if ($user->studentProfile) {
+            $studentData = array_intersect_key($validated, array_flip([
+                'first_name', 'last_name', 'email', 'student_code', 'gender', 'phone', 'batch_id', 'tutor_id', 'status'
+            ]));
+            if (!empty($studentData)) {
+                $user->studentProfile->update($studentData);
+            }
+        }
+
+        if ($user->tutorProfile) {
+            $tutorData = array_intersect_key($validated, array_flip([
+                'first_name', 'last_name', 'email', 'phone', 'status'
+            ]));
+            if (!empty($tutorData)) {
+                $user->tutorProfile->update($tutorData);
+            }
+        }
+
         return response()->json([
-            'user' => $user->fresh()->load('role'),
+            'user' => $user->fresh()->load(['role', 'studentProfile', 'tutorProfile']),
             'message' => 'User updated successfully.',
         ]);
     }
@@ -258,33 +328,87 @@ class UserController extends Controller
         ]);
     }
 
-    public function activate(string $id): JsonResponse
+    public function activate(Request $request, string $id): JsonResponse
     {
-        $user = User::onlyTrashed()->findOrFail($id);
+        $user = User::withTrashed()->find($id);
+        $student = null;
 
-        $user->restore();
+        if (!$user) {
+            $student = Student::withTrashed()->find($id);
+            if ($student && $student->user_id) {
+                $user = User::withTrashed()->find($student->user_id);
+            }
+        }
 
-        return response()->json([
-            'user' => $user->fresh()->load('role'),
-            'message' => 'User activated successfully.',
-        ]);
+        if ($user) {
+            if ($user->trashed()) {
+                $user->restore();
+            }
+            if ($user->studentProfile) {
+                if ($user->studentProfile->trashed()) {
+                    $user->studentProfile->restore();
+                }
+                $user->studentProfile->update(['status' => 'active']);
+            }
+            return response()->json([
+                'user' => $user->fresh()->load('role'),
+                'message' => 'User activated successfully.',
+            ]);
+        }
+
+        if ($student) {
+            if ($student->trashed()) {
+                $student->restore();
+            }
+            $student->update(['status' => 'active']);
+            return response()->json([
+                'message' => 'Student activated successfully.',
+            ]);
+        }
+
+        return response()->json(['message' => 'User or Student not found.'], 404);
     }
 
-    public function deactivate(User $user): JsonResponse
+    public function deactivate(Request $request, string $id): JsonResponse
     {
-        if ($user->id === request()->user()->id) {
-            return response()->json(['message' => 'You cannot deactivate your own account.'], 403);
+        $user = User::find($id);
+        $student = null;
+
+        if (!$user) {
+            $student = Student::find($id);
+            if ($student && $student->user_id) {
+                $user = User::find($student->user_id);
+            }
         }
 
-        if ($user->trashed()) {
-            return response()->json(['message' => 'User is already deactivated.'], 422);
+        if ($user) {
+            if ($user->id === $request->user()?->id) {
+                return response()->json(['message' => 'You cannot deactivate your own account.'], 403);
+            }
+
+            if ($user->trashed()) {
+                return response()->json(['message' => 'User is already deactivated.'], 422);
+            }
+
+            if ($user->studentProfile) {
+                $user->studentProfile->update(['status' => 'inactive']);
+            }
+
+            $user->delete();
+
+            return response()->json([
+                'message' => 'User deactivated successfully.',
+            ]);
         }
 
-        $user->delete();
+        if ($student) {
+            $student->update(['status' => 'inactive']);
+            return response()->json([
+                'message' => 'Student deactivated successfully.',
+            ]);
+        }
 
-        return response()->json([
-            'message' => 'User deactivated successfully.',
-        ]);
+        return response()->json(['message' => 'User or Student not found.'], 404);
     }
 
     public function resetPassword(Request $request, string $id): JsonResponse
@@ -494,7 +618,7 @@ class UserController extends Controller
             ->get();
 
         $evaluations = $student->evaluations()
-            ->with('company:id,company_name')
+            ->with(['supervisor.company'])
             ->select('id', 'company_supervisors_id', 'technical_skill', 'communication', 'professionalism', 'attendance', 'overall_score', 'feedback', 'created_at')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -505,7 +629,7 @@ class UserController extends Controller
             ->get();
 
         $assignment = $student->internshipAssignment()
-            ->with('company:id,company_name')
+            ->with(['supervisor.company'])
             ->first();
 
         $worklogStats = [
@@ -516,6 +640,7 @@ class UserController extends Controller
         ];
 
         $avgScore = $evaluations->avg('overall_score');
+        $companyRecord = $assignment ? ($assignment->company ?? $assignment->supervisor?->company) : null;
 
         return response()->json([
             'student' => [
@@ -539,7 +664,7 @@ class UserController extends Controller
                 'start_date' => $assignment->start_date,
                 'end_date' => $assignment->end_date,
                 'status' => $assignment->status,
-                'company' => $assignment->company ? ['id' => $assignment->company->id, 'name' => $assignment->company->name] : null,
+                'company' => $companyRecord ? ['id' => $companyRecord->id, 'company_name' => $companyRecord->company_name, 'name' => $companyRecord->name ?? $companyRecord->company_name] : null,
             ] : null,
         ]);
     }

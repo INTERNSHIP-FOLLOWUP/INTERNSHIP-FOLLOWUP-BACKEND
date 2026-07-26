@@ -11,42 +11,42 @@ use App\Models\Student;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class FollowupController extends Controller
 {
-    /**
-     * Resolve the user's ID — tutor_id columns reference users.id, not tutors.id.
-     */
     private function resolveTutorId(Authenticatable $user): ?int
     {
-        return $user->getAuthIdentifier();
+        $tutor = \App\Models\Tutor::where('user_id', $user->getAuthIdentifier())->first();
+        return $tutor?->id;
     }
 
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
 
-        if (!$user || $user->role?->name !== 'tutor') {
-            return response()->json(['message' => 'Forbidden.'], 403);
-        }
-
-        $tutorId = $this->resolveTutorId($user);
-        if (!$tutorId) {
-            return response()->json([
-                'success' => true,
-                'data' => [],
-                'meta' => [
-                    'total' => 0, 'per_page' => 15, 'current_page' => 1,
-                    'last_page' => 1, 'from' => null, 'to' => null,
-                ],
-            ], 200);
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
         $query = Followup::query()
-            ->where('tutor_id', $tutorId)
-            ->with(['student:id,user_id', 'supervisor.company:id,company_name']);
+            ->with(['student:id,user_id,batch_id,tutor_id', 'tutor:id,user_id', 'tutor.user:id,first_name,last_name,email', 'supervisor.company:id,company_name']);
+
+        if ($user->role?->name === 'tutor') {
+            $tutorId = $this->resolveTutorId($user);
+            $query->where('tutor_id', $tutorId);
+        } elseif ($user->role?->name === 'student') {
+            $studentId = $user->studentProfile?->id;
+            if ($studentId) {
+                $query->where('student_id', $studentId);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        } elseif ($user->role?->name === 'admin') {
+            if ($request->filled('tutor_id')) {
+                $query->where('tutor_id', $request->tutor_id);
+            }
+        }
 
         if ($request->filled('student_id')) {
             $query->where('student_id', $request->student_id);
@@ -71,7 +71,8 @@ class FollowupController extends Controller
             });
         }
 
-        $followups = $query->latest('scheduled_at')->paginate(15);
+        $perPage = min((int) ($request->per_page ?? 15), 100) ?: 15;
+        $followups = $query->latest('scheduled_at')->paginate($perPage);
 
         return response()->json([
             'success' => true,
@@ -87,27 +88,54 @@ class FollowupController extends Controller
         ]);
     }
 
+    public function show(Request $request, Followup $followup): JsonResponse
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        if ($user->role?->name === 'tutor' && $followup->tutor_id !== $this->resolveTutorId($user)) {
+            return response()->json(['message' => 'Follow-up not found.'], 404);
+        }
+
+        if ($user->role?->name === 'student') {
+            $studentId = $user->studentProfile?->id;
+            if ($followup->student_id !== $studentId) {
+                return response()->json(['message' => 'Follow-up not found.'], 404);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => new FollowupResource($followup->load(['student', 'tutor', 'supervisor.company'])),
+        ]);
+    }
+
     public function store(StoreFollowupRequest $request): JsonResponse
     {
         $user = $request->user();
 
-        if (!$user || $user->role?->name !== 'tutor') {
+        if (!$user || !in_array($user->role?->name, ['tutor', 'admin'])) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
-        $tutorId = $this->resolveTutorId($user);
+        $validated = $request->validated();
+        $tutorId = $user->role?->name === 'tutor' ? $this->resolveTutorId($user) : ($validated['tutor_id'] ?? null);
+
         if (!$tutorId) {
             return response()->json(['message' => 'Tutor profile not found.'], 403);
         }
 
-        $validated = $request->validated();
+        if ($user->role?->name === 'tutor') {
+            $studentAssigned = Student::where('id', $validated['student_id'])
+                ->where('tutor_id', $tutorId)
+                ->exists();
 
-        $studentAssigned = Student::where('id', $validated['student_id'])
-            ->where('tutor_id', $tutorId)
-            ->exists();
-
-        if (!$studentAssigned) {
-            return response()->json(['message' => 'Student not assigned to you.'], 403);
+            if (!$studentAssigned) {
+                return response()->json(['message' => 'Student not assigned to you.'], 403);
+            }
         }
 
         $followup = Followup::create([
@@ -125,7 +153,7 @@ class FollowupController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Follow-up created successfully.',
-            'data' => new FollowupResource($followup->load(['student', 'supervisor.company'])),
+            'data' => new FollowupResource($followup->load(['student', 'tutor', 'supervisor.company'])),
         ], 201);
     }
 
@@ -133,21 +161,15 @@ class FollowupController extends Controller
     {
         $user = $request->user();
 
-        if (!$user || $user->role?->name !== 'tutor') {
+        if (!$user || !in_array($user->role?->name, ['tutor', 'admin'])) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
-        $tutorId = $this->resolveTutorId($user);
-        if (!$tutorId) {
-            return response()->json(['message' => 'Tutor profile not found.'], 403);
-        }
-
-        if ($followup->tutor_id !== $tutorId) {
+        if ($user->role?->name === 'tutor' && $followup->tutor_id !== $this->resolveTutorId($user)) {
             return response()->json(['message' => 'Follow-up not found.'], 404);
         }
 
         $validated = $request->validated();
-
         $updateData = [];
 
         if (isset($validated['student_id'])) {
@@ -180,7 +202,7 @@ class FollowupController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Follow-up updated successfully.',
-            'data' => new FollowupResource($followup->load(['student', 'supervisor.company'])),
+            'data' => new FollowupResource($followup->load(['student', 'tutor', 'supervisor.company'])),
         ], 200);
     }
 
@@ -188,16 +210,11 @@ class FollowupController extends Controller
     {
         $user = $request->user();
 
-        if (!$user || $user->role?->name !== 'tutor') {
+        if (!$user || !in_array($user->role?->name, ['tutor', 'admin'])) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
-        $tutorId = $this->resolveTutorId($user);
-        if (!$tutorId) {
-            return response()->json(['message' => 'Tutor profile not found.'], 403);
-        }
-
-        if ($followup->tutor_id !== $tutorId) {
+        if ($user->role?->name === 'tutor' && $followup->tutor_id !== $this->resolveTutorId($user)) {
             return response()->json(['message' => 'Follow-up not found.'], 404);
         }
 

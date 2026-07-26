@@ -31,20 +31,38 @@ class IssueController extends Controller
         return $id;
     }
 
+    private function resolveTutorId(\Illuminate\Contracts\Auth\Authenticatable $user): ?int
+    {
+        $tutor = \App\Models\Tutor::where('user_id', $user->getAuthIdentifier())->first();
+        return $tutor?->id;
+    }
+
     public function index(Request $request)
     {
-        $user = Auth::user();
+        $user = $request->user() ?? Auth::user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
         $query = Issue::query()
             ->with(['student', 'tutor', 'reporter', 'assignedUser', 'attachments']);
-        if ($user->role->name === 'student') {
+        if ($user->role?->name === 'student') {
             $student = $user->studentProfile;
             if (!$student) {
                 return response()->json(['message' => 'Student profile not found'], 404);
             }
-            $query->where('student_id', $student->id);
-        } elseif ($user->role->name === 'tutor') {
-            // tutor_id references users.id
-            $query->where('tutor_id', $user->id);
+            $query->where(function ($q) use ($student, $user) {
+                $q->where('student_id', $student->id)
+                  ->orWhere('assigned_user_id', $user->id);
+            });
+        } elseif ($user->role?->name === 'tutor') {
+            $tutorId = $this->resolveTutorId($user);
+            $userId = $user->id;
+            $query->where(function ($q) use ($tutorId, $userId) {
+                $q->where('tutor_id', $tutorId)
+                  ->orWhere('assigned_user_id', $userId)
+                  ->orWhere('reporter_id', $userId)
+                  ->orWhereHas('student', fn($sq) => $sq->where('tutor_id', $tutorId));
+            });
         }
 
         // Filters
@@ -53,7 +71,7 @@ class IssueController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
                     ->orWhere('description', 'like', "%{$search}%")
-                    ->orWhereHas('student', fn($sq) => $sq->where('name', 'like', "%{$search}%"));
+                    ->orWhereHas('student.user', fn($sq) => $sq->where(DB::raw("CONCAT(first_name, ' ', last_name)"), 'like', "%{$search}%"));
             });
         }
 
@@ -90,11 +108,20 @@ class IssueController extends Controller
         if ($user->role->name === 'student') {
             $student = $user->studentProfile;
             if ($student) {
-                $query->where('student_id', $student->id);
+                $query->where(function ($q) use ($student, $user) {
+                    $q->where('student_id', $student->id)
+                      ->orWhere('assigned_user_id', $user->id);
+                });
             }
-        } elseif ($user->role->name === 'tutor') {
-            // tutor_id references users.id
-            $query->where('tutor_id', $user->id);
+        } elseif ($user->role?->name === 'tutor') {
+            $tutorId = $this->resolveTutorId($user);
+            $userId = $user->id;
+            $query->where(function ($q) use ($tutorId, $userId) {
+                $q->where('tutor_id', $tutorId)
+                  ->orWhere('assigned_user_id', $userId)
+                  ->orWhere('reporter_id', $userId)
+                  ->orWhereHas('student', fn($sq) => $sq->where('tutor_id', $tutorId));
+            });
         }
 
         return response()->json([
@@ -111,15 +138,18 @@ class IssueController extends Controller
         $decodedId = $this->decodeIssueId($id);
         $issue = Issue::with(['student', 'tutor', 'reporter', 'assignedUser', 'attachments', 'history.user'])
             ->findOrFail($decodedId);
-        if ($user->role->name === 'student') {
-            $student = Student::where('email', $user->email)->first();
-            if (!$student || $issue->student_id !== $student->id) {
+        if ($user->role?->name === 'student') {
+            $student = $user->studentProfile ?? Student::where('user_id', $user->id)->first();
+            if (!$student || ($issue->student_id !== $student->id && $issue->assigned_user_id !== $user->id)) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
-        } elseif ($user->role->name === 'tutor') {
-            // tutor_id references users.id
-            if ($issue->tutor_id !== $user->id) {
-                return response()->json(['message' => 'Unauthorized'], 403);
+        } elseif ($user->role?->name === 'tutor') {
+            $tutorId = $this->resolveTutorId($user);
+            if ($issue->tutor_id !== $tutorId && $issue->assigned_user_id !== $user->id && $issue->reporter_id !== $user->id) {
+                $studentBelongs = Student::where('id', $issue->student_id)->where('tutor_id', $tutorId)->exists();
+                if (!$studentBelongs) {
+                    return response()->json(['message' => 'Unauthorized'], 403);
+                }
             }
         }
 
@@ -144,11 +174,12 @@ class IssueController extends Controller
             'attachments.*' => 'file|mimes:pdf,docx,png,zip|max:10240',
         ];
 
-        // Student: auto-resolve student_id from auth, no need to provide it
-        if ($user->role->name === 'student') {
-            // student_id is not required in request body for students
-        } else {
-            // Admin/tutor must specify which student
+        // Only tutors and admins can create issues
+        if (!in_array($user->role->name, ['tutor', 'admin'])) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        if ($user->role->name !== 'admin') {
             $validationRules['student_id'] = 'required|exists:students,id';
         }
 
@@ -159,35 +190,25 @@ class IssueController extends Controller
         $reporterId = $user->id;
 
         if ($user->role->name === 'tutor') {
-            // tutor_id references users.id
-            $tutorId = $user->id;
+            $tutorId = $this->resolveTutorId($user);
 
             // Verify the student belongs to this tutor
-            $studentAssigned = Student::where('id', $validated['student_id'])
+            $student = Student::with('user')->where('id', $validated['student_id'])
                 ->where('tutor_id', $tutorId)
-                ->exists();
-            if (!$studentAssigned) {
-                return response()->json(['message' => 'You can only assign issues to your own students.'], 403);
-            }
-        } elseif ($user->role->name === 'student') {
-            // Auto-resolve student from authenticated user
-            $student = $user->studentProfile;
+                ->first();
             if (!$student) {
-                return response()->json(['message' => 'Student profile not found'], 404);
+                return response()->json(['message' => 'You can only create issues for your own students.'], 403);
             }
-            $validated['student_id'] = $student->id;
-            $tutorId = $student->tutor_id;
         } elseif ($user->role->name === 'admin') {
-            // Admin can create issues for any student, tutor_id stays null
-            $tutorId = null;
+            $student = Student::with('user')->find($validated['student_id']);
         }
 
-        $issue = DB::transaction(function () use ($validated, $tutorId, $reporterId, $request) {
+        $issue = DB::transaction(function () use ($validated, $tutorId, $reporterId, $request, $student) {
             $issue = Issue::create([
                 'student_id' => $validated['student_id'],
                 'reporter_id' => $reporterId,
                 'tutor_id' => $tutorId,
-                'assigned_user_id' => $validated['assigned_user_id'] ?? $tutorId,
+                'assigned_user_id' => $validated['assigned_user_id'] ?? $student?->user_id,
                 'title' => $validated['title'],
                 'description' => $validated['description'],
                 'status' => $validated['status'] ?? 'Open',
@@ -227,37 +248,23 @@ class IssueController extends Controller
         $decodedId = $this->decodeIssueId($id);
         $issue = Issue::findOrFail($decodedId);
         if ($user->role->name === 'student') {
-            $student = $user->studentProfile;
-            if (!$student || $issue->student_id !== $student->id) {
+            if ($issue->assigned_user_id !== $user->id) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
-            $validated = $request->validate([
-                'description' => 'nullable|string',
-                'status' => 'nullable|in:Open,In Progress,Resolved,Closed',
-            ]);
         } elseif ($user->role->name === 'tutor') {
-            // tutor_id references users.id
-            if ($issue->tutor_id !== $user->id) {
+            if ($issue->tutor_id !== $this->resolveTutorId($user)) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
-            $validated = $request->validate([
-                'title' => 'nullable|string|max:255',
-                'description' => 'nullable|string',
-                'status' => 'nullable|in:Open,In Progress,Resolved,Closed',
-                'priority' => 'nullable|in:Low,Medium,High,Critical',
-                'assigned_user_id' => 'nullable|exists:users,id',
-                'due_date' => 'nullable|date',
-            ]);
-        } else {
-            $validated = $request->validate([
-                'title' => 'nullable|string|max:255',
-                'description' => 'nullable|string',
-                'status' => 'nullable|in:Open,In Progress,Resolved,Closed',
-                'priority' => 'nullable|in:Low,Medium,High,Critical',
-                'assigned_user_id' => 'nullable|exists:users,id',
-                'due_date' => 'nullable|date',
-            ]);
         }
+
+        $validated = $request->validate([
+            'title' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'status' => 'nullable|in:Open,In Progress,Resolved,Closed',
+            'priority' => 'nullable|in:Low,Medium,High,Critical',
+            'assigned_user_id' => 'nullable|exists:users,id',
+            'due_date' => 'nullable|date',
+        ]);
 
         $changedFields = [];
         foreach ($validated as $key => $value) {
@@ -314,8 +321,11 @@ class IssueController extends Controller
         $decodedId = $this->decodeIssueId($id);
         $issue = Issue::findOrFail($decodedId);
 
-        if ($user->role->name === 'tutor' && $issue->tutor_id !== $user->id) {
-            // tutor_id references users.id
+        if ($user->role->name === 'student' && $issue->assigned_user_id !== $user->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        if ($user->role->name === 'tutor' && $issue->tutor_id !== $this->resolveTutorId($user)) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -345,8 +355,11 @@ class IssueController extends Controller
         $decodedId = $this->decodeIssueId($id);
         $issue = Issue::findOrFail($decodedId);
 
-        if ($user->role->name === 'tutor' && $issue->tutor_id !== $user->id) {
-            // tutor_id references users.id
+        if ($user->role->name === 'student' && $issue->assigned_user_id !== $user->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        if ($user->role->name === 'tutor' && $issue->tutor_id !== $this->resolveTutorId($user)) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 

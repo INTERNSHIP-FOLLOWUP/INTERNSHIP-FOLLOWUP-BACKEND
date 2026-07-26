@@ -31,12 +31,29 @@ class Followup extends Model
 
     public function tutor(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'tutor_id');
+        return $this->belongsTo(Tutor::class, 'tutor_id');
     }
 
     public function supervisor(): BelongsTo
     {
         return $this->belongsTo(CompanySupervisor::class, 'company_supervisors_id');
+    }
+
+    public function companySupervisor(): BelongsTo
+    {
+        return $this->belongsTo(CompanySupervisor::class, 'company_supervisors_id');
+    }
+
+    public function company(): \Illuminate\Database\Eloquent\Relations\HasOneThrough
+    {
+        return $this->hasOneThrough(
+            Company::class,
+            CompanySupervisor::class,
+            'id',
+            'id',
+            'company_supervisors_id',
+            'company_id'
+        );
     }
 }
 
