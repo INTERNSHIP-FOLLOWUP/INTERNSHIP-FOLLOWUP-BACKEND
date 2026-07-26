@@ -230,7 +230,7 @@ class AuthController extends Controller
 
         return response()->json($this->userResponse($user));
     }
-    
+
     public function uploadAvatar(Request $request)
     {
         $user = $request->user();
