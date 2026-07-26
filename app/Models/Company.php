@@ -25,7 +25,7 @@ class Company extends Model
         'telegram_link',
     ];
 
-    protected $appends = ['company_image_url', 'company_profile_image_url'];
+    protected $appends = ['company_image_url', 'company_profile_image_url', 'name'];
 
     public function getNameAttribute(): string
     {
@@ -59,7 +59,12 @@ class Company extends Model
 
     public function internshipAssignments(): HasManyThrough
     {
-        return $this->hasManyThrough(InternshipAssignment::class, CompanySupervisor::class, 'company_id', 'company_supervisors_id');
+        return $this->hasManyThrough(
+            InternshipAssignment::class,
+            CompanySupervisor::class,
+            'company_id',
+            'company_supervisors_id'
+        );
     }
 
     public function evaluations(): HasManyThrough

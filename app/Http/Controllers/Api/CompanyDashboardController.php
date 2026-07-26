@@ -15,11 +15,11 @@ class CompanyDashboardController extends Controller
     /**
      * Get the company linked to the authenticated supervisor.
      */
-    private function getCompany(Request $request): Company
+    private function getCompany(Request $request): ?Company
     {
-        $supervisor = CompanySupervisor::where('user_id', $request->user()->id)->firstOrFail();
+        $supervisor = CompanySupervisor::where('user_id', $request->user()->id)->first();
 
-        return $supervisor->company;
+        return $supervisor?->company;
     }
 
     /**
@@ -43,6 +43,10 @@ class CompanyDashboardController extends Controller
     {
         $user = $request->user();
         $company = $this->getCompany($request);
+
+        if (!$company) {
+            return response()->json(['message' => 'No company assigned to this supervisor.'], 404);
+        }
 
         $rules = [
             'company_name' => [
@@ -109,10 +113,19 @@ class CompanyDashboardController extends Controller
      */
     public function students(Request $request)
     {
-        $company = $this->getCompany($request);
+        $supervisor = CompanySupervisor::where('user_id', $request->user()->id)->first();
+
+        if (!$supervisor || !$supervisor->company_id) {
+            return response()->json([
+                'data' => [],
+                'message' => 'No company assigned to this supervisor.',
+            ]);
+        }
 
         $assignments = InternshipAssignment::with(['student.batch', 'tutor'])
-            ->whereHas('supervisor', fn($q) => $q->where('company_id', $company->id))
+            ->whereHas('supervisor', function ($q) use ($supervisor) {
+                $q->where('company_id', $supervisor->company_id);
+            })
             ->get();
 
         $students = $assignments->map(function ($assignment) {
