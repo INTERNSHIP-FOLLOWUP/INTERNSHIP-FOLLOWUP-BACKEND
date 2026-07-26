@@ -67,8 +67,10 @@ class User extends Authenticatable
     {
         if (!$this->avatar) return null;
 
-        if (str_starts_with($this->avatar, 'http://') ||
-            str_starts_with($this->avatar, 'https://')) {
+        if (
+            str_starts_with($this->avatar, 'http://') ||
+            str_starts_with($this->avatar, 'https://')
+        ) {
             return $this->avatar;
         }
 
