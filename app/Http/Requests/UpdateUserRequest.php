@@ -30,6 +30,7 @@ class UpdateUserRequest extends FormRequest
             'phone' => ['sometimes', 'nullable', 'string', 'max:50'],
             'batch_id' => ['sometimes', 'nullable', 'integer', 'exists:batches,id'],
             'tutor_id' => ['sometimes', 'nullable', 'integer'],
+            'company_id' => ['sometimes', 'nullable', 'integer', 'exists:companies,id'],
             'status' => ['sometimes', 'nullable', 'string', 'max:50'],
         ];
     }
