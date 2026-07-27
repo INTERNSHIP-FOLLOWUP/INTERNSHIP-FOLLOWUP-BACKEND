@@ -7,6 +7,7 @@ use App\Models\Company;
 use App\Models\CompanySupervisor;
 use App\Models\InternshipAssignment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class CompanyDashboardController extends Controller

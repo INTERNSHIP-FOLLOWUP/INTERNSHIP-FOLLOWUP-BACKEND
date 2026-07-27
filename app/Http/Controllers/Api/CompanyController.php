@@ -5,8 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CompanyRequest;
 use App\Models\Company;
+use App\Models\Role;
+use App\Models\User;
 use Illuminate\Http\Request;
-    
 class CompanyController extends Controller
 {
     public function index(Request $request)
