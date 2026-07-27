@@ -29,8 +29,7 @@ class TutorDashboardService
         // Follow-ups due in next 14 days
         $followupsDue = (int) Followup::query()
             ->whereIn('student_id', $studentIds)
-            ->where('status', 'Scheduled')
-            ->whereBetween('scheduled_at', [now(), now()->addDays(14)])
+            ->whereBetween('meeting_date', [now(), now()->addDays(14)])
             ->count();
 
         // Open issues — count only issues assigned to this tutor with status 'Open'
@@ -74,25 +73,26 @@ class TutorDashboardService
         // Upcoming followups
         $followups = Followup::query()
             ->whereIn('student_id', $studentIds)
-            ->where('status', 'Scheduled')
-            ->whereBetween('scheduled_at', [now()->subDays(1), now()->addDays(14)])
+            ->whereBetween('meeting_date', [now()->subDays(1), now()->addDays(14)])
             ->with('student:id,user_id')
-            ->orderBy('scheduled_at')
+            ->orderBy('meeting_date')
             ->limit(10)
             ->get()
             ->map(function ($f) {
-                $date = Carbon::parse($f->scheduled_at);
+                $date = Carbon::parse($f->meeting_date);
                 $relative = $this->relativeDate($date);
 
                 return [
                     'id' => $f->id,
                     'scheduled_at' => $date->toISOString(),
+                    'meeting_date' => $date->toDateString(),
                     'date_label' => $date->format('M j, Y'),
                     'time_label' => $date->format('g:i A'),
                     'relative' => $relative,
-                    'type' => $f->type,
+                    'type' => $f->meeting_type,
+                    'meeting_type' => $f->meeting_type,
                     'notes' => $f->notes,
-                    'status' => $f->status,
+                    'status' => 'Scheduled',
                     'student' => $f->student ? [
                         'id' => $f->student->id,
                         'name' => $f->student->name,

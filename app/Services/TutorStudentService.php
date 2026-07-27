@@ -142,23 +142,26 @@ class TutorStudentService
         $f = Followup::query()
             ->where('student_id', $studentId)
             ->where('tutor_id', $tutorId)
-            ->where('status', 'Scheduled')
-            ->where('scheduled_at', '>=', now()->subDay())
-            ->orderBy('scheduled_at')
+            ->where('meeting_date', '>=', now()->subDay())
+            ->orderBy('meeting_date')
             ->first();
 
         if (!$f) {
             return null;
         }
 
+        $date = \Carbon\Carbon::parse($f->meeting_date);
+
         return [
             'id' => $f->id,
-            'scheduled_at' => $f->scheduled_at->toISOString(),
-            'date_label' => $f->scheduled_at->format('M j, Y'),
-            'time_label' => $f->scheduled_at->format('g:i A'),
-            'type' => $f->type,
+            'scheduled_at' => $date->toISOString(),
+            'meeting_date' => $date->toDateString(),
+            'date_label' => $date->format('M j, Y'),
+            'time_label' => $date->format('g:i A'),
+            'type' => $f->meeting_type,
+            'meeting_type' => $f->meeting_type,
             'notes' => $f->notes,
-            'status' => $f->status,
+            'status' => 'Scheduled',
         ];
     }
 }
