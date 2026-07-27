@@ -7,6 +7,7 @@ use App\Models\Company;
 use App\Models\CompanySupervisor;
 use App\Models\InternshipAssignment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class CompanyDashboardController extends Controller
@@ -44,7 +45,7 @@ class CompanyDashboardController extends Controller
             return response()->json(['message' => 'No company assigned to this supervisor.'], 404);
         }
 
-        $validated = $request->validate([
+        $rules = [
             'company_name' => [
                 'required',
                 'string',
@@ -54,11 +55,7 @@ class CompanyDashboardController extends Controller
             'address'                => ['nullable', 'string', 'max:255'],
             'industry'               => ['nullable', 'string', 'max:255'],
             'website'                => ['nullable', 'url', 'max:255'],
-            'company_profile_image'  => ['nullable', 'string', 'max:255'],
             'telegram_link'          => ['nullable', 'string', 'max:255'],
-<<<<<<< HEAD
-        ]);
-=======
         ];
 
         // Conditional validation: file upload vs URL string
@@ -98,18 +95,15 @@ class CompanyDashboardController extends Controller
             }
             $validated['company_profile_image'] = $request->file('company_profile_image')
                 ->store('avatars', 'public');
+        } elseif ($request->filled('company_profile_image')) {
+            $validated['company_profile_image'] = $request->input('company_profile_image');
         }
->>>>>>> sprint-4
 
         $company->update($validated);
 
         return response()->json([
-<<<<<<< HEAD
-=======
-            'company' => $company,
->>>>>>> sprint-4
-            'message' => 'Company profile updated successfully.',
             'company' => $company->fresh(),
+            'message' => 'Company profile updated successfully.',
         ]);
     }
 

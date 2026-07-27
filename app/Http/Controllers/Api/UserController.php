@@ -88,9 +88,6 @@ class UserController extends Controller
                 }
             }
             if ($request->role === 'supervisor') {
-<<<<<<< HEAD
-                $query->with('supervisorProfile.company:id,company_name,company_image,company_profile_image');
-=======
                 $query->with('supervisorProfile.company');
 
                 if ($request->filled('company_id')) {
@@ -99,7 +96,6 @@ class UserController extends Controller
                         $q->where('company_id', $companyId);
                     });
                 }
->>>>>>> sprint-4
             }
         }
 
@@ -153,12 +149,8 @@ class UserController extends Controller
 
     public function show(User $user): JsonResponse
     {
-<<<<<<< HEAD
-        $user->loadMissing(['role', 'studentProfile', 'tutorProfile', 'supervisorProfile.company:id,company_name,company_image,company_profile_image']);
-        $user->makeVisible(['studentProfile', 'tutorProfile', 'supervisorProfile']);
-=======
         $user->loadMissing(['role', 'studentProfile', 'tutorProfile', 'supervisorProfile.company']);
->>>>>>> sprint-4
+        $user->makeVisible(['studentProfile', 'tutorProfile', 'supervisorProfile']);
 
         return response()->json([
             'data' => $user,
@@ -201,7 +193,10 @@ class UserController extends Controller
             ]);
         }
 
-        return response()->json($user->load(['role', 'supervisorProfile.company']), 201);
+        $user->load(['role', 'supervisorProfile.company']);
+        $user->makeVisible('supervisorProfile');
+
+        return response()->json($user, 201);
     }
 
     public function update(UpdateUserRequest $request, User $user): JsonResponse
@@ -263,19 +258,11 @@ class UserController extends Controller
             }
         }
 
-        if ($user->supervisorProfile && isset($validated['company_id'])) {
-            $user->supervisorProfile->update(['company_id' => $validated['company_id']]);
-        }
-
         $fresh = $user->fresh()->load(['role', 'studentProfile', 'tutorProfile', 'supervisorProfile.company']);
         $fresh->makeVisible(['studentProfile', 'tutorProfile', 'supervisorProfile']);
 
         return response()->json([
-<<<<<<< HEAD
             'user' => $fresh,
-=======
-            'user' => $user->fresh()->load(['role', 'studentProfile', 'tutorProfile', 'supervisorProfile.company']),
->>>>>>> sprint-4
             'message' => 'User updated successfully.',
         ]);
     }
