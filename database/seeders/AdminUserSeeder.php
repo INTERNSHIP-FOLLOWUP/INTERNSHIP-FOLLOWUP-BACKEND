@@ -27,7 +27,7 @@ class AdminUserSeeder extends Seeder
                 continue;
             }
 
-            User::updateOrCreate(
+            User::firstOrCreate(
                 ['email' => $userData['email']],
                 [
                     'first_name' => $userData['first_name'],

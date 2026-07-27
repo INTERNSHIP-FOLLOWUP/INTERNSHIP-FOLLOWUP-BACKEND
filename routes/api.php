@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\WorklogController;
 use App\Http\Controllers\Api\FollowupController;
 use App\Http\Controllers\Api\AssignmentController;
 use App\Http\Controllers\Api\StudentController;
+use App\Http\Controllers\Api\StudentDashboardController;
 // use App\Http\Controllers\AuthController;
 
 use Illuminate\Support\Facades\Route;
@@ -63,18 +64,6 @@ Route::middleware('auth:sanctum')->prefix('worklogs')->name('worklogs.')->group(
 Route::middleware(['auth:sanctum', 'role:supervisor'])->prefix('company')->name('company.')->group(function () {
     Route::get('/profile', [CompanyDashboardController::class, 'profile'])->name('profile');
     Route::put('/profile', [CompanyDashboardController::class, 'updateProfile'])->name('profile.update');
-    Route::get('/students', [CompanyDashboardController::class, 'students'])->name('students');
-    Route::get('/feedback', [App\Http\Controllers\Api\CompanyFeedbackController::class, 'index'])->name('feedback.index');
-    Route::post('/feedback', [App\Http\Controllers\Api\CompanyFeedbackController::class, 'store'])->name('feedback.store');
-    Route::get('/feedback/{companyFeedback}', [App\Http\Controllers\Api\CompanyFeedbackController::class, 'show'])->name('feedback.show');
-    Route::put('/feedback/{companyFeedback}', [App\Http\Controllers\Api\CompanyFeedbackController::class, 'update'])->name('feedback.update');
-    Route::delete('/feedback/{companyFeedback}', [App\Http\Controllers\Api\CompanyFeedbackController::class, 'destroy'])->name('feedback.destroy');
-
-    // Company-Tutor Messaging
-    Route::get('/messages', [App\Http\Controllers\Api\CompanyMessageController::class, 'conversations'])->name('messages.conversations');
-    Route::get('/messages/poll', [App\Http\Controllers\Api\CompanyMessageController::class, 'poll'])->name('messages.poll');
-    Route::get('/messages/{otherParty}', [App\Http\Controllers\Api\CompanyMessageController::class, 'messages'])->name('messages.show');
-    Route::post('/messages/{otherParty}', [App\Http\Controllers\Api\CompanyMessageController::class, 'send'])->name('messages.send');
 });
 
 Route::middleware(['auth:sanctum', 'role:supervisor'])->prefix('evaluations')->name('evaluations.')->group(function () {
@@ -89,7 +78,6 @@ Route::middleware(['auth:sanctum', 'role:tutor,student,admin,supervisor'])->pref
     Route::get('/', [App\Http\Controllers\Api\IssueController::class, 'index'])->name('index');
     Route::get('/stats', [App\Http\Controllers\Api\IssueController::class, 'stats'])->name('stats');
     Route::post('/', [App\Http\Controllers\Api\IssueController::class, 'store'])->name('store');
-    Route::get('/stats', [App\Http\Controllers\Api\IssueController::class, 'stats'])->name('stats');
     Route::get('/{issue}', [App\Http\Controllers\Api\IssueController::class, 'show'])->name('show');
     Route::put('/{issue}', [App\Http\Controllers\Api\IssueController::class, 'update'])->name('update');
     Route::delete('/{issue}', [App\Http\Controllers\Api\IssueController::class, 'destroy'])->name('destroy');
@@ -107,18 +95,15 @@ Route::middleware(['auth:sanctum', 'role:admin,tutor,student'])->prefix('followu
 
 Route::middleware(['auth:sanctum', 'role:student'])->prefix('student')->name('student.')->group(function () {
     Route::get('/internship', [AssignmentController::class, 'myInternship'])->name('internship');
-
-    // Student messaging with tutor
+    Route::get('/profile', [StudentDashboardController::class, 'profile'])->name('profile');
+    Route::put('/profile', [StudentDashboardController::class, 'updateProfile'])->name('profile.update');
+    Route::post('/profile/photo', [StudentDashboardController::class, 'uploadPhoto'])->name('profile.photo');
+    Route::put('/profile/password', [StudentDashboardController::class, 'updatePassword'])->name('profile.password');
+    Route::post('/worklogs', [WorklogController::class, 'store'])->name('worklogs.store');
+    Route::get('/worklogs', [WorklogController::class, 'index'])->name('worklogs.index');
+    Route::get('/worklogs/{worklog}', [WorklogController::class, 'show'])->name('worklogs.show');
     Route::get('/messages', [\App\Http\Controllers\Api\TutorStudentMessageController::class, 'studentConversations'])->name('messages.index');
     Route::post('/messages', [\App\Http\Controllers\Api\TutorStudentMessageController::class, 'studentSend'])->name('messages.send');
-});
-
-// Tutor Messaging Routes (accessible by tutor and company)
-Route::middleware(['auth:sanctum', 'role:tutor'])->prefix('tutor')->name('tutor.')->group(function () {
-    Route::get('/messages', [App\Http\Controllers\Api\CompanyMessageController::class, 'conversations'])->name('messages.conversations');
-    Route::get('/messages/poll', [App\Http\Controllers\Api\CompanyMessageController::class, 'poll'])->name('messages.poll');
-    Route::get('/messages/{otherParty}', [App\Http\Controllers\Api\CompanyMessageController::class, 'messages'])->name('messages.show');
-    Route::post('/messages/{otherParty}', [App\Http\Controllers\Api\CompanyMessageController::class, 'send'])->name('messages.send');
 });
 
 Route::middleware(['auth:sanctum', 'role:admin,tutor,student'])->prefix('worklogs')->name('worklogs.')->group(function () {
@@ -168,6 +153,12 @@ Route::middleware(['auth:sanctum', 'role:tutor'])->prefix('tutor')->name('tutor.
     // Company Feedback
     Route::get('/feedback/stats', [\App\Http\Controllers\Api\CompanyFeedbackController::class, 'stats'])->name('feedback.stats');
     Route::get('/feedback', [\App\Http\Controllers\Api\CompanyFeedbackController::class, 'adminIndex'])->name('feedback.index');
+
+    // Company-Tutor Messaging
+    Route::get('/messages', [App\Http\Controllers\Api\CompanyMessageController::class, 'conversations'])->name('messages.conversations');
+    Route::get('/messages/poll', [App\Http\Controllers\Api\CompanyMessageController::class, 'poll'])->name('messages.poll');
+    Route::get('/messages/{otherParty}', [App\Http\Controllers\Api\CompanyMessageController::class, 'messages'])->name('messages.show');
+    Route::post('/messages/{otherParty}', [App\Http\Controllers\Api\CompanyMessageController::class, 'send'])->name('messages.send');
 
     // Tutor-Student Messaging
     Route::get('/student-messages', [\App\Http\Controllers\Api\TutorStudentMessageController::class, 'conversations'])->name('student-messages.conversations');

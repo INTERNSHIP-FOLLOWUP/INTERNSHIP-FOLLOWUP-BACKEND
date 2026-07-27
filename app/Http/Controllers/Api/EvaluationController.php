@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\CompanySupervisor;
 use App\Models\Evaluation;
+use App\Models\Student;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -21,7 +22,7 @@ class EvaluationController extends Controller
         $user = Auth::user();
         $query = Evaluation::query()->with(['supervisor.company', 'student']);
 
-        if ($user->role->name === 'supervisor') {
+if ($user->role->name === 'supervisor') {
             $supervisor = $this->getSupervisor();
             $query->where('company_supervisors_id', $supervisor->id);
         }
@@ -37,6 +38,9 @@ class EvaluationController extends Controller
         return response()->json($query->paginate(15));
     }
 
+    /**
+     * Store a newly created resource in storage.
+     */
     public function store(Request $request)
     {
         $user = Auth::user();
@@ -47,6 +51,7 @@ class EvaluationController extends Controller
 
         $validated = $request->validate([
             'student_id' => 'required|exists:students,id',
+            'company_id' => 'required|exists:companies,id',
             'technical_skill' => 'required|integer|min:1|max:100',
             'communication' => 'required|integer|min:1|max:100',
             'professionalism' => 'required|integer|min:1|max:100',
@@ -54,7 +59,7 @@ class EvaluationController extends Controller
             'feedback' => 'nullable|string',
         ]);
 
-        $supervisor = $this->getSupervisor();
+$supervisor = $this->getSupervisor();
         $validated['company_supervisors_id'] = $supervisor->id;
 
         $evaluation = Evaluation::create($validated);
@@ -62,12 +67,15 @@ class EvaluationController extends Controller
         return response()->json($evaluation->load(['supervisor.company', 'student']), 201);
     }
 
+    /**
+     * Display the specified resource.
+     */
     public function show(string $id)
     {
         $user = Auth::user();
         $evaluation = Evaluation::with(['supervisor.company', 'student'])->findOrFail($id);
 
-        if ($user->role->name === 'supervisor') {
+if ($user->role->name === 'supervisor') {
             $supervisor = $this->getSupervisor();
             if ($evaluation->company_supervisors_id !== $supervisor->id) {
                 return response()->json(['message' => 'Unauthorized'], 403);
@@ -77,6 +85,9 @@ class EvaluationController extends Controller
         return response()->json($evaluation);
     }
 
+    /**
+     * Update the specified resource in storage.
+     */
     public function update(Request $request, string $id)
     {
         $user = Auth::user();
@@ -104,6 +115,9 @@ class EvaluationController extends Controller
         return response()->json($evaluation->load(['supervisor.company', 'student']));
     }
 
+    /**
+     * Remove the specified resource from storage.
+     */
     public function destroy(string $id)
     {
         $user = Auth::user();

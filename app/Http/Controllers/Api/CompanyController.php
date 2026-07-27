@@ -5,8 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CompanyRequest;
 use App\Models\Company;
+use App\Models\Role;
+use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
     
 class CompanyController extends Controller
 {
@@ -40,23 +41,35 @@ class CompanyController extends Controller
     {
         $data = $request->validated();
 
-        // Handle company_image upload
-        if ($request->hasFile('company_image')) {
-            $data['company_image'] = $request->file('company_image')
-                ->store('companies', 'public');
-        } elseif ($request->filled('company_image')) {
-            $data['company_image'] = $request->input('company_image');
+// Password is not needed on the Company model
+        $companyData = $data;
+        unset($companyData['password']);
+
+        $company = Company::create($companyData);
+
+        $role = Role::where('name', 'company')->first();
+
+        if (! $role) {
+            return response()->json([
+                'message' => 'Required role "company" not found. Please run database seeders.',
+            ], 500);
         }
 
-        // Handle company_profile_image upload
-        if ($request->hasFile('company_profile_image')) {
-            $data['company_profile_image'] = $request->file('company_profile_image')
-                ->store('avatars', 'public');
-        } elseif ($request->filled('company_profile_image')) {
-            $data['company_profile_image'] = $request->input('company_profile_image');
-        }
+        $user = User::create([
+            'first_name' => $data['contact_person'],
+            'last_name'  => '',
+            'email'      => $data['email'],
+            'password'   => $data['password'],
+            'must_change_password' => true,
+            'role_id'    => $role->id,
+        ]);
 
-        $company = Company::create($data);
+        // Link the newly created user back to the company record
+        $company->user_id = $user->id;
+        $company->save();
+
+        // Refresh the company to include the relationship
+        $company->load('user');
 
         return response()->json([
             'company' => $company,
@@ -79,30 +92,8 @@ class CompanyController extends Controller
     {
         $data = $request->validated();
 
-        // Handle company_image upload
-        if ($request->hasFile('company_image')) {
-            if ($company->company_image &&
-                !str_starts_with($company->company_image, 'http://') &&
-                !str_starts_with($company->company_image, 'https://')) {
-                Storage::disk('public')->delete($company->company_image);
-            }
-            $data['company_image'] = $request->file('company_image')
-                ->store('companies', 'public');
-        } elseif ($request->filled('company_image')) {
-            $data['company_image'] = $request->input('company_image');
-        }
-
-        // Handle company_profile_image upload
-        if ($request->hasFile('company_profile_image')) {
-            if ($company->company_profile_image &&
-                !str_starts_with($company->company_profile_image, 'http://') &&
-                !str_starts_with($company->company_profile_image, 'https://')) {
-                Storage::disk('public')->delete($company->company_profile_image);
-            }
-            $data['company_profile_image'] = $request->file('company_profile_image')
-                ->store('avatars', 'public');
-        } elseif ($request->filled('company_profile_image')) {
-            $data['company_profile_image'] = $request->input('company_profile_image');
+if (empty($data['password'])) {
+            unset($data['password']);
         }
 
         $company->update($data);

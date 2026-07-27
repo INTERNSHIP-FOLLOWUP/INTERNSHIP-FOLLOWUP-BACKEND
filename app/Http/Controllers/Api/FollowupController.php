@@ -24,12 +24,9 @@ class FollowupController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
+        $role = $user->role?->name;
 
-        if (!$user) {
-            return response()->json(['message' => 'Unauthenticated.'], 401);
-        }
-
-        $query = Followup::query()
+$query = Followup::query()
             ->with(['student:id,user_id,batch_id,tutor_id', 'tutor:id,user_id', 'tutor.user:id,first_name,last_name,email', 'supervisor.company:id,company_name']);
 
         if ($user->role?->name === 'tutor') {
@@ -52,16 +49,12 @@ class FollowupController extends Controller
             $query->where('student_id', $request->student_id);
         }
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
         if ($request->filled('from')) {
-            $query->where('scheduled_at', '>=', $request->from);
+            $query->where('meeting_date', '>=', $request->from);
         }
 
         if ($request->filled('to')) {
-            $query->where('scheduled_at', '<=', $request->to);
+            $query->where('meeting_date', '<=', $request->to);
         }
 
         if ($request->filled('search')) {
@@ -71,11 +64,10 @@ class FollowupController extends Controller
             });
         }
 
-        $perPage = min((int) ($request->per_page ?? 15), 100) ?: 15;
-        $followups = $query->latest('scheduled_at')->paginate($perPage);
+$perPage = min((int) ($request->per_page ?? 15), 100) ?: 15;
+        $followups = $query->latest('meeting_date')->paginate($perPage);
 
         return response()->json([
-            'success' => true,
             'data' => FollowupResource::collection($followups->items()),
             'meta' => [
                 'total' => $followups->total(),
@@ -116,8 +108,9 @@ class FollowupController extends Controller
     public function store(StoreFollowupRequest $request): JsonResponse
     {
         $user = $request->user();
+        $role = $user->role?->name;
 
-        if (!$user || !in_array($user->role?->name, ['tutor', 'admin'])) {
+if (!$user || !in_array($user->role?->name, ['tutor', 'admin'])) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
@@ -138,30 +131,30 @@ class FollowupController extends Controller
             }
         }
 
-        $followup = Followup::create([
+$followup = Followup::create([
             'student_id' => $validated['student_id'],
             'tutor_id' => $tutorId,
             'company_supervisors_id' => $validated['company_supervisors_id'] ?? null,
-            'type' => $validated['meeting_type'],
-            'scheduled_at' => $validated['meeting_date'],
+            'meeting_type' => $validated['meeting_type'],
+            'meeting_date' => $validated['meeting_date'],
             'notes' => $validated['notes'] ?? null,
             'action_items' => $validated['action_items'] ?? null,
             'next_followup' => $validated['next_followup'] ?? null,
             'status' => $validated['status'] ?? 'Scheduled',
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Follow-up created successfully.',
+return response()->json([
             'data' => new FollowupResource($followup->load(['student', 'tutor', 'supervisor.company'])),
+            'message' => 'Follow-up created successfully.',
         ], 201);
     }
 
     public function update(UpdateFollowupRequest $request, Followup $followup): JsonResponse
     {
         $user = $request->user();
+        $role = $user->role?->name;
 
-        if (!$user || !in_array($user->role?->name, ['tutor', 'admin'])) {
+if (!$user || !in_array($user->role?->name, ['tutor', 'admin'])) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
@@ -179,10 +172,10 @@ class FollowupController extends Controller
             $updateData['company_supervisors_id'] = $validated['company_supervisors_id'];
         }
         if (isset($validated['meeting_type'])) {
-            $updateData['type'] = $validated['meeting_type'];
+            $updateData['meeting_type'] = $validated['meeting_type'];
         }
         if (isset($validated['meeting_date'])) {
-            $updateData['scheduled_at'] = $validated['meeting_date'];
+            $updateData['meeting_date'] = $validated['meeting_date'];
         }
         if (array_key_exists('notes', $validated)) {
             $updateData['notes'] = $validated['notes'];
@@ -193,24 +186,20 @@ class FollowupController extends Controller
         if (array_key_exists('next_followup', $validated)) {
             $updateData['next_followup'] = $validated['next_followup'];
         }
-        if (isset($validated['status'])) {
-            $updateData['status'] = $validated['status'];
-        }
-
         $followup->update($updateData);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Follow-up updated successfully.',
+return response()->json([
             'data' => new FollowupResource($followup->load(['student', 'tutor', 'supervisor.company'])),
+            'message' => 'Follow-up updated successfully.',
         ], 200);
     }
 
     public function destroy(Request $request, Followup $followup): JsonResponse
     {
         $user = $request->user();
+        $role = $user->role?->name;
 
-        if (!$user || !in_array($user->role?->name, ['tutor', 'admin'])) {
+if (!$user || !in_array($user->role?->name, ['tutor', 'admin'])) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
@@ -221,7 +210,6 @@ class FollowupController extends Controller
         $followup->delete();
 
         return response()->json([
-            'success' => true,
             'message' => 'Follow-up deleted successfully.',
         ], 200);
     }

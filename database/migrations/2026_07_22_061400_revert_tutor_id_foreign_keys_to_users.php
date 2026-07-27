@@ -8,57 +8,77 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('internship_assignments', function (Blueprint $table) {
-            $table->dropForeign(['tutor_id']);
-            $table->foreign('tutor_id')->references('id')->on('users')->cascadeOnDelete();
-        });
+        $tables = [
+            'internship_assignments' => ['on' => 'users', 'delete' => 'cascade'],
+            'students' => ['on' => 'users', 'delete' => 'set null'],
+            'issues' => ['on' => 'users', 'delete' => 'cascade'],
+            'followups' => ['on' => 'users', 'delete' => 'cascade'],
+            'company_messages' => ['on' => 'users', 'delete' => 'cascade'],
+        ];
 
-        Schema::table('students', function (Blueprint $table) {
-            $table->dropForeign(['tutor_id']);
-            $table->foreign('tutor_id')->references('id')->on('users')->onDelete('set null');
-        });
+        foreach ($tables as $table => $config) {
+            if (!Schema::hasTable($table)) {
+                continue;
+            }
 
-        Schema::table('issues', function (Blueprint $table) {
-            $table->dropForeign(['tutor_id']);
-            $table->foreign('tutor_id')->references('id')->on('users')->cascadeOnDelete();
-        });
+            try {
+                Schema::table($table, function (Blueprint $t) {
+                    $t->dropForeign(['tutor_id']);
+                });
+            } catch (\Exception $e) {
+                // Foreign key may not exist
+            }
 
-        Schema::table('followups', function (Blueprint $table) {
-            $table->dropForeign(['tutor_id']);
-            $table->foreign('tutor_id')->references('id')->on('users')->cascadeOnDelete();
-        });
-
-        Schema::table('company_messages', function (Blueprint $table) {
-            $table->dropForeign(['tutor_id']);
-            $table->foreign('tutor_id')->references('id')->on('users')->cascadeOnDelete();
-        });
+            try {
+                Schema::table($table, function (Blueprint $t) use ($config) {
+                    $foreign = $t->foreign('tutor_id')->references('id')->on($config['on']);
+                    if ($config['delete'] === 'cascade') {
+                        $foreign->cascadeOnDelete();
+                    } elseif ($config['delete'] === 'set null') {
+                        $foreign->nullOnDelete();
+                    }
+                });
+            } catch (\Exception $e) {
+                // Foreign key may already exist
+            }
+        }
     }
 
     public function down(): void
     {
-        Schema::table('company_messages', function (Blueprint $table) {
-            $table->dropForeign(['tutor_id']);
-            $table->foreign('tutor_id')->references('id')->on('tutors')->cascadeOnDelete();
-        });
+        $tables = [
+            'company_messages' => ['on' => 'tutors', 'delete' => 'cascade'],
+            'followups' => ['on' => 'tutors', 'delete' => 'cascade'],
+            'issues' => ['on' => 'tutors', 'delete' => 'cascade'],
+            'students' => ['on' => 'tutors', 'delete' => 'set null'],
+            'internship_assignments' => ['on' => 'tutors', 'delete' => 'cascade'],
+        ];
 
-        Schema::table('followups', function (Blueprint $table) {
-            $table->dropForeign(['tutor_id']);
-            $table->foreign('tutor_id')->references('id')->on('tutors')->cascadeOnDelete();
-        });
+        foreach ($tables as $table => $config) {
+            if (!Schema::hasTable($table)) {
+                continue;
+            }
 
-        Schema::table('issues', function (Blueprint $table) {
-            $table->dropForeign(['tutor_id']);
-            $table->foreign('tutor_id')->references('id')->on('tutors')->cascadeOnDelete();
-        });
+            try {
+                Schema::table($table, function (Blueprint $t) {
+                    $t->dropForeign(['tutor_id']);
+                });
+            } catch (\Exception $e) {
+                // Foreign key may not exist
+            }
 
-        Schema::table('students', function (Blueprint $table) {
-            $table->dropForeign(['tutor_id']);
-            $table->foreign('tutor_id')->references('id')->on('tutors')->onDelete('set null');
-        });
-
-        Schema::table('internship_assignments', function (Blueprint $table) {
-            $table->dropForeign(['tutor_id']);
-            $table->foreign('tutor_id')->references('id')->on('tutors')->cascadeOnDelete();
-        });
+            try {
+                Schema::table($table, function (Blueprint $t) use ($config) {
+                    $foreign = $t->foreign('tutor_id')->references('id')->on($config['on']);
+                    if ($config['delete'] === 'cascade') {
+                        $foreign->cascadeOnDelete();
+                    } elseif ($config['delete'] === 'set null') {
+                        $foreign->nullOnDelete();
+                    }
+                });
+            } catch (\Exception $e) {
+                // Foreign key may already exist
+            }
+        }
     }
 };

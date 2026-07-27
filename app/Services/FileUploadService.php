@@ -22,10 +22,7 @@ class FileUploadService
         'image/png',
         'image/jpg',
         'application/pdf',
-        'application/msword',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/zip',
-        'application/x-zip-compressed',
     ];
 
     /**
@@ -36,9 +33,7 @@ class FileUploadService
         'jpeg',
         'png',
         'pdf',
-        'doc',
         'docx',
-        'zip',
     ];
 
     /**

@@ -7,8 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Storage;
-use App\Models\CompanyFeedback;
+use Illuminate\Support\Facades\Storage; 
 
 class Company extends Model
 {
@@ -21,11 +20,10 @@ class Company extends Model
         'email',
         'website',
         'company_profile_image',
-        'company_image',
         'telegram_link',
     ];
 
-    protected $appends = ['company_image_url', 'company_profile_image_url', 'name'];
+protected $appends = ['company_image_url', 'company_profile_image_url', 'name'];
 
     public function getNameAttribute(): string
     {

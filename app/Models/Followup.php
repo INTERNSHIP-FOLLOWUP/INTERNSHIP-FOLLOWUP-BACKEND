@@ -10,17 +10,16 @@ class Followup extends Model
     protected $fillable = [
         'student_id',
         'tutor_id',
-        'company_supervisors_id',
-        'type',
-        'scheduled_at',
+'company_supervisors_id',
+        'meeting_type',
+        'meeting_date',
         'notes',
         'action_items',
         'next_followup',
-        'status',
     ];
 
     protected $casts = [
-        'scheduled_at' => 'datetime',
+        'meeting_date' => 'date',
         'next_followup' => 'date',
     ];
 
