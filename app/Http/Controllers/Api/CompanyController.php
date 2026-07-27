@@ -76,6 +76,7 @@ class CompanyController extends Controller
             'email'      => $data['email'],
             'password'   => $data['password'],
             'must_change_password' => true,
+            'status'     => 'active',
             'role_id'    => $role->id,
         ]);
 

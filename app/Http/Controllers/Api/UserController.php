@@ -173,8 +173,9 @@ class UserController extends Controller
             $validated['avatar'] = $path;
         }
 
+        $validated['status'] = $validated['status'] ?? 'active';
         $user = User::create($validated);
-        $user->must_change_password = $user->role?->name === 'supervisor';
+        $user->must_change_password = true;
         $user->save();
 
         if ($user->role?->name === 'student') {
@@ -385,6 +386,9 @@ class UserController extends Controller
             if ($user->trashed()) {
                 $user->restore();
             }
+            $user->status = 'active';
+            $user->save();
+
             if ($user->studentProfile) {
                 if ($user->studentProfile->trashed()) {
                     $user->studentProfile->restore();
@@ -427,9 +431,15 @@ class UserController extends Controller
                 return response()->json(['message' => 'You cannot deactivate your own account.'], 403);
             }
 
-            if ($user->trashed()) {
+            if ($user->trashed() || $user->status === 'inactive') {
                 return response()->json(['message' => 'User is already deactivated.'], 422);
             }
+
+            $user->status = 'inactive';
+            $user->save();
+
+            // Revoke all tokens immediately
+            $user->tokens()->delete();
 
             if ($user->studentProfile) {
                 $user->studentProfile->update(['status' => 'inactive']);
@@ -461,7 +471,7 @@ class UserController extends Controller
         ]);
 
         $user->password = Hash::make($validated['password']);
-        $user->must_change_password = $user->role?->name === 'supervisor';
+        $user->must_change_password = true;
         $user->save();
 
         $user->tokens()->delete();

@@ -162,7 +162,7 @@ class ProfileController extends Controller
     public function updateTheme(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'theme' => 'required|in:light,dark',
+            'theme' => 'required|string|max:100',
         ]);
 
         $user = $request->user();

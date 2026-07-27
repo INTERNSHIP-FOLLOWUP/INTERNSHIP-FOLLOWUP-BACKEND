@@ -99,6 +99,7 @@ class StudentUserSeeder extends Seeder
                     'phone'      => $studentData['phone'] ?? null,
                     'gender'     => $studentData['gender'] ?? null,
                     'status'     => $studentData['status'] ?? 'active',
+                    'must_change_password' => true,
                 ]
             );
 

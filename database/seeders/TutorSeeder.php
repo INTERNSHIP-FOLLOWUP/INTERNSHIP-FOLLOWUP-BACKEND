@@ -52,6 +52,7 @@ class TutorSeeder extends Seeder
                     'phone'      => $tutorData['phone'] ?? null,
                     'gender'     => $tutorData['gender'] ?? null,
                     'status'     => 'active',
+                    'must_change_password' => true,
                     'password'   => '12345678',
                     'role_id'    => $role->id,
                     'theme'      => 'light',

@@ -27,6 +27,7 @@ class AuthController extends Controller
             'avatar_url' => $user->avatar_url,
             'role'       => $user->role?->name ?? '',
             'theme'      => $user->theme ?? 'light',
+            'status'     => $user->status ?? 'active',
             'must_change_password' => (bool) $user->must_change_password,
         ];
     }
@@ -56,6 +57,8 @@ class AuthController extends Controller
             'email'      => $request->email,
             'password'   => Hash::make($request->password),
             'role_id'    => $studentRole?->id,
+            'status'     => 'active',
+            'must_change_password' => true,
         ]);
 
         $token = $user->createToken('api-token')->plainTextToken;
@@ -74,11 +77,17 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $user = User::where('email', $validated['email'])->first();
+        $user = User::withTrashed()->where('email', $validated['email'])->first();
 
         if (!$user || !Hash::check($validated['password'], $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
+            ]);
+        }
+
+        if ($user->status === 'inactive' || $user->trashed()) {
+            throw ValidationException::withMessages([
+                'email' => ['Your account is inactive. Please contact system administrator.'],
             ]);
         }
 
@@ -165,7 +174,7 @@ class AuthController extends Controller
     public function updateTheme(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'theme' => 'required|in:light,dark',
+            'theme' => 'required|string|max:100',
         ]);
 
         $user = $request->user();
