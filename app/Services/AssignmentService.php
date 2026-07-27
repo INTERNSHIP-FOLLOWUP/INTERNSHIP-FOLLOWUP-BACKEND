@@ -15,7 +15,7 @@ class AssignmentService
 {
     public function list(array $filters = []): LengthAwarePaginator
     {
-        $query = InternshipAssignment::with(['student', 'supervisor.company', 'tutor']);
+        $query = InternshipAssignment::with(['student.user', 'supervisor.company', 'tutor']);
 
         if ($status = Arr::get($filters, 'status')) {
             $query->where('status', $status);
@@ -68,7 +68,7 @@ class AssignmentService
 
             $assignment->update($data);
 
-            return $assignment->fresh()->load(['student', 'supervisor.company', 'tutor']);
+            return $assignment->fresh()->load(['student.user', 'supervisor.company', 'tutor']);
         });
     }
 

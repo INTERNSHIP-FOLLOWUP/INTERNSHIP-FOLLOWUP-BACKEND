@@ -85,7 +85,7 @@ class UserController extends Controller
                 }
             }
             if ($request->role === 'supervisor') {
-                $query->with('supervisorProfile.company:id,company_name');
+                $query->with('supervisorProfile.company:id,company_name,company_image,company_profile_image');
             }
         }
 
@@ -111,6 +111,10 @@ class UserController extends Controller
 
         $users = $query->paginate($request->per_page ?? 15);
 
+        if ($request->role === 'supervisor') {
+            $users->getCollection()->makeVisible('supervisorProfile');
+        }
+
         $roleIds = Role::pluck('id', 'name');
         $roleCounts = [
             'admin' => User::where('role_id', $roleIds['admin'] ?? null)->count(),
@@ -135,7 +139,8 @@ class UserController extends Controller
 
     public function show(User $user): JsonResponse
     {
-        $user->loadMissing(['role', 'studentProfile', 'tutorProfile', 'supervisorProfile.company:id,company_name']);
+        $user->loadMissing(['role', 'studentProfile', 'tutorProfile', 'supervisorProfile.company:id,company_name,company_image,company_profile_image']);
+        $user->makeVisible(['studentProfile', 'tutorProfile', 'supervisorProfile']);
 
         return response()->json($user);
     }
@@ -220,8 +225,15 @@ class UserController extends Controller
             }
         }
 
+        if ($user->supervisorProfile && isset($validated['company_id'])) {
+            $user->supervisorProfile->update(['company_id' => $validated['company_id']]);
+        }
+
+        $fresh = $user->fresh()->load(['role', 'studentProfile', 'tutorProfile', 'supervisorProfile.company']);
+        $fresh->makeVisible(['studentProfile', 'tutorProfile', 'supervisorProfile']);
+
         return response()->json([
-            'user' => $user->fresh()->load(['role', 'studentProfile', 'tutorProfile']),
+            'user' => $fresh,
             'message' => 'User updated successfully.',
         ]);
     }
