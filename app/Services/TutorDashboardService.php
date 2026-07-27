@@ -26,15 +26,13 @@ class TutorDashboardService
 
         $pendingReviews = (int) $pendingReviewQuery->count();
 
-        // Follow-ups due in next 14 days
+        // Follow-ups due in next 14 days (filtered by meeting_date in the future)
         $followupsDue = (int) Followup::query()
             ->whereIn('student_id', $studentIds)
-            ->where('status', 'Scheduled')
-            ->whereBetween('scheduled_at', [now(), now()->addDays(14)])
+            ->whereBetween('meeting_date', [now(), now()->addDays(14)])
             ->count();
 
         // Open issues — count only issues assigned to this tutor with status 'Open'
-        // (Matches the same filtering logic used in IssueController::stats for tutors)
         $openIssues = (int) Issue::query()
             ->where('tutor_id', $tutorId)
             ->where('status', 'Open')
@@ -71,17 +69,16 @@ class TutorDashboardService
             ->values()
             ->all();
 
-        // Upcoming followups
+        // Upcoming followups (using meeting_date instead of scheduled_at)
         $followups = Followup::query()
             ->whereIn('student_id', $studentIds)
-            ->where('status', 'Scheduled')
-            ->whereBetween('scheduled_at', [now()->subDays(1), now()->addDays(14)])
+            ->whereBetween('meeting_date', [now()->subDays(1), now()->addDays(14)])
             ->with('student:id,user_id')
-            ->orderBy('scheduled_at')
+            ->orderBy('meeting_date')
             ->limit(10)
             ->get()
             ->map(function ($f) {
-                $date = Carbon::parse($f->scheduled_at);
+                $date = Carbon::parse($f->meeting_date);
                 $relative = $this->relativeDate($date);
 
                 return [
@@ -90,9 +87,9 @@ class TutorDashboardService
                     'date_label' => $date->format('M j, Y'),
                     'time_label' => $date->format('g:i A'),
                     'relative' => $relative,
-                    'type' => $f->type,
+                    'type' => $f->meeting_type,
                     'notes' => $f->notes,
-                    'status' => $f->status,
+                    'status' => 'Scheduled',
                     'student' => $f->student ? [
                         'id' => $f->student->id,
                         'name' => $f->student->name,
@@ -153,7 +150,7 @@ class TutorDashboardService
             $activities[] = [
                 'type' => 'followup',
                 'icon' => 'followup',
-                'message' => 'Follow-up scheduled with ' . ($f['student']['name'] ?? 'a student') . ' — ' . $f['type'],
+                'message' => 'Follow-up ' . ($f['type'] ? '(' . $f['type'] . ')' : '') . ' scheduled with ' . ($f['student']['name'] ?? 'a student'),
                 'timestamp' => $f['scheduled_at'],
                 'reference_id' => $f['id'],
             ];

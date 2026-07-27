@@ -122,14 +122,13 @@ class StudentController extends Controller
 
         $studentRole = Role::where('name', 'student')->first();
 
-        $nameParts = explode(' ', $data['name'], 2);
         $user = User::create([
-            'first_name' => $nameParts[0],
-            'last_name'  => $nameParts[1] ?? '',
+            'first_name' => $data['first_name'],
+            'last_name'  => $data['last_name'],
             'email'      => $data['email'],
             'phone'      => $data['phone'] ?? null,
             'gender'     => $data['gender'] ?? null,
-            'status'     => $data['status'] ?? 'active',
+            'status'     => $data['status'] ?? 'inactive',
             'password'   => Hash::make($data['password']),
             'role_id'    => $studentRole?->id,
         ]);

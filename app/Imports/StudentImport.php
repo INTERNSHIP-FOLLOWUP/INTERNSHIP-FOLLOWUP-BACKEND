@@ -120,7 +120,7 @@ class StudentImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnF
                     'email' => $email,
                     'phone' => $phone,
                     'gender' => $gender,
-                    'status' => 'active',
+                    'status' => 'inactive',
                     'password' => Hash::make('12345678'),
                     'theme' => 'light',
                     'role_id' => $role->id,

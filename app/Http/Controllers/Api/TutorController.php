@@ -11,7 +11,7 @@ class TutorController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Tutor::query()->withCount('students');
+        $query = Tutor::query()->withCount('students')->whereHas('user');
 
         if ($request->filled('search')) {
             $search = $request->search;

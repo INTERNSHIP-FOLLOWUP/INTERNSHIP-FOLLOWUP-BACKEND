@@ -173,8 +173,15 @@ class UserController extends Controller
             $validated['avatar'] = $path;
         }
 
+        // Default new users to inactive status — they must change password to activate
+        if (!isset($validated['status'])) {
+            $validated['status'] = 'inactive';
+        }
+
         $user = User::create($validated);
-        $user->must_change_password = $user->role?->name === 'supervisor';
+
+        // Force password change on first login for all users except admins
+        $user->must_change_password = $user->role?->name !== 'admin';
         $user->save();
 
         if ($user->role?->name === 'student') {

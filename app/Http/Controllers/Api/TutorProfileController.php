@@ -157,6 +157,12 @@ class TutorProfileController extends Controller
 
         // Update password
         $user->password = Hash::make($request->password);
+
+        // Auto-activate when changing password for the first time
+        if ($user->status === 'inactive') {
+            $user->status = 'active';
+        }
+
         $user->save();
 
         return response()->json([
