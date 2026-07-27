@@ -16,57 +16,56 @@ return new class extends Migration
 
     public function up(): void
     {
-        foreach ($this->tables as $table) {
-            Schema::table($table, function (Blueprint $table) {
-                // Drop existing FK
-                $table->dropForeign(['company_id']);
-                // Rename column
-                $table->renameColumn('company_id', 'company_supervisors_id');
-            });
+        foreach ($this->tables as $tableName) {
+            if (Schema::hasTable($tableName) && Schema::hasColumn($tableName, 'company_id')) {
+                Schema::table($tableName, function (Blueprint $table) {
+                    try {
+                        $table->dropForeign(['company_id']);
+                    } catch (\Throwable $e) {
+                    }
+                    $table->renameColumn('company_id', 'company_supervisors_id');
+                });
+            }
         }
 
-        // Add new FK constraints referencing company_supervisors
-        Schema::table('company_feedback', function (Blueprint $table) {
-            $table->foreign('company_supervisors_id')->references('id')->on('company_supervisors')->cascadeOnDelete();
-        });
-        Schema::table('company_messages', function (Blueprint $table) {
-            $table->foreign('company_supervisors_id')->references('id')->on('company_supervisors')->cascadeOnDelete();
-        });
-        Schema::table('evaluations', function (Blueprint $table) {
-            $table->foreign('company_supervisors_id')->references('id')->on('company_supervisors')->cascadeOnDelete();
-        });
-        Schema::table('followups', function (Blueprint $table) {
-            $table->foreign('company_supervisors_id')->references('id')->on('company_supervisors')->nullOnDelete();
-        });
-        Schema::table('internship_assignments', function (Blueprint $table) {
-            $table->foreign('company_supervisors_id')->references('id')->on('company_supervisors')->cascadeOnDelete();
-        });
+        foreach ($this->tables as $tableName) {
+            if (Schema::hasTable($tableName) && Schema::hasColumn($tableName, 'company_supervisors_id')) {
+                Schema::table($tableName, function (Blueprint $table) use ($tableName) {
+                    $onDelete = ($tableName === 'followups') ? 'nullOnDelete' : 'cascadeOnDelete';
+                    if ($onDelete === 'nullOnDelete') {
+                        $table->foreign('company_supervisors_id')->references('id')->on('company_supervisors')->nullOnDelete();
+                    } else {
+                        $table->foreign('company_supervisors_id')->references('id')->on('company_supervisors')->cascadeOnDelete();
+                    }
+                });
+            }
+        }
     }
 
     public function down(): void
     {
-        foreach ($this->tables as $table) {
-            Schema::table($table, function (Blueprint $table) {
-                $table->dropForeign(['company_supervisors_id']);
-                $table->renameColumn('company_supervisors_id', 'company_id');
-            });
+        foreach ($this->tables as $tableName) {
+            if (Schema::hasTable($tableName) && Schema::hasColumn($tableName, 'company_supervisors_id')) {
+                Schema::table($tableName, function (Blueprint $table) {
+                    try {
+                        $table->dropForeign(['company_supervisors_id']);
+                    } catch (\Throwable $e) {
+                    }
+                    $table->renameColumn('company_supervisors_id', 'company_id');
+                });
+            }
         }
 
-        // Restore original FKs
-        Schema::table('company_feedback', function (Blueprint $table) {
-            $table->foreign('company_id')->references('id')->on('companies')->cascadeOnDelete();
-        });
-        Schema::table('company_messages', function (Blueprint $table) {
-            $table->foreign('company_id')->references('id')->on('companies')->cascadeOnDelete();
-        });
-        Schema::table('evaluations', function (Blueprint $table) {
-            $table->foreign('company_id')->references('id')->on('companies')->cascadeOnDelete();
-        });
-        Schema::table('followups', function (Blueprint $table) {
-            $table->foreign('company_id')->references('id')->on('companies')->nullOnDelete();
-        });
-        Schema::table('internship_assignments', function (Blueprint $table) {
-            $table->foreign('company_id')->references('id')->on('companies')->cascadeOnDelete();
-        });
+        foreach ($this->tables as $tableName) {
+            if (Schema::hasTable($tableName) && Schema::hasColumn($tableName, 'company_id')) {
+                Schema::table($tableName, function (Blueprint $table) use ($tableName) {
+                    if ($tableName === 'followups') {
+                        $table->foreign('company_id')->references('id')->on('companies')->nullOnDelete();
+                    } else {
+                        $table->foreign('company_id')->references('id')->on('companies')->cascadeOnDelete();
+                    }
+                });
+            }
+        }
     }
 };

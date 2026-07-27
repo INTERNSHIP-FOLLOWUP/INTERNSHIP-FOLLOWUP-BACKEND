@@ -20,6 +20,7 @@ class Company extends Model
         'email',
         'website',
         'company_profile_image',
+        'company_image',
         'telegram_link',
     ];
 
