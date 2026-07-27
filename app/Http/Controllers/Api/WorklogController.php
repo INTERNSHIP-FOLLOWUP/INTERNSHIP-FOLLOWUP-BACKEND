@@ -106,14 +106,16 @@ class WorklogController extends Controller
             'week_number'     => $request->week_number,
             'description'     => $request->description,
             'challenges'      => $request->challenges,
-            'submission_date' => $request->submission_date,
+            'submission_date' => $request->submission_date ?? now()->toDateString(),
             'status'          => $request->status ?? 'Draft',
         ]);
 
         // Handle file uploads
         if ($request->hasFile('attachments')) {
+            $files = $request->file('attachments');
+            $files = is_array($files) ? $files : [$files];
             $uploadedFiles = [];
-            foreach ($request->file('attachments') as $file) {
+            foreach ($files as $file) {
                 $validation = $uploadService->validate($file);
 
                 if (!$validation['valid']) {
@@ -151,7 +153,7 @@ class WorklogController extends Controller
         }
 
         return response()->json([
-            'data'    => $worklog->load(['student.user', 'attachments']),
+            'data'    => $worklog->load(['student', 'attachments']),
             'message' => 'Worklog retrieved successfully.',
         ], 200);
     }
@@ -289,15 +291,13 @@ class WorklogController extends Controller
         $currentStatus = $worklog->status;
 
         $validTransitions = [
-            'Submitted' => ['Reviewed', 'Approved', 'Rejected', 'Pending'],
-            'Pending'   => ['Submitted'],
-            'Rejected'  => ['Submitted'],
-            'Approved'  => [],
-            'Reviewed'  => ['Approved', 'Rejected'],
-            'Draft'     => [],
+            'Submitted' => ['Approved', 'Rejected'],
+            'Approved' => [],
+            'Rejected' => [],
+            'Draft' => [],
         ];
 
-        if (!in_array($newStatus, $validTransitions[$currentStatus] ?? [])) {
+        if (!in_array($newStatus, $validTransitions[$currentStatus])) {
             return response()->json([
                 'message' => 'Invalid status transition.',
                 'error' => "Cannot transition from '{$currentStatus}' to '{$newStatus}'.",
@@ -310,7 +310,7 @@ class WorklogController extends Controller
         ]);
 
         return response()->json([
-            'data'    => $worklog->load(['student.user', 'attachments']),
+            'data'    => $worklog->load(['student', 'attachments']),
             'message' => "Worklog status updated to '{$newStatus}' successfully.",
         ], 200);
     }

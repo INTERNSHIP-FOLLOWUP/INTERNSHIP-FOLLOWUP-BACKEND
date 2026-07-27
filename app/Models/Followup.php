@@ -16,11 +16,10 @@ class Followup extends Model
         'notes',
         'action_items',
         'next_followup',
-        'status',
     ];
 
     protected $casts = [
-        'scheduled_at' => 'datetime',
+        'meeting_date' => 'date',
         'next_followup' => 'date',
     ];
 

@@ -24,7 +24,6 @@ class FollowupResource extends JsonResource
             'notes' => $this->notes,
             'action_items' => $this->action_items,
             'next_followup' => optional($this->next_followup)->toDateString(),
-            'status' => $this->status,
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
             'student' => $this->whenLoaded('student', fn() => [

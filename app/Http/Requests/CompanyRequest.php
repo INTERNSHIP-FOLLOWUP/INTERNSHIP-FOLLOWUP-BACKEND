@@ -16,7 +16,7 @@ class CompanyRequest extends FormRequest
     {
         $companyId = $this->route('company');
 
-        $rules = [
+        return [
             'company_name' => [
                 'required',
                 'string',
@@ -32,21 +32,8 @@ class CompanyRequest extends FormRequest
                 Rule::unique('companies', 'email')->ignore($companyId),
             ],
             'website' => ['nullable', 'url', 'max:255'],
+            'company_profile_image' => ['nullable', 'string', 'max:255'],
             'telegram_link' => ['nullable', 'string', 'max:255'],
         ];
-
-        if ($this->hasFile('company_image')) {
-            $rules['company_image'] = ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'];
-        } else {
-            $rules['company_image'] = ['nullable', 'string', 'max:255'];
-        }
-
-        if ($this->hasFile('company_profile_image')) {
-            $rules['company_profile_image'] = ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'];
-        } else {
-            $rules['company_profile_image'] = ['nullable', 'string', 'max:255'];
-        }
-
-        return $rules;
     }
 }

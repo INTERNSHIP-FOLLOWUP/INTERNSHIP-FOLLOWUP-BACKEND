@@ -7,7 +7,6 @@ use App\Models\Company;
 use App\Models\CompanySupervisor;
 use App\Models\InternshipAssignment;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class CompanyDashboardController extends Controller
@@ -30,10 +29,7 @@ class CompanyDashboardController extends Controller
         $user = $request->user();
         $company = $this->getCompany($request);
 
-        return response()->json([
-            'company' => $company,
-            'user'    => $user,
-        ]);
+        return response()->json($company);
     }
 
     /**
@@ -48,7 +44,7 @@ class CompanyDashboardController extends Controller
             return response()->json(['message' => 'No company assigned to this supervisor.'], 404);
         }
 
-        $rules = [
+        $validated = $request->validate([
             'company_name' => [
                 'required',
                 'string',
@@ -58,6 +54,7 @@ class CompanyDashboardController extends Controller
             'address'                => ['nullable', 'string', 'max:255'],
             'industry'               => ['nullable', 'string', 'max:255'],
             'website'                => ['nullable', 'url', 'max:255'],
+            'company_profile_image'  => ['nullable', 'string', 'max:255'],
             'telegram_link'          => ['nullable', 'string', 'max:255'],
         ];
 
@@ -103,6 +100,7 @@ class CompanyDashboardController extends Controller
         $company->update($validated);
 
         return response()->json([
+            'company' => $company,
             'message' => 'Company profile updated successfully.',
             'company' => $company->fresh(),
         ]);

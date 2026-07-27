@@ -87,7 +87,7 @@ class StudentUserSeeder extends Seeder
             $num = str_pad((string)($index + 1), 3, '0', STR_PAD_LEFT);
             $studentCode = "{$batchName}-{$num}";
 
-            $user = User::updateOrCreate(
+            $user = User::firstOrCreate(
                 ['email' => $studentData['email']],
                 [
                     'first_name' => $studentData['first_name'],

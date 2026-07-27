@@ -24,6 +24,7 @@ class FollowupController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
+        $role = $user->role?->name;
 
         if (!$user) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
@@ -52,16 +53,12 @@ class FollowupController extends Controller
             $query->where('student_id', $request->student_id);
         }
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
         if ($request->filled('from')) {
-            $query->where('scheduled_at', '>=', $request->from);
+            $query->where('meeting_date', '>=', $request->from);
         }
 
         if ($request->filled('to')) {
-            $query->where('scheduled_at', '<=', $request->to);
+            $query->where('meeting_date', '<=', $request->to);
         }
 
         if ($request->filled('search')) {
@@ -75,7 +72,6 @@ class FollowupController extends Controller
         $followups = $query->latest('scheduled_at')->paginate($perPage);
 
         return response()->json([
-            'success' => true,
             'data' => FollowupResource::collection($followups->items()),
             'meta' => [
                 'total' => $followups->total(),
@@ -116,6 +112,7 @@ class FollowupController extends Controller
     public function store(StoreFollowupRequest $request): JsonResponse
     {
         $user = $request->user();
+        $role = $user->role?->name;
 
         if (!$user || !in_array($user->role?->name, ['tutor', 'admin'])) {
             return response()->json(['message' => 'Forbidden.'], 403);
@@ -151,15 +148,35 @@ class FollowupController extends Controller
         ]);
 
         return response()->json([
-            'success' => true,
+            'data' => new FollowupResource($followup->load(['student'])),
             'message' => 'Follow-up created successfully.',
             'data' => new FollowupResource($followup->load(['student', 'tutor', 'supervisor.company'])),
         ], 201);
     }
 
+    public function show(Followup $followup): JsonResponse
+    {
+        $user = request()->user();
+        $role = $user->role?->name;
+
+        if ($role === 'student') {
+            $student = Student::where('user_id', $user->id)->firstOrFail();
+            if ($followup->student_id !== $student->id) {
+                return response()->json(['message' => 'Forbidden.'], 403);
+            }
+        } elseif ($role === 'tutor' && $followup->tutor_id !== $user->id) {
+            return response()->json(['message' => 'Forbidden.'], 403);
+        }
+
+        return response()->json([
+            'data' => new FollowupResource($followup->load(['student'])),
+        ]);
+    }
+
     public function update(UpdateFollowupRequest $request, Followup $followup): JsonResponse
     {
         $user = $request->user();
+        $role = $user->role?->name;
 
         if (!$user || !in_array($user->role?->name, ['tutor', 'admin'])) {
             return response()->json(['message' => 'Forbidden.'], 403);
@@ -179,10 +196,10 @@ class FollowupController extends Controller
             $updateData['company_supervisors_id'] = $validated['company_supervisors_id'];
         }
         if (isset($validated['meeting_type'])) {
-            $updateData['type'] = $validated['meeting_type'];
+            $updateData['meeting_type'] = $validated['meeting_type'];
         }
         if (isset($validated['meeting_date'])) {
-            $updateData['scheduled_at'] = $validated['meeting_date'];
+            $updateData['meeting_date'] = $validated['meeting_date'];
         }
         if (array_key_exists('notes', $validated)) {
             $updateData['notes'] = $validated['notes'];
@@ -193,14 +210,10 @@ class FollowupController extends Controller
         if (array_key_exists('next_followup', $validated)) {
             $updateData['next_followup'] = $validated['next_followup'];
         }
-        if (isset($validated['status'])) {
-            $updateData['status'] = $validated['status'];
-        }
-
         $followup->update($updateData);
 
         return response()->json([
-            'success' => true,
+            'data' => new FollowupResource($followup->load(['student'])),
             'message' => 'Follow-up updated successfully.',
             'data' => new FollowupResource($followup->load(['student', 'tutor', 'supervisor.company'])),
         ], 200);
@@ -209,6 +222,7 @@ class FollowupController extends Controller
     public function destroy(Request $request, Followup $followup): JsonResponse
     {
         $user = $request->user();
+        $role = $user->role?->name;
 
         if (!$user || !in_array($user->role?->name, ['tutor', 'admin'])) {
             return response()->json(['message' => 'Forbidden.'], 403);
@@ -221,7 +235,6 @@ class FollowupController extends Controller
         $followup->delete();
 
         return response()->json([
-            'success' => true,
             'message' => 'Follow-up deleted successfully.',
         ], 200);
     }

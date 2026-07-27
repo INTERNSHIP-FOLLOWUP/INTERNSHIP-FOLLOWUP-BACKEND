@@ -24,6 +24,7 @@ class EvaluationRequest extends FormRequest
     {
         return [
             'student_id' => ['required', 'exists:students,id'],
+            'company_id' => ['required', 'exists:companies,id'],
             'technical_skill' => ['required', 'integer', 'min:1', 'max:100'],
             'communication' => ['required', 'integer', 'min:1', 'max:100'],
             'professionalism' => ['required', 'integer', 'min:1', 'max:100'],
