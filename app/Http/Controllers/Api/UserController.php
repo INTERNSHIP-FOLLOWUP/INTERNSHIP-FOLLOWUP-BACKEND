@@ -193,7 +193,10 @@ class UserController extends Controller
             ]);
         }
 
-        return response()->json($user->load(['role', 'supervisorProfile.company']), 201);
+        $user->load(['role', 'supervisorProfile.company']);
+        $user->makeVisible('supervisorProfile');
+
+        return response()->json($user, 201);
     }
 
     public function update(UpdateUserRequest $request, User $user): JsonResponse
@@ -253,10 +256,6 @@ class UserController extends Controller
             if (!empty($tutorData)) {
                 $user->tutorProfile->update($tutorData);
             }
-        }
-
-        if ($user->supervisorProfile && isset($validated['company_id'])) {
-            $user->supervisorProfile->update(['company_id' => $validated['company_id']]);
         }
 
         $fresh = $user->fresh()->load(['role', 'studentProfile', 'tutorProfile', 'supervisorProfile.company']);
