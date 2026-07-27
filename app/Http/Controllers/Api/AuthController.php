@@ -26,8 +26,8 @@ class AuthController extends Controller
             'avatar'     => $user->avatar,
             'avatar_url' => $user->avatar_url,
             'role'       => $user->role?->name ?? '',
-            'theme'      => $user->theme ?? 'light',
             'status'     => $user->status ?? 'active',
+            'theme'      => $user->theme ?? 'light',
             'must_change_password' => (bool) $user->must_change_password,
         ];
     }

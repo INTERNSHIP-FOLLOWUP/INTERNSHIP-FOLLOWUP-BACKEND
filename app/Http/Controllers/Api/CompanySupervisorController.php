@@ -20,7 +20,7 @@ class CompanySupervisorController extends Controller
     public function index(Company $company): JsonResponse
     {
         $supervisors = CompanySupervisor::where('company_id', $company->id)
-            ->with('user:id,first_name,last_name,email,avatar,last_active_at')
+            ->with('user:id,first_name,last_name,email,phone,gender,avatar,last_active_at')
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($s) {
@@ -32,6 +32,7 @@ class CompanySupervisorController extends Controller
                     'phone' => $s->user?->phone,
                     'first_name' => $s->user?->first_name,
                     'last_name' => $s->user?->last_name,
+                    'gender' => $s->user?->gender,
                     'status' => $s->status,
                     'avatar' => $s->user?->avatar_url,
                     'last_active_at' => $s->user?->last_active_at,
@@ -57,6 +58,7 @@ class CompanySupervisorController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8'],
             'phone' => ['nullable', 'string', 'max:50'],
+            'gender' => ['nullable', 'string', 'in:Male,Female,Other'],
         ]);
 
         if ($validator->fails()) {
@@ -86,9 +88,13 @@ class CompanySupervisorController extends Controller
             'role_id' => $role->id,
         ]);
 
-        // Save phone to the User record if provided
-        if (!empty($validated['phone'])) {
-            $user->update(['phone' => $validated['phone']]);
+        // Save phone/gender to the User record if provided
+        $userUpdate = array_filter([
+            'phone' => $validated['phone'] ?? null,
+            'gender' => $validated['gender'] ?? null,
+        ]);
+        if (!empty($userUpdate)) {
+            $user->update($userUpdate);
         }
 
         // Create the CompanySupervisor record linking to the company
@@ -106,6 +112,7 @@ class CompanySupervisorController extends Controller
                 'first_name' => $user->first_name,
                 'last_name' => $user->last_name,
                 'phone' => $user->phone,
+                'gender' => $user->gender,
                 'status' => $user->status,
                 'created_at' => $supervisor->created_at?->toISOString(),
             ],
@@ -122,7 +129,7 @@ class CompanySupervisorController extends Controller
             return response()->json(['message' => 'Supervisor does not belong to this company.'], 404);
         }
 
-        $supervisor->load('user:id,first_name,last_name,email,phone,avatar,last_active_at,status');
+        $supervisor->load('user:id,first_name,last_name,email,phone,gender,avatar,last_active_at,status');
 
         return response()->json([
             'data' => [
@@ -133,6 +140,7 @@ class CompanySupervisorController extends Controller
                 'first_name' => $supervisor->user?->first_name,
                 'last_name' => $supervisor->user?->last_name,
                 'phone' => $supervisor->user?->phone,
+                'gender' => $supervisor->user?->gender,
                 'status' => $supervisor->status,
                 'avatar' => $supervisor->user?->avatar_url,
                 'last_active_at' => $supervisor->user?->last_active_at,
@@ -155,6 +163,7 @@ class CompanySupervisorController extends Controller
             'last_name' => ['sometimes', 'string', 'max:255'],
             'email' => ['sometimes', 'string', 'email', 'max:255', \Illuminate\Validation\Rule::unique('users', 'email')->ignore($supervisor->user_id)],
             'phone' => ['nullable', 'string', 'max:50'],
+            'gender' => ['nullable', 'string', 'in:Male,Female,Other'],
             'status' => ['sometimes', 'string', 'in:active,inactive'],
         ]);
 
@@ -182,6 +191,9 @@ class CompanySupervisorController extends Controller
             if (isset($validated['phone'])) {
                 $userData['phone'] = $validated['phone'];
             }
+            if (isset($validated['gender'])) {
+                $userData['gender'] = $validated['gender'];
+            }
             if (isset($validated['status'])) {
                 $userData['status'] = $validated['status'];
             }
@@ -191,7 +203,7 @@ class CompanySupervisorController extends Controller
         }
 
         return response()->json([
-            'data' => $supervisor->fresh()->load('user:id,first_name,last_name,email,phone,avatar'),
+            'data' => $supervisor->fresh()->load('user:id,first_name,last_name,email,phone,gender,avatar'),
             'message' => 'Supervisor updated successfully.',
         ]);
     }

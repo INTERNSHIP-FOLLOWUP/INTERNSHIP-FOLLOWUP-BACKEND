@@ -26,14 +26,13 @@ class TutorDashboardService
 
         $pendingReviews = (int) $pendingReviewQuery->count();
 
-        // Follow-ups due in next 14 days
+        // Follow-ups due in next 14 days (filtered by meeting_date in the future)
         $followupsDue = (int) Followup::query()
             ->whereIn('student_id', $studentIds)
             ->whereBetween('meeting_date', [now(), now()->addDays(14)])
             ->count();
 
         // Open issues — count only issues assigned to this tutor with status 'Open'
-        // (Matches the same filtering logic used in IssueController::stats for tutors)
         $openIssues = (int) Issue::query()
             ->where('tutor_id', $tutorId)
             ->where('status', 'Open')
@@ -70,7 +69,7 @@ class TutorDashboardService
             ->values()
             ->all();
 
-        // Upcoming followups
+        // Upcoming followups (using meeting_date instead of scheduled_at)
         $followups = Followup::query()
             ->whereIn('student_id', $studentIds)
             ->whereBetween('meeting_date', [now()->subDays(1), now()->addDays(14)])
@@ -90,7 +89,6 @@ class TutorDashboardService
                     'time_label' => $date->format('g:i A'),
                     'relative' => $relative,
                     'type' => $f->meeting_type,
-                    'meeting_type' => $f->meeting_type,
                     'notes' => $f->notes,
                     'status' => 'Scheduled',
                     'student' => $f->student ? [
@@ -153,7 +151,7 @@ class TutorDashboardService
             $activities[] = [
                 'type' => 'followup',
                 'icon' => 'followup',
-                'message' => 'Follow-up scheduled with ' . ($f['student']['name'] ?? 'a student') . ' — ' . $f['type'],
+                'message' => 'Follow-up ' . ($f['type'] ? '(' . $f['type'] . ')' : '') . ' scheduled with ' . ($f['student']['name'] ?? 'a student'),
                 'timestamp' => $f['scheduled_at'],
                 'reference_id' => $f['id'],
             ];
