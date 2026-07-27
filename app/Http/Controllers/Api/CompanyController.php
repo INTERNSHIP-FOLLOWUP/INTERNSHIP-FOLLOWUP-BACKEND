@@ -40,6 +40,9 @@ class CompanyController extends Controller
     {
         $data = $request->validated();
 
+<<<<<<< HEAD
+// Password is not needed on the Company model
+=======
         // Handle company_image upload
         if ($request->hasFile('company_image')) {
             $data['company_image'] = $request->file('company_image')
@@ -57,6 +60,7 @@ class CompanyController extends Controller
         }
 
         // Password is not needed on the Company model
+>>>>>>> sprint-4
         $companyData = $data;
         unset($companyData['password']);
 
@@ -107,7 +111,11 @@ class CompanyController extends Controller
     {
         $data = $request->validated();
 
+<<<<<<< HEAD
+if (empty($data['password'])) {
+=======
         if (empty($data['password'])) {
+>>>>>>> sprint-4
             unset($data['password']);
         }
 

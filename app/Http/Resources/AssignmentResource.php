@@ -26,6 +26,7 @@ class AssignmentResource extends JsonResource
                 'id' => $this->student->id,
                 'name' => $this->student->name,
                 'email' => $this->student->email,
+                'photo_url' => $this->student->photo_url,
             ]),
             'company' => $this->whenLoaded('supervisor', fn() => $this->supervisor->company ? [
                 'id' => $this->supervisor->company->id,
@@ -39,6 +40,7 @@ class AssignmentResource extends JsonResource
             ]),
 
             'student_name' => $this->whenLoaded('student', fn() => $this->student->name),
+            'student_photo_url' => $this->whenLoaded('student', fn() => $this->student->photo_url),
             'company_name' => $this->whenLoaded('supervisor', fn() => $this->supervisor->company?->company_name),
             'tutor_name' => $this->whenLoaded('tutor', fn() => $this->tutor->name),
         ];

@@ -22,7 +22,11 @@ class StudentResource extends JsonResource
             'gender' => $this->gender,
             'phone' => $this->phone,
             'email' => $this->email,
+<<<<<<< HEAD
+'photo' => $this->photo_url,
+=======
             'photo' => $this->photo_url,
+>>>>>>> sprint-4
             'photo_url' => $this->photo_url,
             'status' => $this->status,
             'user' => [

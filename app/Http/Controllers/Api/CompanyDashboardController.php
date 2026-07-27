@@ -57,6 +57,9 @@ class CompanyDashboardController extends Controller
             'website'                => ['nullable', 'url', 'max:255'],
             'company_profile_image'  => ['nullable', 'string', 'max:255'],
             'telegram_link'          => ['nullable', 'string', 'max:255'],
+<<<<<<< HEAD
+        ]);
+=======
         ];
 
         // Conditional validation: file upload vs URL string
@@ -97,19 +100,20 @@ class CompanyDashboardController extends Controller
             $validated['company_profile_image'] = $request->file('company_profile_image')
                 ->store('avatars', 'public');
         }
+>>>>>>> sprint-4
 
         $company->update($validated);
 
         return response()->json([
+<<<<<<< HEAD
+=======
             'company' => $company,
+>>>>>>> sprint-4
             'message' => 'Company profile updated successfully.',
             'company' => $company->fresh(),
         ]);
     }
 
-    /**
-     * Get the students assigned to the company via internship assignments.
-     */
     public function students(Request $request)
     {
         $supervisor = CompanySupervisor::where('user_id', $request->user()->id)->first();
