@@ -13,11 +13,22 @@ class FollowupResource extends JsonResource
             'id' => $this->id,
             'student_id' => $this->student_id,
             'tutor_id' => $this->tutor_id,
+<<<<<<< HEAD
 'company_supervisors_id' => $this->company_supervisors_id,
             'company_supervisor_id' => $this->company_supervisors_id,
             'company_id' => $this->supervisor?->company_id,
             'meeting_type' => $this->meeting_type,
             'meeting_date' => optional($this->meeting_date)->format('Y-m-d'),
+=======
+            'company_supervisors_id' => $this->company_supervisors_id,
+            'company_supervisor_id' => $this->company_supervisors_id,
+            'company_id' => $this->supervisor?->company_id,
+            'meeting_type' => $this->type,
+            'meeting_date' => optional($this->scheduled_at)->format('Y-m-d'),
+            'scheduled_at' => optional($this->scheduled_at)->toISOString(),
+            'date_label' => optional($this->scheduled_at)->format('M j, Y'),
+            'time_label' => optional($this->scheduled_at)->format('g:i A'),
+>>>>>>> sprint-4
             'notes' => $this->notes,
             'action_items' => $this->action_items,
             'next_followup' => optional($this->next_followup)->toDateString(),

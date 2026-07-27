@@ -1,9 +1,13 @@
 <?php
 
 return [
-    'paths' => ['api/*', 'storage/*', 'api/register', 'api/login', 'api/logout', 'api/user', 'sanctum/csrf-cookie'],
+    'paths' => ['api/*', 'api/register', 'api/login', 'api/logout', 'api/user', 'sanctum/csrf-cookie', 'storage/*'],
     'allowed_methods' => ['*'],
+<<<<<<< HEAD
 'allowed_origins' => array_filter([
+=======
+    'allowed_origins' => array_filter([
+>>>>>>> sprint-4
         'http://localhost:5173',
         'http://localhost:5073',
         'http://127.0.0.1:5173',
@@ -12,7 +16,7 @@ return [
     ]),
     'allowed_origins_patterns' => [],
     'allowed_headers' => ['*'],
-    'exposed_headers' => [],
+    'exposed_headers' => ['Content-Disposition', 'Content-Length', 'Content-Type'],
     'max_age' => 0,
     'supports_credentials' => true,
 ];

@@ -22,7 +22,11 @@ class StudentResource extends JsonResource
             'gender' => $this->gender,
             'phone' => $this->phone,
             'email' => $this->email,
+<<<<<<< HEAD
 'photo' => $this->photo_url,
+=======
+            'photo' => $this->photo_url,
+>>>>>>> sprint-4
             'photo_url' => $this->photo_url,
             'status' => $this->status,
             'user' => [
@@ -47,7 +51,7 @@ class StudentResource extends JsonResource
             ]),
             'tutor' => $this->whenLoaded('tutor', fn() => [
                 'id'    => $this->tutor->id,
-                'name'  => trim(($this->tutor->first_name ?? '') . ' ' . ($this->tutor->last_name ?? '')),
+                'name'  => trim(($this->tutor->last_name ?? '') . ' ' . ($this->tutor->first_name ?? '')),
                 'email' => $this->tutor->email,
             ]),
         ];

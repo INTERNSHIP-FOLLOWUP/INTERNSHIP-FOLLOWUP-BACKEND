@@ -23,7 +23,11 @@ class Company extends Model
         'telegram_link',
     ];
 
+<<<<<<< HEAD
 protected $appends = ['company_image_url', 'company_profile_image_url', 'name'];
+=======
+    protected $appends = ['company_image_url', 'company_profile_image_url', 'name'];
+>>>>>>> sprint-4
 
     public function getNameAttribute(): string
     {

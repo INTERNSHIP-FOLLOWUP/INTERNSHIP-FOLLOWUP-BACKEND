@@ -16,9 +16,8 @@ class TutorStudentController extends Controller
 
     private function resolveTutorId(\Illuminate\Contracts\Auth\Authenticatable $user): ?int
     {
-        // students.tutor_id / internship_assignments.tutor_id reference tutors.id (NOT users.id)
         $tutor = \App\Models\Tutor::where('user_id', $user->getAuthIdentifier())->first();
-        return $tutor?->id;  // null if no Tutor profile found — NEVER fall back to users.id
+        return $tutor?->id; 
     }
 
     public function index(Request $request): JsonResponse

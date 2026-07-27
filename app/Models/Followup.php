@@ -10,9 +10,15 @@ class Followup extends Model
     protected $fillable = [
         'student_id',
         'tutor_id',
+<<<<<<< HEAD
 'company_supervisors_id',
         'meeting_type',
         'meeting_date',
+=======
+        'company_supervisors_id',
+        'type',
+        'scheduled_at',
+>>>>>>> sprint-4
         'notes',
         'action_items',
         'next_followup',

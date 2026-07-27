@@ -41,7 +41,27 @@ class CompanyController extends Controller
     {
         $data = $request->validated();
 
+<<<<<<< HEAD
 // Password is not needed on the Company model
+=======
+        // Handle company_image upload
+        if ($request->hasFile('company_image')) {
+            $data['company_image'] = $request->file('company_image')
+                ->store('companies', 'public');
+        } elseif ($request->filled('company_image')) {
+            $data['company_image'] = $request->input('company_image');
+        }
+
+        // Handle company_profile_image upload
+        if ($request->hasFile('company_profile_image')) {
+            $data['company_profile_image'] = $request->file('company_profile_image')
+                ->store('avatars', 'public');
+        } elseif ($request->filled('company_profile_image')) {
+            $data['company_profile_image'] = $request->input('company_profile_image');
+        }
+
+        // Password is not needed on the Company model
+>>>>>>> sprint-4
         $companyData = $data;
         unset($companyData['password']);
 
@@ -92,7 +112,11 @@ class CompanyController extends Controller
     {
         $data = $request->validated();
 
+<<<<<<< HEAD
 if (empty($data['password'])) {
+=======
+        if (empty($data['password'])) {
+>>>>>>> sprint-4
             unset($data['password']);
         }
 

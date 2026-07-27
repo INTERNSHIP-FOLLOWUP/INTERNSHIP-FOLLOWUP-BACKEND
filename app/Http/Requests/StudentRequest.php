@@ -43,7 +43,7 @@ class StudentRequest extends FormRequest
             ],
             'first_name' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:255'],
             'last_name' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:255'],
-            'gender' => [$isUpdate ? 'sometimes' : 'required', 'string', 'in:Male,Female'],
+            'gender' => [$isUpdate ? 'sometimes' : 'required', 'string', 'in:Male,Female,Other,male,female,other'],
             'email' => [
                 $isUpdate ? 'sometimes' : 'required',
                 'email',
@@ -51,11 +51,11 @@ class StudentRequest extends FormRequest
                 Rule::unique('users', 'email')->ignore($userId),
             ],
             'phone' => ['nullable', 'string', 'max:50'],
-            'batch_id' => ['nullable', 'integer', 'exists:batches,id'],
+            'batch_id' => ['nullable', 'integer'],
             'tutor_id' => ['nullable', 'integer'],
-            'user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'user_id' => ['nullable', 'integer'],
             'status' => ['nullable', 'string', 'max:50'],
-            'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
+            'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp,gif', 'max:5120'],
         ];
 
         if (!$studentId && !$isUpdate) {

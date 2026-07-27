@@ -22,7 +22,11 @@ class EvaluationController extends Controller
         $user = Auth::user();
         $query = Evaluation::query()->with(['supervisor.company', 'student']);
 
+<<<<<<< HEAD
 if ($user->role->name === 'supervisor') {
+=======
+        if ($user->role->name === 'supervisor') {
+>>>>>>> sprint-4
             $supervisor = $this->getSupervisor();
             $query->where('company_supervisors_id', $supervisor->id);
         }
@@ -59,7 +63,11 @@ if ($user->role->name === 'supervisor') {
             'feedback' => 'nullable|string',
         ]);
 
+<<<<<<< HEAD
 $supervisor = $this->getSupervisor();
+=======
+        $supervisor = $this->getSupervisor();
+>>>>>>> sprint-4
         $validated['company_supervisors_id'] = $supervisor->id;
 
         $evaluation = Evaluation::create($validated);
@@ -75,7 +83,11 @@ $supervisor = $this->getSupervisor();
         $user = Auth::user();
         $evaluation = Evaluation::with(['supervisor.company', 'student'])->findOrFail($id);
 
+<<<<<<< HEAD
 if ($user->role->name === 'supervisor') {
+=======
+        if ($user->role->name === 'supervisor') {
+>>>>>>> sprint-4
             $supervisor = $this->getSupervisor();
             if ($evaluation->company_supervisors_id !== $supervisor->id) {
                 return response()->json(['message' => 'Unauthorized'], 403);

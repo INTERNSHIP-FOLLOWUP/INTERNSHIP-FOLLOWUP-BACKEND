@@ -9,6 +9,7 @@ use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Imports\StudentImport;
 use App\Imports\UserImport;
+use App\Models\CompanySupervisor;
 use App\Models\InternshipAssignment;
 use App\Models\Role;
 use App\Models\Student;
@@ -31,6 +32,8 @@ class UserController extends Controller
         if ($request->filled('status')) {
             if ($request->status === 'deactivated') {
                 $query->onlyTrashed();
+            } elseif ($request->status === 'active') {
+                $query->whereNull('deleted_at');
             }
         } else {
             $query->withTrashed();
@@ -85,7 +88,18 @@ class UserController extends Controller
                 }
             }
             if ($request->role === 'supervisor') {
+<<<<<<< HEAD
                 $query->with('supervisorProfile.company:id,company_name,company_image,company_profile_image');
+=======
+                $query->with('supervisorProfile.company');
+
+                if ($request->filled('company_id')) {
+                    $companyId = (int) $request->company_id;
+                    $query->whereHas('supervisorProfile', function ($q) use ($companyId) {
+                        $q->where('company_id', $companyId);
+                    });
+                }
+>>>>>>> sprint-4
             }
         }
 
@@ -139,10 +153,16 @@ class UserController extends Controller
 
     public function show(User $user): JsonResponse
     {
+<<<<<<< HEAD
         $user->loadMissing(['role', 'studentProfile', 'tutorProfile', 'supervisorProfile.company:id,company_name,company_image,company_profile_image']);
         $user->makeVisible(['studentProfile', 'tutorProfile', 'supervisorProfile']);
+=======
+        $user->loadMissing(['role', 'studentProfile', 'tutorProfile', 'supervisorProfile.company']);
+>>>>>>> sprint-4
 
-        return response()->json($user);
+        return response()->json([
+            'data' => $user,
+        ]);
     }
 
     public function store(StoreUserRequest $request): JsonResponse
@@ -153,6 +173,9 @@ class UserController extends Controller
         $validated['role_id'] = $role?->id;
         unset($validated['role']);
 
+        $companyId = $validated['company_id'] ?? null;
+        unset($validated['company_id']);
+
         if ($request->hasFile('avatar')) {
             $path = $request->file('avatar')->store('avatars', 'public');
             $validated['avatar'] = $path;
@@ -162,18 +185,23 @@ class UserController extends Controller
         $user->must_change_password = $user->role?->name === 'supervisor';
         $user->save();
 
-        if ($validated['role_id'] === Role::where('name', 'student')->first()?->id) {
+        if ($user->role?->name === 'student') {
             Student::create([
                 'user_id' => $user->id,
                 'student_code' => 'STU' . str_pad((string)$user->id, 4, '0', STR_PAD_LEFT),
             ]);
-        } elseif ($validated['role_id'] === Role::where('name', 'tutor')->first()?->id) {
+        } elseif ($user->role?->name === 'tutor') {
             Tutor::create([
                 'user_id' => $user->id,
             ]);
+        } elseif ($user->role?->name === 'supervisor' && $companyId) {
+            CompanySupervisor::create([
+                'user_id' => $user->id,
+                'company_id' => $companyId,
+            ]);
         }
 
-        return response()->json($user->load('role'), 201);
+        return response()->json($user->load(['role', 'supervisorProfile.company']), 201);
     }
 
     public function update(UpdateUserRequest $request, User $user): JsonResponse
@@ -205,7 +233,17 @@ class UserController extends Controller
             $validated['name'] = trim("{$firstName} {$lastName}");
         }
 
+        $companyId = $validated['company_id'] ?? null;
+        unset($validated['company_id']);
+
         $user->update($validated);
+
+        if ($user->role?->name === 'supervisor' && $companyId) {
+            CompanySupervisor::updateOrCreate(
+                ['user_id' => $user->id],
+                ['company_id' => $companyId]
+            );
+        }
 
         if ($user->studentProfile) {
             $studentData = array_intersect_key($validated, array_flip([
@@ -233,7 +271,11 @@ class UserController extends Controller
         $fresh->makeVisible(['studentProfile', 'tutorProfile', 'supervisorProfile']);
 
         return response()->json([
+<<<<<<< HEAD
             'user' => $fresh,
+=======
+            'user' => $user->fresh()->load(['role', 'studentProfile', 'tutorProfile', 'supervisorProfile.company']),
+>>>>>>> sprint-4
             'message' => 'User updated successfully.',
         ]);
     }
@@ -497,12 +539,18 @@ class UserController extends Controller
 
     public function tutorActivity(string $id): JsonResponse
     {
-        $user = User::withTrashed()->find($id);
+        $tutor = Tutor::withTrashed()->where('user_id', $id)->withCount('students')->first();
+        $user = null;
 
-        if (!$user) {
+        if ($tutor) {
+            $user = User::withTrashed()->find($tutor->user_id);
+        } else {
             $tutorRecord = Tutor::withTrashed()->find($id);
             if ($tutorRecord && $tutorRecord->user_id) {
                 $user = User::withTrashed()->find($tutorRecord->user_id);
+                $tutor = Tutor::withTrashed()->where('user_id', $user->id)->withCount('students')->first();
+            } else {
+                $user = User::withTrashed()->find($id);
             }
         }
 
@@ -510,14 +558,16 @@ class UserController extends Controller
             return response()->json(['message' => 'Tutor not found.'], 404);
         }
 
-        $tutor = Tutor::withTrashed()->where('user_id', $user->id)->withCount('students')->first();
-
         if (!$tutor) {
             return response()->json([
                 'tutor' => [
                     'id' => $user->id,
+                    'tutor_id' => null,
                     'name' => $user->name,
                     'email' => $user->email,
+                    'phone' => $user->phone,
+                    'gender' => $user->gender,
+                    'status' => $user->status ?? 'active',
                     'students_count' => 0,
                 ],
                 'students' => [],
@@ -527,7 +577,6 @@ class UserController extends Controller
             ]);
         }
 
-        // After fixing Tutor model's students() relationship, this now correctly uses user_id as local key
         $students = $tutor->students()
             ->with(['batch:id,batch_name', 'user:id,email,first_name,last_name'])
             ->withCount(['worklogs', 'issues'])
@@ -562,21 +611,24 @@ class UserController extends Controller
         ];
 
         $issues = $tutor->issues()
-            ->select('id', 'student_id', 'title', 'status', 'priority', 'created_at')
-            ->with('student:id,user_id')
+            ->with('student')
             ->orderBy('created_at', 'desc')
             ->get();
 
         $assignments = InternshipAssignment::where('tutor_id', $tutor->id)
-            ->with('company:id,company_name', 'student:id,user_id')
+            ->with(['company', 'student'])
             ->orderBy('created_at', 'desc')
             ->get();
 
         return response()->json([
             'tutor' => [
                 'id' => $tutor->user_id,
-                'name' => $tutor->name,
-                'email' => $tutor->email,
+                'tutor_id' => $tutor->id,
+                'name' => $tutor->name ?? $user?->name,
+                'email' => $tutor->email ?? $user?->email,
+                'phone' => $tutor->phone ?? $user?->phone,
+                'gender' => $tutor->gender ?? $user?->gender,
+                'status' => $tutor->status ?? $user?->status ?? 'active',
                 'students_count' => $tutor->students_count,
             ],
             'students' => $students,

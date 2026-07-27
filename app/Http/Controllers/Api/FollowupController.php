@@ -26,7 +26,15 @@ class FollowupController extends Controller
         $user = $request->user();
         $role = $user->role?->name;
 
+<<<<<<< HEAD
 $query = Followup::query()
+=======
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $query = Followup::query()
+>>>>>>> sprint-4
             ->with(['student:id,user_id,batch_id,tutor_id', 'tutor:id,user_id', 'tutor.user:id,first_name,last_name,email', 'supervisor.company:id,company_name']);
 
         if ($user->role?->name === 'tutor') {
@@ -64,8 +72,13 @@ $query = Followup::query()
             });
         }
 
+<<<<<<< HEAD
 $perPage = min((int) ($request->per_page ?? 15), 100) ?: 15;
         $followups = $query->latest('meeting_date')->paginate($perPage);
+=======
+        $perPage = min((int) ($request->per_page ?? 15), 100) ?: 15;
+        $followups = $query->latest('scheduled_at')->paginate($perPage);
+>>>>>>> sprint-4
 
         return response()->json([
             'data' => FollowupResource::collection($followups->items()),
@@ -110,7 +123,11 @@ $perPage = min((int) ($request->per_page ?? 15), 100) ?: 15;
         $user = $request->user();
         $role = $user->role?->name;
 
+<<<<<<< HEAD
 if (!$user || !in_array($user->role?->name, ['tutor', 'admin'])) {
+=======
+        if (!$user || !in_array($user->role?->name, ['tutor', 'admin'])) {
+>>>>>>> sprint-4
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
@@ -135,17 +152,29 @@ $followup = Followup::create([
             'student_id' => $validated['student_id'],
             'tutor_id' => $tutorId,
             'company_supervisors_id' => $validated['company_supervisors_id'] ?? null,
+<<<<<<< HEAD
             'meeting_type' => $validated['meeting_type'],
             'meeting_date' => $validated['meeting_date'],
+=======
+            'type' => $validated['meeting_type'],
+            'scheduled_at' => $validated['meeting_date'],
+>>>>>>> sprint-4
             'notes' => $validated['notes'] ?? null,
             'action_items' => $validated['action_items'] ?? null,
             'next_followup' => $validated['next_followup'] ?? null,
             'status' => $validated['status'] ?? 'Scheduled',
         ]);
 
+<<<<<<< HEAD
 return response()->json([
             'data' => new FollowupResource($followup->load(['student', 'tutor', 'supervisor.company'])),
             'message' => 'Follow-up created successfully.',
+=======
+        return response()->json([
+            'data' => new FollowupResource($followup->load(['student'])),
+            'message' => 'Follow-up created successfully.',
+            'data' => new FollowupResource($followup->load(['student', 'tutor', 'supervisor.company'])),
+>>>>>>> sprint-4
         ], 201);
     }
 
@@ -154,7 +183,11 @@ return response()->json([
         $user = $request->user();
         $role = $user->role?->name;
 
+<<<<<<< HEAD
 if (!$user || !in_array($user->role?->name, ['tutor', 'admin'])) {
+=======
+        if (!$user || !in_array($user->role?->name, ['tutor', 'admin'])) {
+>>>>>>> sprint-4
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
@@ -188,9 +221,16 @@ if (!$user || !in_array($user->role?->name, ['tutor', 'admin'])) {
         }
         $followup->update($updateData);
 
+<<<<<<< HEAD
 return response()->json([
             'data' => new FollowupResource($followup->load(['student', 'tutor', 'supervisor.company'])),
             'message' => 'Follow-up updated successfully.',
+=======
+        return response()->json([
+            'data' => new FollowupResource($followup->load(['student'])),
+            'message' => 'Follow-up updated successfully.',
+            'data' => new FollowupResource($followup->load(['student', 'tutor', 'supervisor.company'])),
+>>>>>>> sprint-4
         ], 200);
     }
 
@@ -199,7 +239,11 @@ return response()->json([
         $user = $request->user();
         $role = $user->role?->name;
 
+<<<<<<< HEAD
 if (!$user || !in_array($user->role?->name, ['tutor', 'admin'])) {
+=======
+        if (!$user || !in_array($user->role?->name, ['tutor', 'admin'])) {
+>>>>>>> sprint-4
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 

@@ -56,11 +56,58 @@ class CompanyDashboardController extends Controller
             'website'                => ['nullable', 'url', 'max:255'],
             'company_profile_image'  => ['nullable', 'string', 'max:255'],
             'telegram_link'          => ['nullable', 'string', 'max:255'],
+<<<<<<< HEAD
         ]);
+=======
+        ];
+
+        // Conditional validation: file upload vs URL string
+        if ($request->hasFile('company_image')) {
+            $rules['company_image'] = ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'];
+        } else {
+            $rules['company_image'] = ['nullable', 'string', 'max:255'];
+        }
+
+        if ($request->hasFile('company_profile_image')) {
+            $rules['company_profile_image'] = ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'];
+        } else {
+            $rules['company_profile_image'] = ['nullable', 'string', 'max:255'];
+        }
+
+        $validated = $request->validate($rules);
+
+        // Handle company_image upload
+        if ($request->hasFile('company_image')) {
+            if ($company->company_image &&
+                !str_starts_with($company->company_image, 'http://') &&
+                !str_starts_with($company->company_image, 'https://')) {
+                Storage::disk('public')->delete($company->company_image);
+            }
+            $validated['company_image'] = $request->file('company_image')
+                ->store('companies', 'public');
+        } elseif ($request->filled('company_image')) {
+            $validated['company_image'] = $request->input('company_image');
+        }
+
+        // Handle company_profile_image upload
+        if ($request->hasFile('company_profile_image')) {
+            if ($company->company_profile_image &&
+                !str_starts_with($company->company_profile_image, 'http://') &&
+                !str_starts_with($company->company_profile_image, 'https://')) {
+                Storage::disk('public')->delete($company->company_profile_image);
+            }
+            $validated['company_profile_image'] = $request->file('company_profile_image')
+                ->store('avatars', 'public');
+        }
+>>>>>>> sprint-4
 
         $company->update($validated);
 
         return response()->json([
+<<<<<<< HEAD
+=======
+            'company' => $company,
+>>>>>>> sprint-4
             'message' => 'Company profile updated successfully.',
             'company' => $company->fresh(),
         ]);

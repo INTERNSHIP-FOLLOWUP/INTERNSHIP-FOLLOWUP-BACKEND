@@ -36,9 +36,6 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
-        'studentProfile',
-        'tutorProfile',
-        'supervisorProfile',
     ];
 
     protected $appends = [
@@ -58,15 +55,22 @@ class User extends Authenticatable
 
     public function getNameAttribute(): string
     {
-        return trim(($this->first_name ?? '') . ' ' . ($this->last_name ?? ''));
+        $lastName = trim($this->last_name ?? '');
+        $firstName = trim($this->first_name ?? '');
+        if ($lastName !== '' && $firstName !== '') {
+            return $lastName . ' ' . $firstName;
+        }
+        return $lastName !== '' ? $lastName : $firstName;
     }
 
     public function getAvatarUrlAttribute(): ?string
     {
         if (!$this->avatar) return null;
 
-        if (str_starts_with($this->avatar, 'http://') ||
-            str_starts_with($this->avatar, 'https://')) {
+        if (
+            str_starts_with($this->avatar, 'http://') ||
+            str_starts_with($this->avatar, 'https://')
+        ) {
             return $this->avatar;
         }
 
