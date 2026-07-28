@@ -57,7 +57,7 @@ class AuthController extends Controller
             'email'      => $request->email,
             'password'   => Hash::make($request->password),
             'role_id'    => $studentRole?->id,
-            'status'     => 'active',
+            'status'     => 'inactive',
             'must_change_password' => true,
         ]);
 
@@ -85,9 +85,9 @@ class AuthController extends Controller
             ]);
         }
 
-        if ($user->status === 'inactive' || $user->trashed()) {
+        if ($user->trashed() || $user->status === 'deactivated') {
             throw ValidationException::withMessages([
-                'email' => ['Your account is inactive. Please contact system administrator.'],
+                'email' => ['Your account has been deactivated. Please contact system administrator.'],
             ]);
         }
 
@@ -164,10 +164,22 @@ class AuthController extends Controller
 
         $user->password = Hash::make($request->password);
         $user->must_change_password = false;
+        $user->status = 'active';
         $user->save();
+
+        if ($user->studentProfile) {
+            $user->studentProfile->update(['status' => 'active']);
+        }
+        if ($user->tutorProfile) {
+            $user->tutorProfile->update(['status' => 'active']);
+        }
+        if ($user->supervisorProfile) {
+            $user->supervisorProfile->update(['status' => 'active']);
+        }
 
         return response()->json([
             'message' => 'Password changed successfully.',
+            'user'    => $this->userResponse($user),
         ]);
     }
 
