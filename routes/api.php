@@ -65,6 +65,13 @@ Route::middleware('auth:sanctum')->prefix('worklogs')->name('worklogs.')->group(
 Route::middleware(['auth:sanctum', 'role:supervisor'])->prefix('company')->name('company.')->group(function () {
     Route::get('/profile', [CompanyDashboardController::class, 'profile'])->name('profile');
     Route::put('/profile', [CompanyDashboardController::class, 'updateProfile'])->name('profile.update');
+    Route::get('/students', [CompanyDashboardController::class, 'students'])->name('students');
+
+    // Company-Tutor Messaging
+    Route::get('/messages', [App\Http\Controllers\Api\CompanyMessageController::class, 'conversations'])->name('messages.conversations');
+    Route::get('/messages/poll', [App\Http\Controllers\Api\CompanyMessageController::class, 'poll'])->name('messages.poll');
+    Route::get('/messages/{otherParty}', [App\Http\Controllers\Api\CompanyMessageController::class, 'messages'])->name('messages.show');
+    Route::post('/messages/{otherParty}', [App\Http\Controllers\Api\CompanyMessageController::class, 'send'])->name('messages.send');
 });
 
 Route::middleware(['auth:sanctum', 'role:supervisor'])->prefix('evaluations')->name('evaluations.')->group(function () {
@@ -186,6 +193,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
     Route::post('/users/import', [UserController::class, 'import'])->name('users.import');
     Route::get('/users/import/template', [UserController::class, 'importTemplate'])->name('users.import-template');
     Route::get('/users/export/excel', [UserController::class, 'exportExcel'])->name('users.export.excel');
+    Route::get('/users/export/pdf', [UserController::class, 'exportPdf'])->name('users.export.pdf');
 
     Route::get('/students/{id}/activity', [UserController::class, 'activity'])->name('students.activity');
     Route::get('/tutors/{id}/activity', [UserController::class, 'tutorActivity'])->name('tutors.activity');

@@ -186,7 +186,7 @@ class BatchController extends Controller
      */
     public function exportPdf(Batch $batch)
     {
-        $students = $batch->students()->orderBy('name')->get();
+        $students = $batch->students()->with('user')->get()->sortBy('name')->values();
 
         $pdf = Pdf::loadView('batches.students-list', [
             'batch' => $batch,
@@ -203,7 +203,7 @@ class BatchController extends Controller
      */
     public function exportExcel(Batch $batch)
     {
-        $students = $batch->students()->orderBy('name')->get();
+        $students = $batch->students()->with('user')->get()->sortBy('name')->values();
 
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
