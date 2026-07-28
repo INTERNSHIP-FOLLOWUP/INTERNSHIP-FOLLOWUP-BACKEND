@@ -17,13 +17,41 @@ class EnsureUserIsActive
     {
         $user = $request->user();
 
-        if ($user && ($user->status === 'inactive' || $user->trashed())) {
-            // Revoke current token
-            $request->user()->currentAccessToken()?->delete();
+        if ($user) {
+            if ($user->trashed() || $user->status === 'deactivated') {
+                $request->user()->currentAccessToken()?->delete();
 
-            return response()->json([
-                'message' => 'Your account is inactive. Please contact system administrator.',
-            ], 403);
+                return response()->json([
+                    'message' => 'Your account has been deactivated. Please contact system administrator.',
+                ], 403);
+            }
+
+            if ($user->status === 'inactive') {
+                if ($user->must_change_password) {
+                    $path = $request->path();
+                    $allowed = [
+                        'api/profile/password',
+                        'api/profile',
+                        'api/auth/user',
+                        'api/auth/logout',
+                    ];
+
+                    $isAllowed = false;
+                    foreach ($allowed as $route) {
+                        if ($path === $route || str_ends_with($path, 'password') || str_contains($path, 'profile')) {
+                            $isAllowed = true;
+                            break;
+                        }
+                    }
+
+                    if (!$isAllowed) {
+                        return response()->json([
+                            'message' => 'You must change your password before accessing system resources.',
+                            'must_change_password' => true,
+                        ], 403);
+                    }
+                } 
+            }
         }
 
         return $next($request);

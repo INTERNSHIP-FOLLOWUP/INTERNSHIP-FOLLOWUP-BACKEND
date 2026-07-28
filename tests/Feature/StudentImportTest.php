@@ -79,7 +79,7 @@ class StudentImportTest extends TestCase
             'last_name' => 'Dara',
             'phone' => '012345678',
             'gender' => 'Male',
-            'status' => 'active',
+            'status' => 'inactive',
             'theme' => 'light',
             'role_id' => $this->studentRole->id,
         ]);
@@ -261,7 +261,7 @@ class StudentImportTest extends TestCase
             'first_name' => 'Borey',
             'last_name' => 'Peni',
             'gender' => 'Male',
-            'status' => 'active',
+            'status' => 'inactive',
         ]);
 
         $user = User::where('email', 'borey.peni@pn-internship.edu.kh')->first();

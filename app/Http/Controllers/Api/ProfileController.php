@@ -152,13 +152,18 @@ class ProfileController extends Controller
 
         $user->password = Hash::make($request->password);
         $user->must_change_password = false;
-
-        // Auto-activate users when they change password for the first time
-        if ($user->status === 'inactive' && $user->role?->name !== 'admin') {
-            $user->status = 'active';
-        }
-
+        $user->status = 'active';
         $user->save();
+
+        if ($user->studentProfile) {
+            $user->studentProfile->update(['status' => 'active']);
+        }
+        if ($user->tutorProfile) {
+            $user->tutorProfile->update(['status' => 'active']);
+        }
+        if ($user->supervisorProfile) {
+            $user->supervisorProfile->update(['status' => 'active']);
+        }
 
         return response()->json([
             'message' => 'Password changed successfully.',

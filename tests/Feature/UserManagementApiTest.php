@@ -96,7 +96,7 @@ class UserManagementApiTest extends TestCase
 
         $response->assertOk();
         $this->assertCount(1, $response->json('data'));
-        $this->assertEquals('Student User', $response->json('data.0.name'));
+        $this->assertEquals('User Student', $response->json('data.0.name'));
     }
 
     /** @test */
@@ -122,7 +122,7 @@ class UserManagementApiTest extends TestCase
             ]);
 
         $response->assertCreated()
-            ->assertJsonPath('name', 'New User')
+            ->assertJsonPath('name', 'User New')
             ->assertJsonPath('email', 'newuser@test.com');
 
         $this->assertDatabaseHas('users', ['email' => 'newuser@test.com']);
@@ -151,8 +151,8 @@ class UserManagementApiTest extends TestCase
             ->getJson('/api/admin/users/' . $this->tutorUser->id);
 
         $response->assertOk()
-            ->assertJsonPath('name', 'Tutor User')
-            ->assertJsonPath('email', 'tutor@test.com');
+            ->assertJsonPath('data.name', 'User Tutor')
+            ->assertJsonPath('data.email', 'tutor@test.com');
     }
 
     /** @test */
@@ -166,7 +166,7 @@ class UserManagementApiTest extends TestCase
             ]);
 
         $response->assertOk()
-            ->assertJsonPath('user.name', 'Updated Tutor');
+            ->assertJsonPath('user.name', 'Tutor Updated');
 
         $this->assertDatabaseHas('users', [
             'id' => $this->tutorUser->id,

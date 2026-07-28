@@ -30,10 +30,18 @@ class UserController extends Controller
         $query = User::query()->with('role');
 
         if ($request->filled('status')) {
-            if ($request->status === 'deactivated') {
-                $query->onlyTrashed();
-            } elseif ($request->status === 'active') {
-                $query->whereNull('deleted_at');
+            $status = strtolower($request->status);
+            if ($status === 'deactivated') {
+                $query->withTrashed()->where(function ($q) {
+                    $q->where('status', 'deactivated')
+                      ->orWhereNotNull('deleted_at');
+                });
+            } elseif ($status === 'inactive') {
+                $query->whereNull('deleted_at')->where('status', 'inactive');
+            } elseif ($status === 'active') {
+                $query->whereNull('deleted_at')->where('status', 'active');
+            } else {
+                $query->whereNull('deleted_at')->where('status', $status);
             }
         } else {
             $query->withTrashed();
@@ -77,13 +85,17 @@ class UserController extends Controller
                 }
                 if ($request->filled('student_status')) {
                     $status = strtolower($request->student_status);
-                    if ($status === 'deactivated' || $status === 'inactive') {
+                    if ($status === 'deactivated') {
                         $query->where(function ($q) {
-                            $q->whereIn('status', ['deactivated', 'inactive'])
+                            $q->where('status', 'deactivated')
                               ->orWhereNotNull('deleted_at');
                         });
+                    } elseif ($status === 'inactive') {
+                        $query->where('status', 'inactive')->whereNull('deleted_at');
+                    } elseif ($status === 'active') {
+                        $query->where('status', 'active')->whereNull('deleted_at');
                     } else {
-                        $query->where('status', $status);
+                        $query->where('status', $status)->whereNull('deleted_at');
                     }
                 }
             }
@@ -392,14 +404,14 @@ class UserController extends Controller
             if ($user->trashed()) {
                 $user->restore();
             }
-            $user->status = 'active';
+            $user->status = $user->must_change_password ? 'inactive' : 'active';
             $user->save();
 
             if ($user->studentProfile) {
                 if ($user->studentProfile->trashed()) {
                     $user->studentProfile->restore();
                 }
-                $user->studentProfile->update(['status' => 'active']);
+                $user->studentProfile->update(['status' => $user->status]);
             }
             return response()->json([
                 'user' => $user->fresh()->load('role'),
@@ -437,18 +449,18 @@ class UserController extends Controller
                 return response()->json(['message' => 'You cannot deactivate your own account.'], 403);
             }
 
-            if ($user->trashed() || $user->status === 'inactive') {
+            if ($user->trashed() || $user->status === 'deactivated') {
                 return response()->json(['message' => 'User is already deactivated.'], 422);
             }
 
-            $user->status = 'inactive';
+            $user->status = 'deactivated';
             $user->save();
 
             // Revoke all tokens immediately
             $user->tokens()->delete();
 
             if ($user->studentProfile) {
-                $user->studentProfile->update(['status' => 'inactive']);
+                $user->studentProfile->update(['status' => 'deactivated']);
             }
 
             $user->delete();
@@ -459,7 +471,7 @@ class UserController extends Controller
         }
 
         if ($student) {
-            $student->update(['status' => 'inactive']);
+            $student->update(['status' => 'deactivated']);
             return response()->json([
                 'message' => 'Student deactivated successfully.',
             ]);
@@ -478,7 +490,20 @@ class UserController extends Controller
 
         $user->password = Hash::make($validated['password']);
         $user->must_change_password = true;
+        if ($user->role?->name !== 'admin') {
+            $user->status = 'inactive';
+        }
         $user->save();
+
+        if ($user->studentProfile) {
+            $user->studentProfile->update(['status' => $user->status]);
+        }
+        if ($user->tutorProfile) {
+            $user->tutorProfile->update(['status' => $user->status]);
+        }
+        if ($user->supervisorProfile) {
+            $user->supervisorProfile->update(['status' => $user->status]);
+        }
 
         $user->tokens()->delete();
 
