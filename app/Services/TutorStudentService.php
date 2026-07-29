@@ -142,23 +142,21 @@ class TutorStudentService
         $f = Followup::query()
             ->where('student_id', $studentId)
             ->where('tutor_id', $tutorId)
-            ->where('status', 'Scheduled')
-            ->where('scheduled_at', '>=', now()->subDay())
-            ->orderBy('scheduled_at')
+            ->whereNotNull('next_followup')
+            ->where('next_followup', '>=', now()->subDay())
+            ->orderBy('next_followup')
             ->first();
 
-        if (!$f) {
+        if (!$f || !$f->next_followup) {
             return null;
         }
 
         return [
             'id' => $f->id,
-            'scheduled_at' => $f->scheduled_at->toISOString(),
-            'date_label' => $f->scheduled_at->format('M j, Y'),
-            'time_label' => $f->scheduled_at->format('g:i A'),
-            'type' => $f->type,
+            'scheduled_at' => $f->next_followup->toISOString(),
+            'date_label' => $f->next_followup->format('M j, Y'),
+            'type' => $f->meeting_type,
             'notes' => $f->notes,
-            'status' => $f->status,
         ];
     }
 }

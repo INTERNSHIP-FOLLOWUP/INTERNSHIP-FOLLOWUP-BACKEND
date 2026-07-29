@@ -7,6 +7,7 @@ use App\Http\Requests\InternshipAssignmentRequest;
 use App\Http\Resources\AssignmentResource;
 use App\Models\InternshipAssignment;
 use App\Models\Student;
+use App\Notifications\StudentAssigned;
 use App\Services\AssignmentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -43,9 +44,15 @@ class AssignmentController extends Controller
     public function store(InternshipAssignmentRequest $request): JsonResponse
     {
         $assignment = $this->assignmentService->create($request->validated());
+        $assignment->load(['student.user', 'supervisor.company', 'supervisor.user', 'tutor']);
+
+        $supervisorUser = $assignment->supervisor?->user;
+        if ($supervisorUser) {
+            $supervisorUser->notify(new StudentAssigned($assignment));
+        }
 
         return response()->json([
-            'data' => new AssignmentResource($assignment->load(['student.user', 'supervisor.company', 'tutor'])),
+            'data' => new AssignmentResource($assignment),
             'message' => 'Internship assignment created successfully.',
         ], 201);
     }

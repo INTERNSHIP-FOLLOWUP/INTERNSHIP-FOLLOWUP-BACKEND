@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Student;
 use App\Models\Worklog;
+use App\Notifications\WorklogReviewed;
 use Illuminate\Http\Request;
 
 
@@ -156,8 +157,15 @@ class TutorWorklogController extends Controller
             $worklog->reviewed_at = now();
             $worklog->save();
 
-            return $worklog->load(['student:id,user_id', 'attachments']);
+            return $worklog->load(['student.user', 'attachments']);
         });
+
+        if ($request->filled('status')) {
+            $studentUser = $updated->student?->user;
+            if ($studentUser) {
+                $studentUser->notify(new WorklogReviewed($updated));
+            }
+        }
 
         return response()->json([
             'success' => true,
