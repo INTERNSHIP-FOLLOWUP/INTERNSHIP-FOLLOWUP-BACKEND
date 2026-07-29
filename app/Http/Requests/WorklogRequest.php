@@ -37,10 +37,18 @@ class WorklogRequest extends FormRequest
 
         $rules = [
             // Worklog Details
-            'week_number'     => $worklogId ? ['sometimes', 'integer', 'min:1', 'max:52'] : ['required', 'integer', 'min:1', 'max:52'],
-            'description'     => $worklogId ? ['sometimes', 'string'] : ['required', 'string'],
+            'week_number'     => $worklogId ? ['sometimes', 'integer', 'min:1', 'max:52'] : ['nullable', 'integer', 'min:1', 'max:52'],
+            'description'     => $worklogId ? ['sometimes', 'string'] : ['nullable', 'string'],
             'challenges'      => ['nullable', 'string'],
             'submission_date' => ['nullable', 'date'],
+            'work_date'       => ['nullable', 'date'],
+            'work_time'       => ['nullable', 'string', 'max:10'],
+            'work_activities' => ['nullable', 'string'],
+            'what_learned'    => ['nullable', 'string'],
+            'difficulties'    => ['nullable', 'string'],
+            'solutions'       => ['nullable', 'string'],
+            'to_do'           => ['nullable', 'string'],
+            'comment'         => ['nullable', 'string'],
 
             // Status (students can only set Draft or Submitted)
             'status'          => ['sometimes', 'in:Draft,Submitted'],

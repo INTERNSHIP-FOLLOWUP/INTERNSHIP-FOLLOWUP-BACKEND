@@ -17,6 +17,14 @@ class Worklog extends Model
         'description',
         'challenges',
         'submission_date',
+        'work_date',
+        'work_time',
+        'work_activities',
+        'what_learned',
+        'difficulties',
+        'solutions',
+        'to_do',
+        'comment',
         'status',
         'feedback',
         'reviewer_id',
@@ -27,6 +35,7 @@ class Worklog extends Model
     {
         return [
             'submission_date' => 'date',
+            'work_date' => 'date',
         ];
     }
 

@@ -102,14 +102,10 @@ class WorklogController extends Controller
             ], 422);
         }
 
-        $worklog = Worklog::create([
-            'student_id'      => $studentId,
-            'week_number'     => $request->week_number,
-            'description'     => $request->description,
-            'challenges'      => $request->challenges,
-            'submission_date' => $request->submission_date ?? now()->toDateString(),
-            'status'          => $request->status ?? 'Draft',
-        ]);
+        $data = $request->validated();
+        $data['student_id'] = $studentId;
+        $data['status'] = $data['status'] ?? 'Draft';
+        $worklog = Worklog::create($data);
 
         // Handle file uploads
         if ($request->hasFile('attachments')) {
