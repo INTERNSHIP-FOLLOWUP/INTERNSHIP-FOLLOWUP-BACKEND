@@ -7,6 +7,9 @@ use App\Http\Resources\IssueResource;
 use App\Models\Issue;
 use App\Models\Student;
 use App\Models\User;
+use App\Notifications\IssueAssigned;
+use App\Notifications\IssueReportedToAdmin;
+use App\Notifications\IssueResolved;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -236,8 +239,19 @@ class IssueController extends Controller
             return $issue;
         });
 
+        $issue->load(['student', 'reporter', 'assignedUser', 'attachments', 'history.user']);
+
+        if ($issue->assignedUser && $issue->assignedUser->id !== $reporterId) {
+            $issue->assignedUser->notify(new IssueAssigned($issue));
+        }
+
+        User::whereHas('role', fn($q) => $q->where('name', 'admin'))
+            ->where('id', '!=', $reporterId)
+            ->get()
+            ->each(fn($admin) => $admin->notify(new IssueReportedToAdmin($issue)));
+
         return response()->json(
-            new IssueResource($issue->load(['student', 'reporter', 'assignedUser', 'attachments', 'history.user'])),
+            new IssueResource($issue),
             201
         );
     }
@@ -373,8 +387,14 @@ class IssueController extends Controller
             'text' => 'Issue resolved.',
         ]);
 
+        $issue->load(['student', 'reporter', 'assignedUser', 'attachments', 'history.user']);
+
+        if ($issue->assignedUser && $issue->assignedUser->id !== $user->id) {
+            $issue->assignedUser->notify(new IssueResolved($issue));
+        }
+
         return response()->json(
-            new IssueResource($issue->load(['student', 'reporter', 'assignedUser', 'attachments', 'history.user']))
+            new IssueResource($issue)
         );
     }
 }

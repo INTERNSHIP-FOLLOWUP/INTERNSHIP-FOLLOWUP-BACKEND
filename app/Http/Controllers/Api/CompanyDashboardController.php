@@ -118,7 +118,7 @@ class CompanyDashboardController extends Controller
             ]);
         }
 
-        $assignments = InternshipAssignment::with(['student.batch', 'tutor'])
+        $assignments = InternshipAssignment::with(['student.batch', 'student.user', 'tutor'])
             ->whereHas('supervisor', function ($q) use ($supervisor) {
                 $q->where('company_id', $supervisor->company_id);
             })
@@ -131,7 +131,8 @@ class CompanyDashboardController extends Controller
                 'id'           => $student?->id,
                 'student_name' => $student?->name,
                 'student_email'=> $student?->email,
-                'batch'        => $student?->batch?->name,
+                'photo_url'    => $student?->photo_url,
+                'batch'        => $student?->batch?->batch_name,
                 'position'     => $assignment->position,
                 'start_date'   => $assignment->start_date?->format('Y-m-d'),
                 'end_date'     => $assignment->end_date?->format('Y-m-d'),

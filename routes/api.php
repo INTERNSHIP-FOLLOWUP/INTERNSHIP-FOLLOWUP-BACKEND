@@ -29,6 +29,12 @@ Route::prefix('auth')->group(function () {
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 });
 
+Route::middleware(['auth:sanctum'])->prefix('notifications')->name('notifications.')->group(function () {
+    Route::get('/', [App\Http\Controllers\Api\NotificationController::class, 'index'])->name('index');
+    Route::post('/{id}/read', [App\Http\Controllers\Api\NotificationController::class, 'markRead'])->name('read');
+    Route::post('/read-all', [App\Http\Controllers\Api\NotificationController::class, 'markAllRead'])->name('read-all');
+});
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [AuthController::class, 'user']);
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -62,9 +68,23 @@ Route::middleware('auth:sanctum')->prefix('worklogs')->name('worklogs.')->group(
     Route::put('/{worklog}/status', [WorklogController::class, 'updateStatus'])->name('status.update');
 });
 
-Route::middleware(['auth:sanctum', 'role:supervisor'])->prefix('company')->name('company.')->group(function () {
+Route::middleware(['auth:sanctum', 'role:supervisor,company,company representative'])->prefix('company')->name('company.')->group(function () {
     Route::get('/profile', [CompanyDashboardController::class, 'profile'])->name('profile');
     Route::put('/profile', [CompanyDashboardController::class, 'updateProfile'])->name('profile.update');
+    Route::get('/students', [CompanyDashboardController::class, 'students'])->name('students');
+
+    // Company Feedback (submitted by the supervisor about a student)
+    Route::get('/feedback', [App\Http\Controllers\Api\CompanyFeedbackController::class, 'index'])->name('feedback.index');
+    Route::post('/feedback', [App\Http\Controllers\Api\CompanyFeedbackController::class, 'store'])->name('feedback.store');
+    Route::get('/feedback/{feedback}', [App\Http\Controllers\Api\CompanyFeedbackController::class, 'show'])->name('feedback.show');
+    Route::put('/feedback/{feedback}', [App\Http\Controllers\Api\CompanyFeedbackController::class, 'update'])->name('feedback.update');
+    Route::delete('/feedback/{feedback}', [App\Http\Controllers\Api\CompanyFeedbackController::class, 'destroy'])->name('feedback.destroy');
+
+    // Company-Tutor Messaging
+    Route::get('/messages', [App\Http\Controllers\Api\CompanyMessageController::class, 'conversations'])->name('messages.conversations');
+    Route::get('/messages/poll', [App\Http\Controllers\Api\CompanyMessageController::class, 'poll'])->name('messages.poll');
+    Route::get('/messages/{otherParty}', [App\Http\Controllers\Api\CompanyMessageController::class, 'messages'])->name('messages.show');
+    Route::post('/messages/{otherParty}', [App\Http\Controllers\Api\CompanyMessageController::class, 'send'])->name('messages.send');
 });
 
 Route::middleware(['auth:sanctum', 'role:supervisor'])->prefix('evaluations')->name('evaluations.')->group(function () {
@@ -132,14 +152,17 @@ Route::middleware(['auth:sanctum', 'role:tutor'])->prefix('tutor')->name('tutor.
     Route::get('/students/{student}', [\App\Http\Controllers\Api\TutorStudentController::class, 'show'])->name('students.show');
     Route::put('/students/{student}/status', [\App\Http\Controllers\Api\TutorStudentController::class, 'updateStatus'])->name('students.status.update');
 
+    // Company evaluations of the tutor's assigned students
+    Route::get('/evaluations', [\App\Http\Controllers\Api\EvaluationController::class, 'index'])->name('evaluations.index');
+
     Route::middleware(['auth:sanctum', 'role:tutor'])->prefix('worklogs')->name('worklogs.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Api\TutorWorklogController::class, 'index'])->name('index');
 
         // Frontend contract: /api/tutor/worklogs/{id}
-        Route::get('/{id}', [\App\Http\Controllers\Api\TutorWorklogController::class, 'show'])->name('show');
+        Route::get('/{worklog}', [\App\Http\Controllers\Api\TutorWorklogController::class, 'show'])->name('show');
 
         // Frontend contract: POST /api/tutor/worklogs/{id}
-        Route::post('/{id}', [\App\Http\Controllers\Api\TutorWorklogController::class, 'review'])->name('review');
+        Route::post('/{worklog}', [\App\Http\Controllers\Api\TutorWorklogController::class, 'review'])->name('review');
     });
 
     // Follow-ups
@@ -186,6 +209,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->name('admin.
     Route::post('/users/import', [UserController::class, 'import'])->name('users.import');
     Route::get('/users/import/template', [UserController::class, 'importTemplate'])->name('users.import-template');
     Route::get('/users/export/excel', [UserController::class, 'exportExcel'])->name('users.export.excel');
+    Route::get('/users/export/pdf', [UserController::class, 'exportPdf'])->name('users.export.pdf');
 
     Route::get('/students/{id}/activity', [UserController::class, 'activity'])->name('students.activity');
     Route::get('/tutors/{id}/activity', [UserController::class, 'tutorActivity'])->name('tutors.activity');

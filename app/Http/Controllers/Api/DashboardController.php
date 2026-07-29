@@ -62,12 +62,13 @@ class DashboardController extends Controller
                     'count' => $batch->students_count,
                 ]);
 
-            $tutors = Tutor::withCount('students')
+            $tutors = Tutor::with('user')->withCount('students')
                 ->get()
                 ->map(fn($tutor) => [
                     'id' => $tutor->id,
                     'name' => $tutor->name,
                     'email' => $tutor->email,
+                    'photoUrl' => $tutor->photo_url,
                     'studentsCount' => $tutor->students_count,
                 ]);
 

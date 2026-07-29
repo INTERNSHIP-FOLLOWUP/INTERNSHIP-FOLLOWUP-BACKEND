@@ -71,6 +71,7 @@ class NewMessage implements ShouldBroadcast
             'created_at' => $this->message->created_at->toISOString(),
             'company_supervisors_id' => $this->message->company_supervisors_id,
             'tutor_id' => $this->message->tutor_id,
+            'company_id' => $this->message->supervisor?->company_id,
         ];
     }
 }

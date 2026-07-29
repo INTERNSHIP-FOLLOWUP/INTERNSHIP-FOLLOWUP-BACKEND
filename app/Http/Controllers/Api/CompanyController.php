@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CompanyRequest;
 use App\Models\Company;
-use App\Models\Role;
+use App\Models\CompanySupervisor;
 use App\Models\User;
+use App\Models\Role;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
 class CompanyController extends Controller
 {
     public function index(Request $request)
@@ -108,8 +111,20 @@ class CompanyController extends Controller
     {
         $data = $request->validated();
 
-        if (empty($data['password'])) {
-            unset($data['password']);
+        // Handle company_image upload
+        if ($request->hasFile('company_image')) {
+            $data['company_image'] = $request->file('company_image')
+                ->store('companies', 'public');
+        } elseif ($request->filled('company_image')) {
+            $data['company_image'] = $request->input('company_image');
+        }
+
+        // Handle company_profile_image upload
+        if ($request->hasFile('company_profile_image')) {
+            $data['company_profile_image'] = $request->file('company_profile_image')
+                ->store('avatars', 'public');
+        } elseif ($request->filled('company_profile_image')) {
+            $data['company_profile_image'] = $request->input('company_profile_image');
         }
 
         $company->update($data);
@@ -121,11 +136,28 @@ class CompanyController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Permanently remove the specified resource from storage, along with
+     * the linked user accounts of its supervisors. Internship assignments,
+     * evaluations, feedback, and company-supervisor records are removed
+     * automatically via database cascade.
      */
     public function destroy(Company $company)
     {
-        $company->delete();
+        DB::transaction(function () use ($company) {
+            $supervisors = CompanySupervisor::withTrashed()
+                ->where('company_id', $company->id)
+                ->get();
+
+            foreach ($supervisors as $supervisor) {
+                $user = User::withTrashed()->find($supervisor->user_id);
+                if ($user) {
+                    $user->tokens()->delete();
+                    $user->forceDelete();
+                }
+            }
+
+            $company->forceDelete();
+        });
 
         return response()->json([
             'message' => 'Company deleted successfully.',

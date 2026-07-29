@@ -19,6 +19,7 @@ class Company extends Model
         'industry',
         'email',
         'website',
+        'company_image',
         'company_profile_image',
         'company_image',
         'telegram_link',

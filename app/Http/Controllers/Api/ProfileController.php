@@ -165,8 +165,11 @@ class ProfileController extends Controller
             $user->supervisorProfile->update(['status' => 'active']);
         }
 
+        $user->load(['role', 'studentProfile.batch', 'studentProfile.tutor']);
+
         return response()->json([
             'message' => 'Password changed successfully.',
+            'user'    => $this->formatProfileResponse($user),
         ]);
     }
 

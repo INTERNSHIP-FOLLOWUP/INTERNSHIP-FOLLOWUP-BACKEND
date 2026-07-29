@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\CompanySupervisor;
 use App\Models\Evaluation;
 use App\Models\Student;
+use App\Models\Tutor;
+use App\Notifications\EvaluationSubmitted;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -25,6 +27,14 @@ class EvaluationController extends Controller
         if ($user->role->name === 'supervisor') {
             $supervisor = $this->getSupervisor();
             $query->where('company_supervisors_id', $supervisor->id);
+        }
+
+        if ($user->role->name === 'tutor') {
+            $tutor = Tutor::where('user_id', $user->id)->first();
+            if (!$tutor) {
+                return response()->json($query->whereRaw('1 = 0')->paginate(15));
+            }
+            $query->whereHas('student', fn($q) => $q->where('tutor_id', $tutor->id));
         }
 
         if ($request->filled('student_id')) {
@@ -51,7 +61,6 @@ class EvaluationController extends Controller
 
         $validated = $request->validate([
             'student_id' => 'required|exists:students,id',
-            'company_id' => 'required|exists:companies,id',
             'technical_skill' => 'required|integer|min:1|max:100',
             'communication' => 'required|integer|min:1|max:100',
             'professionalism' => 'required|integer|min:1|max:100',
@@ -62,9 +71,15 @@ class EvaluationController extends Controller
         $supervisor = $this->getSupervisor();
         $validated['company_supervisors_id'] = $supervisor->id;
 
-        $evaluation = Evaluation::create($validated);
+        $evaluation = Evaluation::create($validated)->fresh();
+        $evaluation->load(['supervisor.company', 'student.tutor.user']);
 
-        return response()->json($evaluation->load(['supervisor.company', 'student']), 201);
+        $tutorUser = $evaluation->student?->tutor?->user;
+        if ($tutorUser) {
+            $tutorUser->notify(new EvaluationSubmitted($evaluation));
+        }
+
+        return response()->json($evaluation, 201);
     }
 
     /**

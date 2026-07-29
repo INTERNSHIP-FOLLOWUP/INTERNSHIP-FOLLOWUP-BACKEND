@@ -89,7 +89,7 @@ class CompanyMessageController extends Controller
 
                 return [
                     'user' => [
-                        'id' => $convUser->id,
+                        'id' => $tutorId,
                         'name' => $convUser->name,
                         'email' => $convUser->email,
                         'avatar_url' => $convUser->avatar_url,
@@ -127,6 +127,8 @@ class CompanyMessageController extends Controller
 
         $conversations = Company::whereIn('id', $companyIds)->get()->map(function ($convCompany) use ($tutorUserId) {
             $supervisorIds = $this->getSupervisorIdsForCompany($convCompany->id);
+            $firstSupervisor = CompanySupervisor::where('company_id', $convCompany->id)->first();
+            $supervisorUser = $firstSupervisor ? User::find($firstSupervisor->user_id) : null;
 
             $lastMessage = CompanyMessage::whereIn('company_supervisors_id', $supervisorIds)
                 ->where('tutor_id', $tutorUserId)
@@ -140,11 +142,12 @@ class CompanyMessageController extends Controller
                 ->count();
 
             return [
+                'company_name' => $convCompany->company_name,
                 'company' => [
                     'id' => $convCompany->id,
-                    'name' => $convCompany->company_name,
-                    'email' => $convCompany->email,
-                    'logo_url' => $convCompany->company_image_url ?? $convCompany->company_profile_image_url,
+                    'name' => $supervisorUser?->name ?? $convCompany->company_name,
+                    'email' => $supervisorUser?->email ?? $convCompany->email,
+                    'logo_url' => $supervisorUser?->avatar_url ?? $convCompany->company_image_url ?? $convCompany->company_profile_image_url,
                 ],
                 'last_message' => $lastMessage ? [
                     'id' => $lastMessage->id,
@@ -191,6 +194,8 @@ class CompanyMessageController extends Controller
                 'sender_type' => $msg->sender_type,
                 'is_read' => $msg->is_read,
                 'created_at' => $msg->created_at->toISOString(),
+                'tutor_id' => $msg->tutor_id,
+                'company_id' => $msg->supervisor?->company_id,
             ];
         });
 
@@ -269,6 +274,7 @@ class CompanyMessageController extends Controller
                 'created_at' => $msg->created_at->toISOString(),
                 'company_supervisors_id' => $msg->company_supervisors_id,
                 'tutor_id' => $msg->tutor_id,
+                'company_id' => $msg->supervisor?->company_id,
             ];
         });
 
@@ -330,6 +336,8 @@ class CompanyMessageController extends Controller
                 'sender_type' => $message->sender_type,
                 'is_read' => $message->is_read,
                 'created_at' => $message->created_at->toISOString(),
+                'tutor_id' => $message->tutor_id,
+                'company_id' => $message->supervisor?->company_id,
             ],
             'message' => 'Message sent successfully.',
         ], 201);

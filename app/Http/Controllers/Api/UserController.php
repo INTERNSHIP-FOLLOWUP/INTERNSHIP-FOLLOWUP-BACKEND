@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class UserController extends Controller
 {
@@ -299,7 +300,25 @@ class UserController extends Controller
 
         if ($user->studentProfile) {
             $student = $user->studentProfile;
-            $student->delete();
+            $student->load(['worklogs.attachments', 'issues.attachments']);
+
+            foreach ($student->worklogs as $worklog) {
+                foreach ($worklog->attachments as $attachment) {
+                    if ($attachment->file_path && Storage::disk('public')->exists($attachment->file_path)) {
+                        Storage::disk('public')->delete($attachment->file_path);
+                    }
+                }
+            }
+
+            foreach ($student->issues as $issue) {
+                foreach ($issue->attachments as $attachment) {
+                    if ($attachment->file_path && Storage::disk('public')->exists($attachment->file_path)) {
+                        Storage::disk('public')->delete($attachment->file_path);
+                    }
+                }
+            }
+
+            $student->forceDelete();
         }
 
         if ($user->tutorProfile) {
@@ -308,6 +327,10 @@ class UserController extends Controller
 
         if ($user->supervisorProfile) {
             $user->supervisorProfile->delete();
+        }
+
+        if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+            Storage::disk('public')->delete($user->avatar);
         }
 
         $user->tokens()->delete();
@@ -345,13 +368,28 @@ class UserController extends Controller
                     continue;
                 }
 
-                // If user is a student, delete student record first
+                // If user is a student, delete student record and related data first
                 if ($user->studentProfile) {
                     $student = $user->studentProfile;
-                    if ($student->user?->avatar) {
-                        Storage::disk('public')->delete($student->user->avatar);
+                    $student->load(['worklogs.attachments', 'issues.attachments']);
+
+                    foreach ($student->worklogs as $worklog) {
+                        foreach ($worklog->attachments as $attachment) {
+                            if ($attachment->file_path && Storage::disk('public')->exists($attachment->file_path)) {
+                                Storage::disk('public')->delete($attachment->file_path);
+                            }
+                        }
                     }
-                    $student->delete();
+
+                    foreach ($student->issues as $issue) {
+                        foreach ($issue->attachments as $attachment) {
+                            if ($attachment->file_path && Storage::disk('public')->exists($attachment->file_path)) {
+                                Storage::disk('public')->delete($attachment->file_path);
+                            }
+                        }
+                    }
+
+                    $student->forceDelete();
                 }
 
                 // If user is a tutor, delete tutor record first
@@ -362,6 +400,10 @@ class UserController extends Controller
                 // If user is a supervisor, delete supervisor record first
                 if ($user->supervisorProfile) {
                     $user->supervisorProfile->delete();
+                }
+
+                if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+                    Storage::disk('public')->delete($user->avatar);
                 }
 
                 $user->tokens()->delete();
@@ -515,6 +557,43 @@ class UserController extends Controller
     public function exportExcel()
     {
         return Excel::download(new UsersExport, 'users.xlsx');
+    }
+
+    public function exportPdf(Request $request)
+    {
+        $query = User::withTrashed()->with('role');
+
+        if ($request->filled('status')) {
+            if ($request->status === 'deactivated') {
+                $query->onlyTrashed();
+            } elseif ($request->status === 'active') {
+                $query->whereNull('deleted_at');
+            }
+        }
+
+        if ($request->filled('role')) {
+            $role = Role::where('name', $request->role)->first();
+            $query->where('role_id', $role?->id);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        $users = $query->orderBy('created_at', 'desc')->get();
+
+        $pdf = Pdf::loadView('users.list', [
+            'users' => $users,
+            'generated_at' => now()->format('Y-m-d H:i:s'),
+        ]);
+        $pdf->setPaper('A4', 'landscape');
+
+        return $pdf->download('users-' . now()->format('Y-m-d') . '.pdf');
     }
 
     public function import(Request $request): JsonResponse

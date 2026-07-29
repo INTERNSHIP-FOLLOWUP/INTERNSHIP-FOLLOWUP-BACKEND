@@ -8,6 +8,7 @@ use App\Models\Attachment;
 use App\Models\Student;
 use App\Models\Tutor;
 use App\Models\Worklog;
+use App\Notifications\WorklogSubmitted;
 use App\Services\FileUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -133,6 +134,12 @@ class WorklogController extends Controller
 
                 $uploadedFiles[] = $uploadService->storeAndCreateAttachment($file, $worklog->id);
             }
+        }
+
+        $worklog->load(['attachments', 'student.tutor.user']);
+        $tutorUser = $worklog->student?->tutor?->user;
+        if ($tutorUser) {
+            $tutorUser->notify(new WorklogSubmitted($worklog));
         }
 
         return response()->json([

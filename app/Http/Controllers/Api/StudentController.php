@@ -256,13 +256,43 @@ class StudentController extends Controller
         ]);
     }
 
+    /**
+     * Permanently remove the specified student, along with the linked user
+     * account and stored files. Worklogs, worklog attachments, issues, issue
+     * attachments, evaluations, followups, internship assignments, and
+     * tutor-student messages are removed automatically via database cascade.
+     */
     public function destroy(Student $student): JsonResponse
     {
-        if ($student->user) {
-            $student->user->delete();
-        }
+        DB::transaction(function () use ($student) {
+            $student->load(['worklogs.attachments', 'issues.attachments', 'user']);
 
-        $student->delete();
+            foreach ($student->worklogs as $worklog) {
+                foreach ($worklog->attachments as $attachment) {
+                    if ($attachment->file_path && Storage::disk('public')->exists($attachment->file_path)) {
+                        Storage::disk('public')->delete($attachment->file_path);
+                    }
+                }
+            }
+
+            foreach ($student->issues as $issue) {
+                foreach ($issue->attachments as $attachment) {
+                    if ($attachment->file_path && Storage::disk('public')->exists($attachment->file_path)) {
+                        Storage::disk('public')->delete($attachment->file_path);
+                    }
+                }
+            }
+
+            $student->forceDelete();
+
+            if ($student->user) {
+                if ($student->user->avatar && Storage::disk('public')->exists($student->user->avatar)) {
+                    Storage::disk('public')->delete($student->user->avatar);
+                }
+                $student->user->tokens()->delete();
+                $student->user->forceDelete();
+            }
+        });
 
         return response()->json([
             'message' => 'Student deleted successfully.',

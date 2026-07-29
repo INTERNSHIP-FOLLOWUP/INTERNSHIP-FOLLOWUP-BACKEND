@@ -84,6 +84,12 @@ class ReportController extends Controller
             $query->where('company_supervisors_id', $request->company_supervisors_id);
         }
 
+        if ($request->filled('company_id')) {
+            $query->whereHas('supervisor', function ($q) use ($request) {
+                $q->where('company_id', $request->company_id);
+            });
+        }
+
         if ($request->filled('tutor_id')) {
             $query->where('tutor_id', $request->tutor_id);
         }
@@ -244,6 +250,7 @@ class ReportController extends Controller
         $filters = [];
         $filterMap = [
             'batch_id' => 'Batch',
+            'company_id' => 'Company',
             'company_supervisors_id' => 'Company Supervisor',
             'tutor_id' => 'Tutor',
             'status' => 'Status',
