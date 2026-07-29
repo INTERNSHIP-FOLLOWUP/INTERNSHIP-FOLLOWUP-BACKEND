@@ -152,23 +152,31 @@ class ProfileController extends Controller
 
         $user->password = Hash::make($request->password);
         $user->must_change_password = false;
+        $user->status = 'active';
+        $user->save();
 
-        // Auto-activate users when they change password for the first time
-        if ($user->status === 'inactive' && $user->role?->name !== 'admin') {
-            $user->status = 'active';
+        if ($user->studentProfile) {
+            $user->studentProfile->update(['status' => 'active']);
+        }
+        if ($user->tutorProfile) {
+            $user->tutorProfile->update(['status' => 'active']);
+        }
+        if ($user->supervisorProfile) {
+            $user->supervisorProfile->update(['status' => 'active']);
         }
 
-        $user->save();
+        $user->load(['role', 'studentProfile.batch', 'studentProfile.tutor']);
 
         return response()->json([
             'message' => 'Password changed successfully.',
+            'user'    => $this->formatProfileResponse($user),
         ]);
     }
 
     public function updateTheme(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'theme' => 'required|in:light,dark',
+            'theme' => 'required|string|max:100',
         ]);
 
         $user = $request->user();

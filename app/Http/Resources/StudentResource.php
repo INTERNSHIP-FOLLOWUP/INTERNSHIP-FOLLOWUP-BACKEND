@@ -24,7 +24,7 @@ class StudentResource extends JsonResource
             'email' => $this->email,
             'photo' => $this->photo_url,
             'photo_url' => $this->photo_url,
-            'status' => $this->status,
+            'status' => $this->status ?? 'active',
             'user' => [
                 'id' => $this->user?->id ?? $this->user_id,
                 'first_name' => $this->first_name,

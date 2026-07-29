@@ -90,6 +90,7 @@ class StudentDashboardController extends Controller
         }
 
         $user->password = Hash::make($validated['password']);
+        $user->must_change_password = false;
 
         // Auto-activate student when they change password for the first time
         if ($user->status === 'inactive') {

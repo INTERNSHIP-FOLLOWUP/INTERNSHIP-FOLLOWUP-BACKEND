@@ -57,6 +57,8 @@ class AuthController extends Controller
             'email'      => $request->email,
             'password'   => Hash::make($request->password),
             'role_id'    => $studentRole?->id,
+            'status'     => 'inactive',
+            'must_change_password' => true,
         ]);
 
         $token = $user->createToken('api-token')->plainTextToken;
@@ -75,11 +77,17 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $user = User::where('email', $validated['email'])->first();
+        $user = User::withTrashed()->where('email', $validated['email'])->first();
 
         if (!$user || !Hash::check($validated['password'], $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
+            ]);
+        }
+
+        if ($user->trashed() || $user->status === 'deactivated') {
+            throw ValidationException::withMessages([
+                'email' => ['Your account has been deactivated. Please contact system administrator.'],
             ]);
         }
 
@@ -156,17 +164,29 @@ class AuthController extends Controller
 
         $user->password = Hash::make($request->password);
         $user->must_change_password = false;
+        $user->status = 'active';
         $user->save();
+
+        if ($user->studentProfile) {
+            $user->studentProfile->update(['status' => 'active']);
+        }
+        if ($user->tutorProfile) {
+            $user->tutorProfile->update(['status' => 'active']);
+        }
+        if ($user->supervisorProfile) {
+            $user->supervisorProfile->update(['status' => 'active']);
+        }
 
         return response()->json([
             'message' => 'Password changed successfully.',
+            'user'    => $this->userResponse($user),
         ]);
     }
 
     public function updateTheme(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'theme' => 'required|in:light,dark',
+            'theme' => 'required|string|max:100',
         ]);
 
         $user = $request->user();
@@ -208,7 +228,11 @@ class AuthController extends Controller
         $status = Password::reset(
             $request->only('email', 'token', 'password', 'password_confirmation'),
             function (User $user, string $password) {
-                $user->forceFill(['password' => Hash::make($password)])->save();
+                $user->forceFill([
+                    'password' => Hash::make($password),
+                    'must_change_password' => false,
+                    'status' => 'active',
+                ])->save();
                 $user->tokens()->delete();
             }
         );

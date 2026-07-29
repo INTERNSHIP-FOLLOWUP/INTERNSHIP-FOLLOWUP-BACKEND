@@ -151,12 +151,18 @@ class TutorStudentService
             return null;
         }
 
+        $date = \Carbon\Carbon::parse($f->meeting_date);
+
         return [
             'id' => $f->id,
-            'scheduled_at' => $f->next_followup->toISOString(),
-            'date_label' => $f->next_followup->format('M j, Y'),
+            'scheduled_at' => $date->toISOString(),
+            'meeting_date' => $date->toDateString(),
+            'date_label' => $date->format('M j, Y'),
+            'time_label' => $date->format('g:i A'),
             'type' => $f->meeting_type,
+            'meeting_type' => $f->meeting_type,
             'notes' => $f->notes,
+            'status' => 'Scheduled',
         ];
     }
 }

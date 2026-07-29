@@ -56,7 +56,7 @@ class CompanySupervisorController extends Controller
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8'],
+            'password' => ['nullable', 'string', 'min:8'],
             'phone' => ['nullable', 'string', 'max:50'],
             'gender' => ['nullable', 'string', 'in:Male,Female,Other'],
         ]);
@@ -82,8 +82,8 @@ class CompanySupervisorController extends Controller
             'first_name' => $validated['first_name'],
             'last_name' => $validated['last_name'],
             'email' => $validated['email'],
-            'status' => 'active',
-            'password' => Hash::make($validated['password']),
+            'status' => 'inactive',
+            'password' => Hash::make($validated['password'] ?? '12345678'),
             'must_change_password' => true,
             'role_id' => $role->id,
         ]);

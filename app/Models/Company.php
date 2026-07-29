@@ -21,6 +21,7 @@ class Company extends Model
         'website',
         'company_image',
         'company_profile_image',
+        'company_image',
         'telegram_link',
     ];
 

@@ -7,9 +7,10 @@ use App\Http\Requests\CompanyRequest;
 use App\Models\Company;
 use App\Models\CompanySupervisor;
 use App\Models\User;
+use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-    
+
 class CompanyController extends Controller
 {
     public function index(Request $request)
@@ -58,7 +59,36 @@ class CompanyController extends Controller
             $data['company_profile_image'] = $request->input('company_profile_image');
         }
 
-        $company = Company::create($data);
+        // Password is not needed on the Company model
+        $companyData = $data;
+        unset($companyData['password']);
+
+        $company = Company::create($companyData);
+
+        $role = Role::where('name', 'company')->first();
+
+        if (! $role) {
+            return response()->json([
+                'message' => 'Required role "company" not found. Please run database seeders.',
+            ], 500);
+        }
+
+        $user = User::create([
+            'first_name' => $data['contact_person'],
+            'last_name'  => '',
+            'email'      => $data['email'],
+            'password'   => $data['password'],
+            'must_change_password' => true,
+            'status'     => 'inactive',
+            'role_id'    => $role->id,
+        ]);
+
+        // Link the newly created user back to the company record
+        $company->user_id = $user->id;
+        $company->save();
+
+        // Refresh the company to include the relationship
+        $company->load('user');
 
         return response()->json([
             'company' => $company,

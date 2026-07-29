@@ -157,6 +157,7 @@ class TutorProfileController extends Controller
 
         // Update password
         $user->password = Hash::make($request->password);
+        $user->must_change_password = false;
 
         // Auto-activate when changing password for the first time
         if ($user->status === 'inactive') {
@@ -170,4 +171,3 @@ class TutorProfileController extends Controller
         ]);
     }
 }
-

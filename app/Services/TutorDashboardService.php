@@ -84,6 +84,7 @@ class TutorDashboardService
                 return [
                     'id' => $f->id,
                     'scheduled_at' => $date->toISOString(),
+                    'meeting_date' => $date->toDateString(),
                     'date_label' => $date->format('M j, Y'),
                     'time_label' => $date->format('g:i A'),
                     'relative' => $relative,

@@ -24,7 +24,7 @@ class StudentUserSeeder extends Seeder
                 'student_code' => 'STU001',
                 'gender'       => 'Male',
                 'phone'        => '011 111 111',
-                'status'       => 'active',
+                'status'       => 'inactive',
                 'tutor_email'  => 'hey.him@tutor.com',
             ],
             [
@@ -34,7 +34,7 @@ class StudentUserSeeder extends Seeder
                 'student_code' => 'STU002',
                 'gender'       => 'Female',
                 'phone'        => '011 222 222',
-                'status'       => 'active',
+                'status'       => 'inactive',
                 'tutor_email'  => 'yen.yon@tutor.com',
             ],
             [
@@ -44,7 +44,7 @@ class StudentUserSeeder extends Seeder
                 'student_code' => 'STU003',
                 'gender'       => 'Female',
                 'phone'        => '011 333 333',
-                'status'       => 'active',
+                'status'       => 'inactive',
                 'tutor_email'  => 'meng.heang@tutor.com',
             ],
             [
@@ -54,7 +54,7 @@ class StudentUserSeeder extends Seeder
                 'student_code' => 'STU004',
                 'gender'       => 'Female',
                 'phone'        => '011 444 555',
-                'status'       => 'active',
+                'status'       => 'inactive',
                 'tutor_email'  => 'meng.heang@tutor.com',
             ],
             [
@@ -64,7 +64,7 @@ class StudentUserSeeder extends Seeder
                 'student_code' => 'STU005',
                 'gender'       => 'Male',
                 'phone'        => '011 555 555',
-                'status'       => 'active',
+                'status'       => 'inactive',
                 'tutor_email'  => 'meng.heang@tutor.com',
             ],
             [
@@ -74,7 +74,7 @@ class StudentUserSeeder extends Seeder
                 'student_code' => 'STU006',
                 'gender'       => 'Male',
                 'phone'        => '011 666 666',
-                'status'       => 'active',
+                'status'       => 'inactive',
                 'tutor_email'  => 'meng.heang@tutor.com',
             ],
         ];
@@ -98,7 +98,8 @@ class StudentUserSeeder extends Seeder
                     'theme'      => 'light',
                     'phone'      => $studentData['phone'] ?? null,
                     'gender'     => $studentData['gender'] ?? null,
-                    'status'     => $studentData['status'] ?? 'active',
+                    'status'     => $studentData['status'] ?? 'inactive',
+                    'must_change_password' => true,
                 ]
             );
 

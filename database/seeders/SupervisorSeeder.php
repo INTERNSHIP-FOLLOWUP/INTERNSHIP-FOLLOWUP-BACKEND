@@ -87,7 +87,7 @@ class SupervisorSeeder extends Seeder
                     'must_change_password' => true,
                     'theme'      => 'light',
                     'phone'      => $data['phone'] ?? null,
-                    'status'     => 'active',
+                    'status'     => 'inactive',
                 ]
             );
 

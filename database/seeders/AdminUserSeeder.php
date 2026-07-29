@@ -36,6 +36,8 @@ class AdminUserSeeder extends Seeder
                     'password'   => '12345678',
                     'role_id'    => $role->id,
                     'theme'      => 'light',
+                    'status'     => 'active',
+                    'must_change_password' => false,
                 ]
             );
         }

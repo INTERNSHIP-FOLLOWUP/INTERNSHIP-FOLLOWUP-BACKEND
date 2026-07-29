@@ -38,6 +38,8 @@ class UserImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFail
             'email' => $row['email'],
             'password' => Hash::make('12345678'),
             'role_id' => $role->id,
+            'status' => 'inactive',
+            'must_change_password' => true,
         ]);
 
         $this->imported[] = $row['email'];

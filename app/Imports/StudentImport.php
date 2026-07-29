@@ -51,20 +51,34 @@ class StudentImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnF
         $this->currentRow++;
 
         // Map column names to support different variations (with/without spaces, case-insensitive)
-        $firstName = $this->getValue($row, ['first_name', 'firstname', 'First Name']);
-        $lastName = $this->getValue($row, ['last_name', 'lastname', 'Last Name']);
-        $email = $this->getValue($row, ['email', 'Email']);
-        $phone = $this->getValue($row, ['phone', 'Phone']);
-        $gender = $this->getValue($row, ['gender', 'Gender']) ?: 'Other';
+        $firstName = $this->getValue($row, ['first_name', 'firstname', 'First Name', 'first_name']);
+        $lastName = $this->getValue($row, ['last_name', 'lastname', 'Last Name', 'last_name']);
+
+        // Handle Full Name / Name if first_name and last_name are missing
+        if (empty($firstName) && empty($lastName)) {
+            $fullName = $this->getValue($row, ['full_name', 'fullname', 'Full Name', 'name', 'Name']);
+            if (!empty($fullName)) {
+                $parts = explode(' ', trim($fullName), 2);
+                $firstName = $parts[0] ?? '';
+                $lastName = $parts[1] ?? ($parts[0] ?? '');
+            }
+        }
+
+        $email = $this->getValue($row, ['email', 'Email', 'email_address', 'Email Address']);
+        $phone = $this->getValue($row, ['phone', 'Phone', 'phone_number', 'Phone Number']);
+        $gender = $this->getValue($row, ['gender', 'Gender', 'sex', 'Sex']) ?: 'Other';
 
         // Support different batch column names
         $batchName = $this->getValue($row, ['batches', 'batch', 'batch_name', 'Batches', 'Batch', 'Batch Name']);
+
+        // Support tutor assignment by email or name
+        $tutorEmail = $this->getValue($row, ['tutor_email', 'tutor', 'Tutor Email', 'Tutor']);
 
         // Validate required fields
         if (empty($firstName) || empty($lastName) || empty($email) || empty($batchName)) {
             $this->errors[] = [
                 'row' => $this->currentRow,
-                'reason' => 'First name, last name, email, and batches are required fields',
+                'reason' => 'First name, last name, email, and batch are required fields',
             ];
             return null;
         }
@@ -99,6 +113,7 @@ class StudentImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnF
 
         // Look up batch by batch_name
         $batch = Batch::where('batch_name', $batchName)->first();
+
         if (!$batch) {
             $this->errors[] = [
                 'row' => $this->currentRow,
@@ -107,12 +122,27 @@ class StudentImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnF
             return null;
         }
 
+        // Look up Tutor if specified
+        $tutorId = null;
+        if (!empty($tutorEmail)) {
+            $tutorUser = User::where('email', $tutorEmail)
+                ->orWhere(DB::raw("CONCAT(first_name, ' ', last_name)"), $tutorEmail)
+                ->first();
+
+            if ($tutorUser) {
+                $tutorRecord = \App\Models\Tutor::where('user_id', $tutorUser->id)->first();
+                if ($tutorRecord) {
+                    $tutorId = $tutorRecord->user_id;
+                }
+            }
+        }
+
         // Generate sequential student code
-        $studentCode = $this->generateStudentCode();
+        $studentCode = $this->getValue($row, ['student_code', 'code', 'Student Code', 'Code']) ?: $this->generateStudentCode();
 
         // Wrap in DB transaction for this row only
         try {
-            DB::transaction(function () use ($firstName, $lastName, $email, $phone, $gender, $studentCode, $batch, $role) {
+            DB::transaction(function () use ($firstName, $lastName, $email, $phone, $gender, $studentCode, $batch, $tutorId, $role) {
                 // Create user record
                 $user = User::create([
                     'first_name' => $firstName,
@@ -121,6 +151,7 @@ class StudentImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnF
                     'phone' => $phone,
                     'gender' => $gender,
                     'status' => 'inactive',
+                    'must_change_password' => true,
                     'password' => Hash::make('12345678'),
                     'theme' => 'light',
                     'role_id' => $role->id,
@@ -131,6 +162,7 @@ class StudentImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnF
                     'user_id' => $user->id,
                     'student_code' => $studentCode,
                     'batch_id' => $batch->id,
+                    'tutor_id' => $tutorId,
                 ]);
 
                 $this->imported++;

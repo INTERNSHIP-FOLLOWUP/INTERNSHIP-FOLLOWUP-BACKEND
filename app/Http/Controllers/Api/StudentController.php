@@ -27,7 +27,7 @@ class StudentController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Student::withTrashed()->with(['batch', 'tutor', 'user']);
+        $query = Student::withTrashed()->whereHas('user')->with(['batch', 'tutor', 'user']);
 
         if ($request->filled('batch_id')) {
             $query->where('batch_id', $request->batch_id);
@@ -57,17 +57,25 @@ class StudentController extends Controller
 
         if ($request->filled('status')) {
             $status = strtolower($request->status);
-            $query->whereHas('user', function ($q) use ($status) {
-                if ($status === 'deactivated' || $status === 'inactive') {
-                    $q->whereIn('status', ['deactivated', 'inactive'])
-                      ->orWhereNotNull('deleted_at');
-                } elseif ($status === 'active') {
-                    $q->where('status', 'active')
-                      ->whereNull('deleted_at');
-                } else {
-                    $q->where('status', $status);
-                }
-            });
+            if ($status === 'deactivated') {
+                $query->where(function ($q) {
+                    $q->whereHas('user', function ($u) {
+                        $u->where('status', 'deactivated')->orWhereNotNull('deleted_at');
+                    })->orWhereNotNull('deleted_at');
+                });
+            } elseif ($status === 'inactive') {
+                $query->whereNull('deleted_at')->whereHas('user', function ($u) {
+                    $u->where('status', 'inactive')->whereNull('deleted_at');
+                });
+            } elseif ($status === 'active') {
+                $query->whereNull('deleted_at')->whereHas('user', function ($u) {
+                    $u->where('status', 'active')->whereNull('deleted_at');
+                });
+            } else {
+                $query->whereHas('user', function ($u) use ($status) {
+                    $u->where('status', $status)->whereNull('deleted_at');
+                });
+            }
         }
 
         if ($request->filled('gender')) {
