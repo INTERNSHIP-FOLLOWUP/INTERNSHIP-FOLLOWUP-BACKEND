@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\NotificationEvent;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\IssueResource;
 use App\Models\Issue;
@@ -210,6 +211,25 @@ class IssueController extends Controller
                         'file_size' => $file->getSize(),
                     ]);
                 }
+            }
+
+            // Notify student of new issue
+            $student = Student::with('user')->find($validated['student_id']);
+            if ($student && $student->user) {
+                event(new NotificationEvent(
+                    user: $student->user,
+                    type: 'issue',
+                    category: 'info',
+                    priority: 'medium',
+                    title: 'New Issue Created',
+                    message: "A new issue has been created: {$validated['title']}.",
+                    actionUrl: "/student/issues/{$issue->id}",
+                    referenceType: 'issue',
+                    referenceId: $issue->id,
+                    metadata: ['priority' => $validated['priority']],
+                    senderType: $user->role->name,
+                    senderId: $user->id
+                ));
             }
 
             return $issue;

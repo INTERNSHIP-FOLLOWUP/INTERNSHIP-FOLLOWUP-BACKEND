@@ -50,6 +50,22 @@ Route::middleware('auth:sanctum')->prefix('profile')->name('profile.')->group(fu
     Route::put('/theme', [ProfileController::class, 'updateTheme'])->name('theme');
 });
 
+Route::middleware(['auth:sanctum', 'role:admin,tutor,student,company'])->prefix('notifications')->name('notifications.')->group(function () {
+    Route::get('/', [App\Http\Controllers\Api\NotificationController::class, 'index'])->name('index');
+    Route::get('/latest', [App\Http\Controllers\Api\NotificationController::class, 'latest'])->name('latest');
+    Route::get('/unread-count', [App\Http\Controllers\Api\NotificationController::class, 'unreadCount'])->name('unread-count');
+    Route::get('/{notification}', [App\Http\Controllers\Api\NotificationController::class, 'show'])->name('show');
+    Route::patch('/{notification}/read', [App\Http\Controllers\Api\NotificationController::class, 'markAsRead'])->name('mark-as-read');
+    Route::patch('/{notification}/unread', [App\Http\Controllers\Api\NotificationController::class, 'markAsUnread'])->name('mark-as-unread');
+    Route::patch('/read-all', [App\Http\Controllers\Api\NotificationController::class, 'markAllRead'])->name('mark-all-read');
+    Route::patch('/bulk-read', [App\Http\Controllers\Api\NotificationController::class, 'bulkMarkAsRead'])->name('bulk-mark-as-read');
+    Route::patch('/bulk-unread', [App\Http\Controllers\Api\NotificationController::class, 'bulkMarkAsUnread'])->name('bulk-mark-as-unread');
+    Route::delete('/read', [App\Http\Controllers\Api\NotificationController::class, 'deleteRead'])->name('delete-read');
+    Route::delete('/{notification}', [App\Http\Controllers\Api\NotificationController::class, 'destroy'])->name('destroy');
+    Route::delete('/', [App\Http\Controllers\Api\NotificationController::class, 'deleteAll'])->name('delete-all');
+    Route::delete('/bulk', [App\Http\Controllers\Api\NotificationController::class, 'bulkDelete'])->name('bulk-delete');
+});
+
 Route::middleware('auth:sanctum')->prefix('worklogs')->name('worklogs.')->group(function () {
     Route::get('/', [WorklogController::class, 'index'])->name('index');
     Route::post('/', [WorklogController::class, 'store'])->name('store');

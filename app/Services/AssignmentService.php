@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Enums\AssignmentStatus;
+use App\Events\NotificationEvent;
 use App\Http\Resources\AssignmentResource;
 use App\Models\InternshipAssignment;
 use App\Models\Student;
+use App\Models\User;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
@@ -47,6 +49,27 @@ class AssignmentService
                     ->update(['tutor_id' => $data['tutor_id']]);
             }
 
+            // Notify the student about the new assignment
+            if (isset($data['student_id'])) {
+                $student = Student::with('user')->find($data['student_id']);
+                if ($student && $student->user) {
+                    event(new NotificationEvent(
+                        user: $student->user,
+                        type: 'assignment',
+                        category: 'info',
+                        priority: 'medium',
+                        title: 'New Internship Assignment',
+                        message: "You have been assigned to a new internship at {$assignment->company->company_name}.",
+                        actionUrl: "/student/internship",
+                        referenceType: 'assignment',
+                        referenceId: $assignment->id,
+                        metadata: ['company_name' => $assignment->company->company_name, 'position' => $assignment->position],
+                        senderType: 'system',
+                        senderId: null
+                    ));
+                }
+            }
+
             return $assignment;
         });
     }
@@ -54,10 +77,11 @@ class AssignmentService
     public function update(InternshipAssignment $assignment, array $data): InternshipAssignment
     {
         return DB::transaction(function () use ($assignment, $data) {
-            // Capture original values before update() since syncOriginal() is called after
+            // Capture original values before update()
             $originalTutorId = $assignment->getOriginal('tutor_id');
+            $originalStatus = $assignment->getOriginal('status');
 
-            if (isset($data['status']) && $data['status'] !== $assignment->status) {
+            if (isset($data['status']) && $data['status'] !== $originalStatus) {
                 $currentStatus = AssignmentStatus::from($assignment->status);
                 $newStatus = AssignmentStatus::from($data['status']);
 
@@ -72,6 +96,27 @@ class AssignmentService
             if (isset($data['tutor_id']) && $data['tutor_id'] !== $originalTutorId) {
                 Student::where('id', $assignment->student_id)
                     ->update(['tutor_id' => $data['tutor_id']]);
+            }
+
+            // Notify student of status change
+            if (isset($data['status']) && $data['status'] !== $originalStatus) {
+                $student = $assignment->student->load('user');
+                if ($student && $student->user) {
+                    event(new NotificationEvent(
+                        user: $student->user,
+                        type: 'assignment',
+                        category: 'info',
+                        priority: 'medium',
+                        title: 'Internship Assignment Updated',
+                        message: "Your internship assignment status has been updated to {$data['status']}.",
+                        actionUrl: "/student/internship",
+                        referenceType: 'assignment',
+                        referenceId: $assignment->id,
+                        metadata: ['status' => $data['status']],
+                        senderType: 'system',
+                        senderId: null
+                    ));
+                }
             }
 
             return $assignment->fresh()->load(['student', 'company', 'tutor']);

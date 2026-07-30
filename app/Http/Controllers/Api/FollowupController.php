@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\NotificationEvent;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreFollowupRequest;
 use App\Http\Requests\UpdateFollowupRequest;
@@ -120,6 +121,25 @@ class FollowupController extends Controller
             'next_followup' => $validated['next_followup'] ?? null,
             'status' => $validated['status'] ?? 'Scheduled',
         ]);
+
+        // Notify student of new follow-up
+        $student = Student::with('user')->find($validated['student_id']);
+        if ($student && $student->user) {
+            event(new NotificationEvent(
+                user: $student->user,
+                type: 'followup',
+                category: 'info',
+                priority: 'medium',
+                title: 'New Follow-up Scheduled',
+                message: "A new follow-up has been scheduled for " . $followup->scheduled_at->format('M j, Y g:i A') . ".",
+                actionUrl: "/student/followups/{$followup->id}",
+                referenceType: 'followup',
+                referenceId: $followup->id,
+                metadata: ['scheduled_at' => $followup->scheduled_at->toISOString()],
+                senderType: 'tutor',
+                senderId: $tutorId
+            ));
+        }
 
         return response()->json([
             'success' => true,

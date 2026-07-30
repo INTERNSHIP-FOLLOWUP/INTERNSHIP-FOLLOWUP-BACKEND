@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\NotificationEvent;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\Evaluation;
+use App\Models\Student;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -57,6 +59,30 @@ class EvaluationController extends Controller
         $validated['company_id'] = $this->getCompanyId();
 
         $evaluation = Evaluation::create($validated);
+
+        // Notify student of new evaluation
+        $student = Student::with('user')->find($validated['student_id']);
+        if ($student && $student->user) {
+            event(new NotificationEvent(
+                user: $student->user,
+                type: 'evaluation',
+                category: 'success',
+                priority: 'high',
+                title: 'New Evaluation Received',
+                message: "You have received a new evaluation from {$evaluation->company->company_name}. Technical: {$validated['technical_skill']}%, Communication: {$validated['communication']}%, Professionalism: {$validated['professionalism']}%, Attendance: {$validated['attendance']}%",
+                actionUrl: "/student/evaluations/{$evaluation->id}",
+                referenceType: 'evaluation',
+                referenceId: $evaluation->id,
+                metadata: [
+                    'technical_skill' => $validated['technical_skill'],
+                    'communication' => $validated['communication'],
+                    'professionalism' => $validated['professionalism'],
+                    'attendance' => $validated['attendance'],
+                ],
+                senderType: 'company',
+                senderId: $validated['company_id']
+            ));
+        }
 
         return response()->json($evaluation->load(['student', 'company']), 201);
     }

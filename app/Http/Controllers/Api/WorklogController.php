@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\NotificationEvent;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\WorklogRequest;
 use App\Models\Attachment;
 use App\Models\Student;
+use App\Models\Tutor;
 use App\Models\Worklog;
 use App\Services\FileUploadService;
 use Illuminate\Http\Request;
@@ -301,6 +303,24 @@ class WorklogController extends Controller
             'status'   => $newStatus,
             'feedback' => $request->feedback,
         ]);
+
+        // Notify student of worklog status update
+        if ($worklog->student && $worklog->student->user) {
+            event(new NotificationEvent(
+                user: $worklog->student->user,
+                type: 'worklog',
+                category: $newStatus === 'Approved' ? 'success' : 'warning',
+                priority: 'medium',
+                title: 'Worklog ' . $newStatus,
+                message: "Your worklog for week {$worklog->week_number} has been {$newStatus}." . ($request->feedback ? " Feedback: {$request->feedback}" : ''),
+                actionUrl: "/student/worklogs/{$worklog->id}",
+                referenceType: 'worklog',
+                referenceId: $worklog->id,
+                metadata: ['week_number' => $worklog->week_number, 'status' => $newStatus],
+                senderType: 'tutor',
+                senderId: $user->id
+            ));
+        }
 
         return response()->json([
             'data'    => $worklog->load(['student.user', 'attachments']),
