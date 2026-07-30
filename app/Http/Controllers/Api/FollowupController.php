@@ -147,8 +147,15 @@ $followup = Followup::create([
             'status' => $validated['status'] ?? 'Scheduled',
         ]);
 
+        $followup->load(['student.user', 'tutor', 'supervisor.company']);
+
+        $studentUser = $followup->student?->user;
+        if ($studentUser) {
+            $studentUser->notify(new \App\Notifications\FollowupScheduled($followup));
+        }
+
         return response()->json([
-            'data' => new FollowupResource($followup->load(['student', 'tutor', 'supervisor.company'])),
+            'data' => new FollowupResource($followup),
             'message' => 'Follow-up created successfully.',
         ], 201);
     }

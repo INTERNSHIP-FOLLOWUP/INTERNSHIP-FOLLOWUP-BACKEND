@@ -42,7 +42,7 @@ class WorklogRequest extends FormRequest
             'challenges'      => ['nullable', 'string'],
             'submission_date' => ['nullable', 'date'],
             'work_date'       => ['nullable', 'date'],
-            'work_time'       => ['nullable', 'string', 'max:10'],
+            'work_time'       => ['nullable', 'string', 'max:20'],
             'work_activities' => ['nullable', 'string'],
             'what_learned'    => ['nullable', 'string'],
             'difficulties'    => ['nullable', 'string'],

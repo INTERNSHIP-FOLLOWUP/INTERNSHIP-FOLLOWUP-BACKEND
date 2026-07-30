@@ -27,7 +27,7 @@ class StoreFollowupRequest extends FormRequest
         return [
             'student_id' => 'required|integer|exists:students,id',
             'company_supervisors_id' => 'nullable|integer|exists:company_supervisors,id',
-            'meeting_type' => 'required|string|max:255',
+            'meeting_type' => 'required|string|in:Weekly,Monthly,Quarterly',
             'meeting_date' => 'required|date',
             'notes' => 'required|string|max:5000',
             'action_items' => 'nullable|string|max:5000',
@@ -42,7 +42,7 @@ class StoreFollowupRequest extends FormRequest
             'student_id.exists' => 'The selected student does not exist.',
             'company_supervisors_id.exists' => 'The selected supervisor does not exist.',
             'meeting_type.required' => 'The meeting type is required.',
-            'meeting_type.in' => 'The meeting type must be one of: Monthly, Quarterly, Annual.',
+            'meeting_type.in' => 'The meeting type must be one of: Weekly, Monthly, Quarterly.',
             'meeting_date.required' => 'The meeting date is required.',
             'meeting_date.date' => 'The meeting date must be a valid date.',
             'notes.required' => 'The notes field is required.',

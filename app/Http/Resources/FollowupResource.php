@@ -32,6 +32,7 @@ class FollowupResource extends JsonResource
                 'name' => $this->student->name,
                 'email' => $this->student->email,
                 'phone' => $this->student->phone,
+                'photo_url' => $this->student->photo_url,
             ]),
             'company' => $this->whenLoaded('supervisor', fn() => $this->supervisor->company ? [
                 'id' => $this->supervisor->company->id,

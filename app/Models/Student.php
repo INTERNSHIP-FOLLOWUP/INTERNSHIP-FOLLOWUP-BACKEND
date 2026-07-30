@@ -60,9 +60,19 @@ class Student extends Model
         return $this->user?->status;
     }
 
+    public function getCompanyNameAttribute(): ?string
+    {
+        return $this->internshipAssignment?->supervisor?->company?->company_name;
+    }
+
+    public function getPositionAttribute(): ?string
+    {
+        return $this->internshipAssignment?->position;
+    }
+
     protected $hidden = ['user'];
 
-    protected $appends = ['name', 'first_name', 'last_name', 'email', 'phone', 'photo_url', 'gender', 'status'];
+    protected $appends = ['name', 'first_name', 'last_name', 'email', 'phone', 'photo_url', 'gender', 'status', 'company_name', 'position'];
 
     protected $casts = [
         'batch_id' => 'integer',
@@ -97,7 +107,7 @@ class Student extends Model
 
     public function internshipAssignment(): HasOne
     {
-        return $this->hasOne(InternshipAssignment::class);
+        return $this->hasOne(InternshipAssignment::class)->latestOfMany();
     }
 
     public function evaluations(): HasMany

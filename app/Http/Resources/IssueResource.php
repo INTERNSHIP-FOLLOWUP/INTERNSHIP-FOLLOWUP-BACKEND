@@ -33,6 +33,7 @@ class IssueResource extends JsonResource
             'description' => $this->description,
             'reporter' => $this->reporter?->name ?? $this->student?->name ?? 'Unknown',
             'studentName' => $this->student?->name ?? '',
+            'studentPhotoUrl' => $this->student?->photo_url,
             'assignedTo' => $this->assignedUser?->name ?? $this->tutor?->name ?? 'Unassigned',
             'createdAt' => $this->created_at?->toISOString(),
             'updatedAt' => $this->updated_at?->toISOString(),

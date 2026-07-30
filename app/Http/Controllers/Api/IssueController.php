@@ -177,12 +177,12 @@ class IssueController extends Controller
             'attachments.*' => 'file|mimes:pdf,docx,png,zip|max:10240',
         ];
 
-        // Only tutors and admins can create issues
-        if (!in_array($user->role->name, ['tutor', 'admin'])) {
+        // Tutors/admins create issues for students; students report issues about their own internship
+        if (!in_array($user->role->name, ['tutor', 'admin', 'student'])) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
-        if ($user->role->name !== 'admin') {
+        if ($user->role->name === 'tutor') {
             $validationRules['student_id'] = 'required|exists:students,id';
         }
 
@@ -191,8 +191,16 @@ class IssueController extends Controller
         // Resolve tutor_id and reporter_id based on role
         $tutorId = null;
         $reporterId = $user->id;
+        $student = null;
 
-        if ($user->role->name === 'tutor') {
+        if ($user->role->name === 'student') {
+            $student = $user->studentProfile?->load('tutor');
+            if (!$student) {
+                return response()->json(['message' => 'Student profile not found.'], 403);
+            }
+            $validated['student_id'] = $student->id;
+            $tutorId = $student->tutor_id;
+        } elseif ($user->role->name === 'tutor') {
             $tutorId = $this->resolveTutorId($user);
 
             // Verify the student belongs to this tutor
@@ -206,12 +214,18 @@ class IssueController extends Controller
             $student = Student::with('user')->find($validated['student_id']);
         }
 
-        $issue = DB::transaction(function () use ($validated, $tutorId, $reporterId, $request, $student) {
+        // Default assignee: the student's user for tutor/admin reports,
+        // or the student's tutor when the student reports it themselves.
+        $defaultAssigneeId = $user->role->name === 'student'
+            ? $student->tutor?->user_id
+            : $student?->user_id;
+
+        $issue = DB::transaction(function () use ($validated, $tutorId, $reporterId, $request, $defaultAssigneeId) {
             $issue = Issue::create([
                 'student_id' => $validated['student_id'],
                 'reporter_id' => $reporterId,
                 'tutor_id' => $tutorId,
-                'assigned_user_id' => $validated['assigned_user_id'] ?? $student?->user_id,
+                'assigned_user_id' => $validated['assigned_user_id'] ?? $defaultAssigneeId,
                 'title' => $validated['title'],
                 'description' => $validated['description'],
                 'status' => $validated['status'] ?? 'Open',
@@ -262,7 +276,7 @@ class IssueController extends Controller
         $decodedId = $this->decodeIssueId($id);
         $issue = Issue::findOrFail($decodedId);
         if ($user->role->name === 'student') {
-            if ($issue->assigned_user_id !== $user->id) {
+            if ($issue->assigned_user_id !== $user->id && $issue->reporter_id !== $user->id) {
                 return response()->json(['message' => 'Unauthorized'], 403);
             }
         } elseif ($user->role->name === 'tutor') {

@@ -98,7 +98,7 @@ class AssignmentController extends Controller
         }
 
         $assignment = InternshipAssignment::where('student_id', $student->id)
-            ->with(['student.user', 'supervisor.company', 'tutor'])
+            ->with(['student.user', 'supervisor.company', 'supervisor.user', 'tutor.user'])
             ->latest()
             ->first();
 

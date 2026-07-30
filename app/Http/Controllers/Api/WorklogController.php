@@ -155,8 +155,11 @@ class WorklogController extends Controller
             $this->authorizeAccess($user, $worklog);
         }
 
+        $worklog->load(['student.user', 'attachments', 'student.internshipAssignment.supervisor.company']);
+        $worklog->loadCount(['attachments']);
+
         return response()->json([
-            'data'    => $worklog->load(['student', 'attachments']),
+            'data'    => $worklog,
             'message' => 'Worklog retrieved successfully.',
         ], 200);
     }

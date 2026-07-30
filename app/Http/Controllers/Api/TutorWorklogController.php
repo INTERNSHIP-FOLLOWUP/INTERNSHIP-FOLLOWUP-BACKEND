@@ -103,7 +103,7 @@ class TutorWorklogController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $worklog->load(['student:id,user_id', 'attachments']),
+            'data' => $worklog->load(['student.user', 'attachments', 'student.internshipAssignment.supervisor.company']),
         ], 200);
     }
 

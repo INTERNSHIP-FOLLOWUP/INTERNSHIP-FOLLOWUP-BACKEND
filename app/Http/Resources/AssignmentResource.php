@@ -42,7 +42,11 @@ class AssignmentResource extends JsonResource
             'student_name' => $this->whenLoaded('student', fn() => $this->student->name),
             'student_photo_url' => $this->whenLoaded('student', fn() => $this->student->photo_url),
             'company_name' => $this->whenLoaded('supervisor', fn() => $this->supervisor->company?->company_name),
+            'company_logo_url' => $this->whenLoaded('supervisor', fn() => $this->supervisor->company?->company_image_url),
             'tutor_name' => $this->whenLoaded('tutor', fn() => $this->tutor->name),
+            'tutor_photo_url' => $this->whenLoaded('tutor', fn() => $this->tutor->photo_url),
+            'supervisor_name' => $this->whenLoaded('supervisor', fn() => $this->supervisor->name),
+            'supervisor_photo_url' => $this->whenLoaded('supervisor', fn() => $this->supervisor->user?->avatar_url),
         ];
     }
 }
