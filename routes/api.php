@@ -115,6 +115,7 @@ Route::middleware(['auth:sanctum', 'role:admin,tutor,student'])->prefix('followu
 });
 
 Route::middleware(['auth:sanctum', 'role:student'])->prefix('student')->name('student.')->group(function () {
+    Route::get('/dashboard', [StudentDashboardController::class, 'index'])->name('dashboard');
     Route::get('/internship', [AssignmentController::class, 'myInternship'])->name('internship');
     Route::get('/profile', [StudentDashboardController::class, 'profile'])->name('profile');
     Route::put('/profile', [StudentDashboardController::class, 'updateProfile'])->name('profile.update');
